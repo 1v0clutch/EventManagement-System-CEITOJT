@@ -55,9 +55,13 @@ function ensure_member($member){
 }
 
 function minutes_of($time){
-    // expects HH:MM
+    // expects HH:MM format - return -1 if invalid
+    if(!$time || !preg_match('/^\d{2}:\d{2}$/', $time)) return -1;
     $parts = explode(':', $time);
-    return intval($parts[0])*60 + intval($parts[1]);
+    $h = intval($parts[0]);
+    $m = intval($parts[1]);
+    if($h < 0 || $h > 23 || $m < 0 || $m > 59) return -1;
+    return $h * 60 + $m;
 }
 
 function member_is_busy_at($member, $date, $time){
@@ -74,6 +78,12 @@ function member_is_busy_at($member, $date, $time){
     return ['busy'=>false];
 }
 
+function is_valid_cvsu_email($email){
+    // Validate format: main.(firstname).(lastname)@cvsu.edu.ph
+    $pattern = '/^main\.[a-zA-Z]+\.[a-zA-Z]+@cvsu\.edu\.ph$/i';
+    return preg_match($pattern, $email);
+}
+
 try {
 switch($action){
     case 'register':
@@ -81,6 +91,7 @@ switch($action){
         $email = trim($input['email'] ?? '');
         $password = trim($input['password'] ?? '');
         if(!$username || !$email || !$password){ http_response_code(400); echo json_encode(['error'=>'username, email and password required']); exit; }
+        if(!is_valid_cvsu_email($email)){ http_response_code(400); echo json_encode(['error'=>'Email must be in format main.(firstname).(lastname)@cvsu.edu.ph']); exit; }
         $users = load_json($DATA_DIR . '/users.json');
         foreach($users as $u) if($u['email'] === $email){ http_response_code(400); echo json_encode(['error'=>'user already exists']); exit; }
         $user = ['id'=>uniqid('usr_', true), 'username'=>$username, 'email'=>$email, 'password'=>password_hash($password, PASSWORD_DEFAULT), 'created_at'=>date('c')];
@@ -89,20 +100,23 @@ switch($action){
         ensure_member($email);
         $_SESSION['user_id'] = $user['id'];
         $_SESSION['user_email'] = $user['email'];
-        echo json_encode(['message'=>'Registered successfully', 'user'=>['id'=>$user['id'], 'email'=>$user['email']]]);
+        $_SESSION['user_username'] = $user['username'];
+        echo json_encode(['message'=>'Registered successfully', 'user'=>['id'=>$user['id'], 'email'=>$user['email'], 'username'=>$user['username']]]);
         break;
 
     case 'login':
         $email = trim($input['email'] ?? '');
         $password = trim($input['password'] ?? '');
         if(!$email || !$password){ http_response_code(400); echo json_encode(['error'=>'email and password required']); exit; }
+        if(!is_valid_cvsu_email($email)){ http_response_code(400); echo json_encode(['error'=>'Email must be in format main.(firstname).(lastname)@cvsu.edu.ph']); exit; }
         $users = load_json($DATA_DIR . '/users.json');
         $found = null;
         foreach($users as $u) if($u['email'] === $email){ $found = $u; break; }
         if(!$found || !password_verify($password, $found['password'])){ http_response_code(400); echo json_encode(['error'=>'invalid email or password']); exit; }
         $_SESSION['user_id'] = $found['id'];
         $_SESSION['user_email'] = $found['email'];
-        echo json_encode(['message'=>'Logged in successfully', 'user'=>['id'=>$found['id'], 'email'=>$found['email']]]);
+        $_SESSION['user_username'] = $found['username'];
+        echo json_encode(['message'=>'Logged in successfully', 'user'=>['id'=>$found['id'], 'email'=>$found['email'], 'username'=>$found['username']]]);
         break;
 
     case 'logout':
@@ -111,7 +125,7 @@ switch($action){
         break;
 
     case 'get_current_user':
-        if(isset($_SESSION['user_id'])){ echo json_encode(['user'=>['id'=>$_SESSION['user_id'], 'email'=>$_SESSION['user_email']]]); }
+        if(isset($_SESSION['user_id'])){ echo json_encode(['user'=>['id'=>$_SESSION['user_id'], 'email'=>$_SESSION['user_email'], 'username'=>$_SESSION['user_username'] ?? null]]); }
         else { echo json_encode(['user'=>null]); }
         break;
 
@@ -148,17 +162,52 @@ switch($action){
         break;
 
     case 'set_availability':
-        $member = trim($input['member'] ?? '');
+        $member_input = trim($input['member'] ?? '');
         $date = $input['date'] ?? null;
         $start = $input['start'] ?? null;
         $end = $input['end'] ?? null;
-        if(!$member || !$date || !$start || !$end){ http_response_code(400); echo json_encode(['error'=>'member,date,start,end required']); exit; }
+        if(!$member_input || !$date || !$start || !$end){ http_response_code(400); echo json_encode(['error'=>'member,date,start,end required']); exit; }
+        
+        // Validate time format
+        $start_min = minutes_of($start);
+        $end_min = minutes_of($end);
+        if($start_min === -1 || $end_min === -1){
+            http_response_code(400);
+            echo json_encode(['error'=>'Invalid time format. Use HH:MM format']);
+            exit;
+        }
+        if($start_min >= $end_min){
+            http_response_code(400);
+            echo json_encode(['error'=>'Start time must be before end time']);
+            exit;
+        }
+        
+        // Convert username to email if needed
+        $users = load_json($DATA_DIR . '/users.json');
+        $member_email = null;
+        foreach($users as $u){
+            if(isset($u['username']) && $u['username'] === $member_input){
+                $member_email = $u['email'];
+                break;
+            }
+        }
+        
+        // If username not found, assume input is already an email
+        if(!$member_email) $member_email = $member_input;
+        
+        // Validate that we have a valid member
+        if(!$member_email){
+            http_response_code(400);
+            echo json_encode(['error'=>'Member not found']);
+            exit;
+        }
+        
         $avail = load_json($AVAIL_FILE);
-        if(!isset($avail[$member])) $avail[$member] = [];
-        $avail[$member][] = ['date'=>$date,'start'=>$start,'end'=>$end];
+        if(!isset($avail[$member_email])) $avail[$member_email] = [];
+        $avail[$member_email][] = ['date'=>$date,'start'=>$start,'end'=>$end];
         save_json($AVAIL_FILE, $avail);
-        ensure_member($member);
-        echo json_encode(['message'=>'Availability saved for '.$member]);
+        ensure_member($member_email);
+        echo json_encode(['message'=>'Availability saved for '.$member_input]);
         break;
 
     case 'get_member_availability_for_event':
@@ -178,13 +227,19 @@ switch($action){
         $users = load_json($DATA_DIR . '/users.json');
         $members = [];
         foreach($users as $u){
+            if(!isset($u['username']) || !$u['username']) continue; // skip users without username
             $members[] = ['username'=>$u['username'], 'email'=>$u['email']];
         }
         echo json_encode(['members'=>$members]);
         break;
 
     case 'list_members':
-        $members = load_json($MEMBERS_FILE);
+        $users = load_json($DATA_DIR . '/users.json');
+        $members = [];
+        foreach($users as $u){
+            if(!isset($u['username']) || !$u['username']) continue; // skip users without username
+            $members[] = ['username'=>$u['username'], 'email'=>$u['email']];
+        }
         echo json_encode(['members'=>$members]);
         break;
 

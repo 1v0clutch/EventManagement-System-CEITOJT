@@ -71,7 +71,11 @@
         <section>
             <h2>Member Availability (mark busy)</h2>
             <form id="availForm">
-                <label>Member name/email: <input type="text" name="member" required></label><br>
+                <label>Member name:<br>
+                    <select id="memberAvailList" name="member" required>
+                        <option value="">Loading members...</option>
+                    </select>
+                </label><br>
                 <label>Date: <input type="date" name="date" required></label><br>
                 <label>Start time: <input type="time" name="start" required></label><br>
                 <label>End time: <input type="time" name="end" required></label><br>
@@ -109,7 +113,12 @@
         const data = {action:'register', username:fd.get('username'), email:fd.get('email'), password:fd.get('password')};
         const res = await postAction(data);
         if(res.error){ document.getElementById('registerResult').textContent = 'Error: ' + res.error; }
-        else { document.getElementById('registerResult').textContent = res.message; checkAuth(); }
+        else { 
+            document.getElementById('registerResult').textContent = res.message + ' Please login with your credentials.';
+            document.getElementById('registerForm').reset();
+            document.getElementById('loginSection').style.display = 'block';
+            document.getElementById('registerSection').style.display = 'none';
+        }
     });
 
     document.getElementById('toggleToRegister').addEventListener('click', ()=>{
@@ -127,16 +136,35 @@
         checkAuth();
     });
 
-    // Load members from members.json via list_members
+    // Load members from users via get_registered_members
     async function loadMembers(){
-        const res = await postAction({action:'list_members'});
+        const res = await postAction({action:'get_registered_members'});
         const select = document.getElementById('membersList');
         select.innerHTML = '';
         if(res.members && res.members.length > 0){
             res.members.forEach(m => {
                 const opt = document.createElement('option');
-                opt.value = m; // members.json stores identifiers (email or name)
-                opt.textContent = m;
+                opt.value = m.email; // store email as value for creating events
+                opt.textContent = m.username; // display username
+                select.appendChild(opt);
+            });
+        } else {
+            const opt = document.createElement('option');
+            opt.textContent = 'No members available';
+            select.appendChild(opt);
+        }
+    }
+
+    // Load members for availability form
+    async function loadMembersForAvailability(){
+        const res = await postAction({action:'list_members'});
+        const select = document.getElementById('memberAvailList');
+        select.innerHTML = '';
+        if(res.members && res.members.length > 0){
+            res.members.forEach(m => {
+                const opt = document.createElement('option');
+                opt.value = m.username; // store username
+                opt.textContent = m.username; // display username
                 select.appendChild(opt);
             });
         } else {
@@ -153,8 +181,9 @@
         if(user){
             document.getElementById('authSection').style.display = 'none';
             document.getElementById('appSection').style.display = 'block';
-            document.getElementById('currentUser').textContent = 'Logged in as: ' + user.email;
+            document.getElementById('currentUser').textContent = 'Logged in as: ' + user.username;
             loadMembers();
+            loadMembersForAvailability();
             refreshEvents();
         } else {
             document.getElementById('authSection').style.display = 'block';
@@ -186,12 +215,28 @@
 
     document.getElementById('refreshEvents').addEventListener('click', refreshEvents);
 
+    // Helper to map email to username
+    let membersCache = null;
+    async function getEmailToUsernameMap(){
+        if(!membersCache){
+            const res = await postAction({action:'get_registered_members'});
+            membersCache = {};
+            if(res.members){
+                res.members.forEach(m => {
+                    membersCache[m.email] = m.username;
+                });
+            }
+        }
+        return membersCache;
+    }
+
     async function refreshEvents(){
         const res = await postAction({action:'list_events'});
         const container = document.getElementById('eventsList');
         if(!res.events) { container.textContent = JSON.stringify(res); return; }
         container.innerHTML = '';
         if(res.events.length===0){ container.textContent = 'No events yet.'; return; }
+        const emailToUsername = await getEmailToUsernameMap();
         for(const ev of res.events){
             const div = document.createElement('div');
             div.className = 'event-card';
@@ -201,7 +246,8 @@
             const ul = document.createElement('ul');
             for(const m of ev.members){
                 const li = document.createElement('li');
-                li.textContent = m + ' — checking...';
+                const username = emailToUsername[m] || m;
+                li.textContent = username + ' — checking...';
                 li.className = 'checking';
                 ul.appendChild(li);
                 // check availability per member
