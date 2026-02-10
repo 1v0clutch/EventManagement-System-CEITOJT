@@ -26,3 +26,12 @@ Part ni Mark: Calendar Dashboard with tasks notification
 Part ni Steven: Create with description, Drop down box for different departments members, Start time must be today at this moment- 
 never must be setted at the past, Set open event where everyone can join
 
+Host Database Online
+
+Napipindot event Calendar
+Modal
+Calendar improvement
+
+Improvement ng login 
+account dashboard with information details
+Forget password - Verification account on register
