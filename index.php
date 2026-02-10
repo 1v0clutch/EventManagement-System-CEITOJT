@@ -78,8 +78,21 @@
 
         <section>
             <h2>Events / Calendar</h2>
-            <button id="refreshEvents" class="btn">Refresh Events</button>
-            <div id="eventsList"></div>
+            <div style="margin-bottom: 16px;">
+                <button id="toggleView" class="btn">Switch to List View</button>
+                <button id="refreshEvents" class="btn">Refresh Events</button>
+            </div>
+            
+            <div id="calendarView">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                    <button id="prevMonth" class="btn">&lt; Previous</button>
+                    <h3 id="currentMonth" style="margin: 0;"></h3>
+                    <button id="nextMonth" class="btn">Next &gt;</button>
+                </div>
+                <div id="calendar"></div>
+            </div>
+            
+            <div id="eventsList" style="display: none;"></div>
         </section>
 
         <hr>
@@ -248,7 +261,7 @@
                 setDateConstraints();
                 await loadMembers();
                 // loadMembersForAvailability(); // commented out - availability form not in use
-                await refreshEvents();
+                await renderCalendar();
             } else {
                 currentUser = null;
                 document.getElementById('authSection').style.display = 'block';
@@ -315,7 +328,11 @@
             document.getElementById('createResult').textContent = res.message || JSON.stringify(res);
             if(res.message && res.message.includes('created')) e.target.reset();
         }
-        await refreshEvents();
+        if(isCalendarView){
+            await renderCalendar();
+        } else {
+            await refreshEvents();
+        }
     });
 
     // Mark availability (busy) - commented out for now
@@ -332,6 +349,173 @@
     // }
 
     document.getElementById('refreshEvents').addEventListener('click', refreshEvents);
+
+    // Calendar state
+    let currentCalendarDate = new Date();
+    let calendarEvents = [];
+    let isCalendarView = true;
+
+    // Toggle between calendar and list view
+    document.getElementById('toggleView').addEventListener('click', () => {
+        isCalendarView = !isCalendarView;
+        const calendarView = document.getElementById('calendarView');
+        const listView = document.getElementById('eventsList');
+        const toggleBtn = document.getElementById('toggleView');
+        
+        if(isCalendarView){
+            calendarView.style.display = 'block';
+            listView.style.display = 'none';
+            toggleBtn.textContent = 'Switch to List View';
+            renderCalendar();
+        } else {
+            calendarView.style.display = 'none';
+            listView.style.display = 'block';
+            toggleBtn.textContent = 'Switch to Calendar View';
+            refreshEvents();
+        }
+    });
+
+    // Calendar navigation
+    document.getElementById('prevMonth').addEventListener('click', () => {
+        currentCalendarDate.setMonth(currentCalendarDate.getMonth() - 1);
+        renderCalendar();
+    });
+
+    document.getElementById('nextMonth').addEventListener('click', () => {
+        currentCalendarDate.setMonth(currentCalendarDate.getMonth() + 1);
+        renderCalendar();
+    });
+
+    // Render calendar
+    async function renderCalendar(){
+        const year = currentCalendarDate.getFullYear();
+        const month = currentCalendarDate.getMonth();
+        
+        // Update month header
+        const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 
+                           'July', 'August', 'September', 'October', 'November', 'December'];
+        document.getElementById('currentMonth').textContent = monthNames[month] + ' ' + year;
+        
+        // Get events for this month
+        const res = await postAction({action:'list_events'});
+        calendarEvents = res.events || [];
+        
+        // Build calendar grid
+        const firstDay = new Date(year, month, 1).getDay();
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+        
+        const calendar = document.getElementById('calendar');
+        calendar.innerHTML = '';
+        calendar.style.display = 'grid';
+        calendar.style.gridTemplateColumns = 'repeat(7, 1fr)';
+        calendar.style.gap = '4px';
+        calendar.style.marginTop = '12px';
+        
+        // Day headers
+        const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+        dayNames.forEach(day => {
+            const header = document.createElement('div');
+            header.textContent = day;
+            header.style.fontWeight = 'bold';
+            header.style.textAlign = 'center';
+            header.style.padding = '8px';
+            header.style.background = '#f3f4f6';
+            header.style.borderRadius = '4px';
+            calendar.appendChild(header);
+        });
+        
+        // Empty cells before first day
+        for(let i = 0; i < firstDay; i++){
+            const empty = document.createElement('div');
+            empty.style.minHeight = '80px';
+            empty.style.background = '#fafbfc';
+            empty.style.borderRadius = '4px';
+            calendar.appendChild(empty);
+        }
+        
+        // Days of month
+        for(let day = 1; day <= daysInMonth; day++){
+            const dateStr = year + '-' + String(month + 1).padStart(2, '0') + '-' + String(day).padStart(2, '0');
+            const dayEvents = calendarEvents.filter(e => e.date === dateStr);
+            
+            const dayCell = document.createElement('div');
+            dayCell.style.minHeight = '80px';
+            dayCell.style.padding = '4px';
+            dayCell.style.border = '1px solid #d0d5db';
+            dayCell.style.borderRadius = '4px';
+            dayCell.style.background = '#ffffff';
+            dayCell.style.cursor = 'pointer';
+            dayCell.style.position = 'relative';
+            
+            // Highlight today
+            const today = new Date();
+            if(year === today.getFullYear() && month === today.getMonth() && day === today.getDate()){
+                dayCell.style.background = '#dbeafe';
+                dayCell.style.borderColor = '#3b82f6';
+                dayCell.style.borderWidth = '2px';
+            }
+            
+            const dayNum = document.createElement('div');
+            dayNum.textContent = day;
+            dayNum.style.fontWeight = 'bold';
+            dayNum.style.marginBottom = '4px';
+            dayCell.appendChild(dayNum);
+            
+            // Show event indicators
+            if(dayEvents.length > 0){
+                dayEvents.slice(0, 3).forEach(ev => {
+                    const eventDot = document.createElement('div');
+                    eventDot.textContent = ev.time + ' ' + ev.title;
+                    eventDot.style.fontSize = '0.7rem';
+                    eventDot.style.background = '#3b82f6';
+                    eventDot.style.color = 'white';
+                    eventDot.style.padding = '2px 4px';
+                    eventDot.style.borderRadius = '3px';
+                    eventDot.style.marginBottom = '2px';
+                    eventDot.style.overflow = 'hidden';
+                    eventDot.style.textOverflow = 'ellipsis';
+                    eventDot.style.whiteSpace = 'nowrap';
+                    dayCell.appendChild(eventDot);
+                });
+                
+                if(dayEvents.length > 3){
+                    const more = document.createElement('div');
+                    more.textContent = '+' + (dayEvents.length - 3) + ' more';
+                    more.style.fontSize = '0.65rem';
+                    more.style.color = '#6b7280';
+                    more.style.fontStyle = 'italic';
+                    dayCell.appendChild(more);
+                }
+            }
+            
+            // Click to show day details
+            dayCell.addEventListener('click', () => showDayDetails(dateStr, dayEvents));
+            
+            calendar.appendChild(dayCell);
+        }
+    }
+
+    // Show details for a specific day
+    async function showDayDetails(dateStr, events){
+        if(events.length === 0){
+            alert('No events on ' + dateStr);
+            return;
+        }
+        
+        const emailToUsername = await getEmailToUsernameMap();
+        let details = 'Events on ' + dateStr + ':\n\n';
+        
+        events.forEach((ev, idx) => {
+            details += (idx + 1) + '. ' + ev.title + ' at ' + ev.time + '\n';
+            if(ev.description) details += '   Description: ' + ev.description + '\n';
+            if(ev.department) details += '   Department: ' + ev.department + '\n';
+            const hostDisplay = ev.host ? (emailToUsername[ev.host] || ev.host) : 'Unknown';
+            details += '   Host: ' + hostDisplay + '\n';
+            details += '   Members: ' + ev.members.map(m => emailToUsername[m] || m).join(', ') + '\n\n';
+        });
+        
+        alert(details);
+    }
 
     // Helper to map email to username
     async function getEmailToUsernameMap(){
