@@ -5,4 +5,14 @@
 10 AM - Polishing Backend Logic for Updating Account Information to Database
 11 AM - Lunch
 12 PM - Improving UI Apperance of Dashboard and Account Settings
-1 PM - Drafting System Requirements Specification for Dependencies and Functional Requirements
+1 PM - Initial Drafting of System Requirements Specification for Dependencies and Functional Requirements
+2 PM - UI/UX Improvements of Dashboard, Account Settings
+
+
+
+
+Syatem Requirement Specification:
+
+- Dependencies
+
+- Functional Requirements
