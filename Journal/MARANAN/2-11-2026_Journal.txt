@@ -1,0 +1,5 @@
+7:00 : Time in
+
+7:00 - 8:00 : Implementing form attachments for additional proofs
+8:00 - 9:00 : Debugging multiple form attachments / improvement UI
+9:00 - 10:00 : Refactoring UI of the Create Event

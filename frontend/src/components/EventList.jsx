@@ -68,9 +68,11 @@ export default function EventList({ events, currentUser, onEdit, onRefresh }) {
               className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
             >
               <div className="flex justify-between items-start mb-3">
-                <h3 className="text-lg font-semibold text-gray-900">
-                  {event.title} — {event.date} {event.time}
-                </h3>
+                <div className="flex-1">
+                  <h3 className="text-lg font-semibold text-gray-900">
+                    {event.title} — {event.date} {event.time}
+                  </h3>
+                </div>
                 {currentUser && event.host.id === currentUser.id && (
                   <button
                     onClick={() => onEdit(event)}
@@ -79,6 +81,30 @@ export default function EventList({ events, currentUser, onEdit, onRefresh }) {
                     Edit
                   </button>
                 )}
+              </div>
+
+              {event.images && event.images.length > 0 && (
+                <div className="mb-3">
+                  {event.images.length === 1 ? (
+                    <img 
+                      src={event.images[0]} 
+                      alt={event.title} 
+                      className="w-full max-w-md h-48 object-cover rounded-md border border-gray-300"
+                    />
+                  ) : (
+                    <div className="grid grid-cols-2 gap-2">
+                      {event.images.map((image, index) => (
+                        <img 
+                          key={index}
+                          src={image} 
+                          alt={`${event.title} ${index + 1}`} 
+                          className="w-full h-32 object-cover rounded-md border border-gray-300"
+                        />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
               </div>
 
               <div className="space-y-2 text-sm">

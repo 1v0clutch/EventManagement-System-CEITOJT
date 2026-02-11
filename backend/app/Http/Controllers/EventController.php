@@ -10,7 +10,7 @@ class EventController extends Controller
 {
     public function index()
     {
-        $events = Event::with(['host', 'members'])->orderBy('date')->orderBy('time')->get();
+        $events = Event::with(['host', 'members', 'images'])->orderBy('date')->orderBy('time')->get();
 
         return response()->json([
             'events' => $events->map(function ($event) {
@@ -19,6 +19,7 @@ class EventController extends Controller
                     'title' => $event->title,
                     'description' => $event->description,
                     'location' => $event->location,
+                    'images' => $event->images->map(fn($img) => asset('storage/' . $img->image_path)),
                     'date' => $event->date,
                     'time' => $event->time,
                     'is_open' => $event->is_open,
@@ -43,6 +44,7 @@ class EventController extends Controller
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
             'location' => 'required|string|max:255',
+            'images.*' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             'date' => 'required|date',
             'time' => 'required',
             'member_ids' => 'nullable|array',
@@ -59,11 +61,22 @@ class EventController extends Controller
             'host_id' => $request->user()->id,
         ]);
 
+        // Handle multiple images
+        if ($request->hasFile('images')) {
+            foreach ($request->file('images') as $index => $image) {
+                $imagePath = $image->store('events', 'public');
+                $event->images()->create([
+                    'image_path' => $imagePath,
+                    'order' => $index,
+                ]);
+            }
+        }
+
         if ($request->member_ids) {
             $event->members()->attach($request->member_ids);
         }
 
-        $event->load(['host', 'members']);
+        $event->load(['host', 'members', 'images']);
 
         return response()->json([
             'message' => 'Event created successfully',
@@ -81,6 +94,7 @@ class EventController extends Controller
             'title' => 'sometimes|required|string|max:255',
             'description' => 'nullable|string',
             'location' => 'sometimes|required|string|max:255',
+            'images.*' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             'date' => 'sometimes|required|date',
             'time' => 'sometimes|required',
             'member_ids' => 'nullable|array',
@@ -89,11 +103,29 @@ class EventController extends Controller
 
         $event->update($request->only(['title', 'description', 'location', 'date', 'time', 'is_open']));
 
+        // Handle new images
+        if ($request->hasFile('images')) {
+            // Delete old images
+            foreach ($event->images as $oldImage) {
+                \Storage::disk('public')->delete($oldImage->image_path);
+                $oldImage->delete();
+            }
+
+            // Add new images
+            foreach ($request->file('images') as $index => $image) {
+                $imagePath = $image->store('events', 'public');
+                $event->images()->create([
+                    'image_path' => $imagePath,
+                    'order' => $index,
+                ]);
+            }
+        }
+
         if ($request->has('member_ids')) {
             $event->members()->sync($request->member_ids);
         }
 
-        return response()->json(['message' => 'Event updated successfully', 'event' => $event->load(['host', 'members'])]);
+        return response()->json(['message' => 'Event updated successfully', 'event' => $event->load(['host', 'members', 'images'])]);
     }
 
     public function destroy(Request $request, Event $event)

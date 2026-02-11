@@ -29,4 +29,9 @@ class Event extends Model
     {
         return $this->belongsToMany(User::class)->withTimestamps();
     }
+
+    public function images()
+    {
+        return $this->hasMany(EventImage::class)->orderBy('order');
+    }
 }
