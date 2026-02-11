@@ -118,18 +118,15 @@ export default function Dashboard() {
               </div>
             </div>
             <div className="flex items-center space-x-4">
-              <div className="hidden sm:flex items-center space-x-3" role="img" aria-label={`User: ${user?.username}`}>
-                <div className="w-10 h-10 bg-gradient-to-br from-blue-200 to-blue-500 rounded-full flex items-center justify-center text-white font-bold text-sm" aria-hidden="true">
+              <button
+                onClick={() => navigate('/account')}
+                className="hidden sm:flex items-center space-x-3 hover:opacity-80 transition-opacity duration-200" 
+                aria-label="Go to account settings"
+              >
+                <div className="w-10 h-10 bg-gradient-to-br from-blue-200 to-blue-500 rounded-full flex items-center justify-center text-white font-bold text-sm">
                   {user?.username?.charAt(0).toUpperCase()}
                 </div>
                 <span className="text-sm font-medium text-white">{user?.username}</span>
-              </div>
-              <button
-                onClick={() => navigate('/account')}
-                className="px-3 py-1.5 text-sm font-medium text-white bg-white/15 border border-white/30 rounded-lg hover:bg-white/25 transition-all duration-200"
-                aria-label="Go to account settings"
-              >
-                Account
               </button>
             </div>
           </div>

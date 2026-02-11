@@ -123,13 +123,6 @@ export default function AccountDashboard() {
               >
                 Dashboard
               </button>
-              <button
-                onClick={handleLogout}
-                className="px-3 py-1.5 text-sm font-medium text-white bg-white/15 border border-white/30 rounded-lg hover:bg-white/25 transition-all duration-200"
-                aria-label="Logout from account"
-              >
-                Logout
-              </button>
             </div>
           </div>
         </div>
@@ -341,6 +334,16 @@ export default function AccountDashboard() {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                     </svg>
                     Security Settings
+                  </button>
+                  <button
+                    onClick={handleLogout}
+                    className="w-full px-4 py-3 text-sm font-semibold text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-all duration-300 text-left flex items-center group border-t border-gray-200 mt-2 pt-4"
+                    aria-label="Logout from account"
+                  >
+                    <svg className="w-5 h-5 mr-3 group-hover:scale-110 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                    </svg>
+                    Logout
                   </button>
                 </div>
               </div>
