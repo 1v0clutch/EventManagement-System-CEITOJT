@@ -3,6 +3,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
+import AccountDashboard from './pages/AccountDashboard';
 import AddEvent from './pages/AddEvent';
 
 const ProtectedRoute = ({ children }) => {
@@ -51,6 +52,11 @@ function App() {
           <Route path="/dashboard" element={
             <ProtectedRoute>
               <Dashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/account" element={
+            <ProtectedRoute>
+              <AccountDashboard />
             </ProtectedRoute>
           } />
           <Route path="/add-event" element={

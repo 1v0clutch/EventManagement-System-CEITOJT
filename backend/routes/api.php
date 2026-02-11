@@ -25,6 +25,7 @@ Route::middleware('auth:sanctum')->group(function () {
     
     // Users
     Route::get('/users', [UserController::class, 'index']);
+    Route::put('/user/profile', [UserController::class, 'update']);
     
     // Availability
     Route::get('/availabilities', [AvailabilityController::class, 'index']);

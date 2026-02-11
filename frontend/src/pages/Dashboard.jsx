@@ -99,17 +99,15 @@ export default function Dashboard() {
               <h1 className="text-xl font-bold text-white tracking-tight">Event Management</h1>
             </div>
             <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-2">
-                <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
-                  <span className="text-sm font-bold text-white">
-                    {user?.username?.charAt(0)?.toUpperCase() || 'U'}
-                  </span>
-                </div>
-                <div className="hidden sm:block">
-                  <p className="text-sm font-medium text-white leading-tight">{user?.username}</p>
-                  <p className="text-xs text-blue-200 leading-tight">{user?.email}</p>
-                </div>
-              </div>
+              <span className="text-sm text-gray-700">
+                {user?.username}
+              </span>
+              <button
+                onClick={() => navigate('/account')}
+                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              >
+                Account
+              </button>
               <button
                 onClick={handleLogout}
                 className="px-3 py-1.5 text-sm font-medium text-white bg-white/15 border border-white/30 rounded-lg hover:bg-white/25 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-white/50"
