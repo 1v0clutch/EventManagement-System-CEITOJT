@@ -49,9 +49,9 @@ export default function AddEvent() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <nav className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+      <nav className="bg-white shadow-sm sticky top-0 z-10">
+        <div className="px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16">
             <div className="flex items-center">
               <h1 className="text-xl font-bold text-gray-900">Event Management System</h1>
@@ -77,14 +77,8 @@ export default function AddEvent() {
         </div>
       </nav>
 
-      <main className="max-w-4xl mx-auto py-6 sm:px-6 lg:px-8">
-        <div className="px-4 py-6 sm:px-0">
-          <div className="mb-4">
-            <h2 className="text-2xl font-bold text-gray-900">
-              {editingEvent ? 'Edit Event' : 'Create New Event'}
-            </h2>
-          </div>
-
+      <main className="flex-1 overflow-y-auto">
+        <div className="px-4 sm:px-6 lg:px-8 py-6">
           <EventForm
             members={members}
             onEventCreated={handleEventCreated}

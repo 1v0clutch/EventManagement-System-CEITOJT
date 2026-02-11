@@ -1,4 +1,4 @@
-7:00 - Time in
+7:00 : Time in
 
 7:30 - 8:00 : Orientation (Event Management System) / Break Down
 8:00 - 9:00 : Preparation of System / Github / Brainstorming
