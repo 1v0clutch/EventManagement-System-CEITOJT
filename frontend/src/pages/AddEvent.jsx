@@ -36,10 +36,6 @@ export default function AddEvent() {
     navigate('/dashboard');
   };
 
-  const handleLogout = async () => {
-    await logout();
-  };
-
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -53,41 +49,35 @@ export default function AddEvent() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
-      {/* Navbar - matching Dashboard */}
-      <nav className="bg-gradient-to-r from-blue-700 via-blue-600 to-indigo-600 shadow-lg sticky top-0 z-20">
+      {/* Navbar */}
+      <nav className="bg-gradient-to-r from-blue-600 via-blue-500 to-indigo-600 shadow-lg sticky top-0 z-20" aria-label="Main navigation">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16">
-            <div className="flex items-center space-x-3">
-              <div className="bg-white/20 rounded-lg p-2">
-                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="flex justify-between items-center h-16 gap-4">
+            <div className="flex items-center space-x-3 flex-1">
+              {/* Calendar Icon */}
+              <button className="p-2 rounded-lg hover:bg-white/20 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-blue-600" aria-label="Event Management home">
+                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
+              </button>
+              <div>
+                <h1 className="text-2xl font-bold text-white tracking-tight">Event Management</h1>
+                <p className="text-xs text-blue-100 font-medium">{editingEvent ? 'Edit Event' : 'Add Event'}</p>
               </div>
-              <h1 className="text-xl font-bold text-white tracking-tight">Event Management</h1>
             </div>
-            <div className="flex items-center space-x-3">
+            <div className="flex items-center space-x-4">
+              <div className="hidden sm:flex items-center space-x-3" role="img" aria-label={`User: ${user?.username}`}>
+                <div className="w-10 h-10 bg-gradient-to-br from-blue-200 to-blue-500 rounded-full flex items-center justify-center text-white font-bold text-sm" aria-hidden="true">
+                  {user?.username?.charAt(0).toUpperCase()}
+                </div>
+                <span className="text-sm font-medium text-white">{user?.username}</span>
+              </div>
               <button
                 onClick={() => navigate('/dashboard')}
                 className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-white bg-white/15 border border-white/30 rounded-lg hover:bg-white/25 transition-all duration-200"
+                aria-label="Go back to dashboard"
               >
-                <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                </svg>
-                Dashboard
-              </button>
-              <div className="flex items-center space-x-2">
-                <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
-                  <span className="text-sm font-bold text-white">
-                    {user?.username?.charAt(0)?.toUpperCase() || 'U'}
-                  </span>
-                </div>
-                <span className="hidden sm:inline text-sm font-medium text-white">{user?.username}</span>
-              </div>
-              <button
-                onClick={handleLogout}
-                className="px-3 py-1.5 text-sm font-medium text-white bg-white/15 border border-white/30 rounded-lg hover:bg-white/25 transition-all duration-200"
-              >
-                Logout
+                Back
               </button>
             </div>
           </div>
