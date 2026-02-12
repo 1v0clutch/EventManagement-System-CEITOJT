@@ -1,0 +1,19 @@
+7 AM - Time-In
+7:15 AM - Initial Checking of Dashboard and Calendar Page
+7:30 AM -  Improving Use Case Diagram
+9 AM - Coding Account Settings
+10 AM - Polishing Backend Logic for Updating Account Information to Database
+11 AM - Lunch
+12 PM - Improving UI Apperance of Dashboard and Account Settings
+1 PM - Initial Drafting of System Requirements Specification for Dependencies and Functional Requirements
+2 PM - UI/UX Improvements of Dashboard, Account Settings
+3 PM - Git version control
+
+
+
+
+Syatem Requirement Specification:
+
+- Dependencies
+
+- Functional Requirements
