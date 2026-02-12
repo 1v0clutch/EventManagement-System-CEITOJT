@@ -1,0 +1,11 @@
+7:00 : Time in
+
+7:30 - 8:00 : clone repository and setup
+8:00 - 9:00 : creating wireframe on digital
+9:00 - 10:00 : register and loging wireframe
+11:00 - 12:00 : calendar wireframe
+12:00 - 1:00 : update xampp and install composer
+1:00 - 2:00 : fixing errors when downloading xampp and finish the setup
+2:00 - 3:00 : create the dashboard with calendar
+3:00 - 4:00 : separate the add event on dashboard and only show when click
+4:00 - 5:00 : fix bugs and improve the design and fix errors

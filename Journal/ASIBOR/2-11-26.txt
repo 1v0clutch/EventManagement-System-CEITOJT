@@ -1,0 +1,12 @@
+7:00 : Time in
+
+7:30 - 8:00 : prepare and setup and planning what to add and inprove
+8:00 - 9:00 : make the length of both calendar and events the same 
+9:00 - 10:00 : renew dashboard ui
+10:00 - 11:00 : add edit and delete on task
+11:00 - 12:00 : Lunch Break x Brainstorming
+12:00 - 1:00 : Simple template for wireframe
+1:00 - 2:00 : add modal that shows event details
+2:00 - 3:00 : make the event visible on host and invited only
+3:00 - 4:00 : make it so only host can edit and delete the event
+4:00 - 5:00 : 

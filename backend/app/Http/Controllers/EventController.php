@@ -8,9 +8,24 @@ use Illuminate\Http\Request;
 
 class EventController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $events = Event::with(['host', 'members', 'images'])->orderBy('date')->orderBy('time')->get();
+        $user = $request->user();
+
+        $events = Event::with(['host', 'members', 'images'])
+            ->where(function ($query) use ($user) {
+                // User is the host
+                $query->where('host_id', $user->id)
+                    // Or user is a member/invited
+                    ->orWhereHas('members', function ($q) use ($user) {
+                        $q->where('users.id', $user->id);
+                    })
+                    // Or event is open
+                    ->orWhere('is_open', true);
+            })
+            ->orderBy('date')
+            ->orderBy('time')
+            ->get();
 
         return response()->json([
             'events' => $events->map(function ($event) {
