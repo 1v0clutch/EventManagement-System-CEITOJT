@@ -1,0 +1,10 @@
+7 AM - Time-in
+7:15 AM - Testing of current version of system
+7:30 AM - Set-Up for Hosting Database
+8 AM - Multiple Testing Accounts for Hosting Database
+9 AM - Improving Error Handling for Register and Log-In Module
+10 AM - Coding for Forgot Password page
+11 AM - Lunch Break/Brainstorming for Log-In page improvements
+12 PM - Improving Log-in page
+1 PM - Improved Git repository version
+2 PM - 
