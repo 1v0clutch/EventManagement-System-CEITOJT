@@ -39,7 +39,7 @@ export default function EventDetails({ date, events, members, currentUser, onEdi
       <div className="mb-4 flex-shrink-0">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-bold text-gray-900">Events</h2>
-          <span className="text-xs font-semibold text-blue-600 bg-blue-50 px-2.5 py-1 rounded-full">
+          <span className="text-xs font-semibold text-green-700 bg-green-100 px-2.5 py-1 rounded-full">
             {events.length} event{events.length !== 1 ? 's' : ''}
           </span>
         </div>
@@ -52,7 +52,7 @@ export default function EventDetails({ date, events, members, currentUser, onEdi
           <div
             key={event.id || idx}
             onClick={() => onView && onView(event)}
-            className="bg-gray-50 border border-gray-100 rounded-xl p-4 hover:bg-blue-50/50 hover:border-blue-200 transition-all duration-200 group cursor-pointer"
+            className="bg-gray-50 border border-gray-100 rounded-xl p-4 hover:bg-green-100/50 hover:border-green-300 transition-all duration-200 group cursor-pointer"
           >
             <div className="flex items-start justify-between">
               <div className="flex-1 min-w-0">
@@ -87,7 +87,7 @@ export default function EventDetails({ date, events, members, currentUser, onEdi
                     e.stopPropagation();
                     onEdit(event);
                   }}
-                  className="flex-1 inline-flex items-center justify-center px-3 py-1.5 text-xs font-medium text-blue-700 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
+                  className="flex-1 inline-flex items-center justify-center px-3 py-1.5 text-xs font-medium text-green-800 bg-green-100 rounded-lg hover:bg-green-200 transition-colors"
                 >
                   <svg className="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />

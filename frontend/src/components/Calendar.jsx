@@ -88,23 +88,23 @@ export default function Calendar({ events, onDateSelect, highlightedDate }) {
           className={`
             min-h-[72px] p-2 rounded-lg cursor-pointer transition-all duration-200 relative group
             ${isCurrentDay
-              ? 'bg-blue-50 border-2 border-blue-500 shadow-sm'
-              : 'bg-white border border-gray-200 hover:border-blue-300 hover:shadow-md'}
-            ${selected ? 'ring-2 ring-blue-400 ring-offset-1' : ''}
+              ? 'bg-green-100 border-2 border-green-600 shadow-sm'
+              : 'bg-white border border-gray-200 hover:border-green-400 hover:shadow-md'}
+            ${selected ? 'ring-2 ring-green-500 ring-offset-1' : ''}
             ${highlighted ? 'ring-4 ring-green-400 ring-offset-2 animate-pulse bg-green-50' : ''}
             ${isPast ? 'opacity-40 cursor-default' : ''}
           `}
         >
           <div className={`
             text-sm font-semibold
-            ${isCurrentDay ? 'text-blue-700' : 'text-gray-700'}
-            ${selected ? 'text-blue-600' : ''}
+            ${isCurrentDay ? 'text-green-800' : 'text-gray-700'}
+            ${selected ? 'text-green-700' : ''}
           `}>
             {day}
           </div>
 
           {isCurrentDay && (
-            <span className="absolute top-1.5 right-2 text-[10px] font-bold text-blue-500 uppercase tracking-wide">
+            <span className="absolute top-1.5 right-2 text-[10px] font-bold text-green-600 uppercase tracking-wide">
               Today
             </span>
           )}
@@ -114,7 +114,7 @@ export default function Calendar({ events, onDateSelect, highlightedDate }) {
               {dayEvents.slice(0, 3).map((_, idx) => (
                 <div
                   key={idx}
-                  className={`w-2 h-2 rounded-full ${idx === 0 ? 'bg-blue-500' : idx === 1 ? 'bg-green-500' : 'bg-amber-500'
+                  className={`w-2 h-2 rounded-full ${idx === 0 ? 'bg-green-600' : idx === 1 ? 'bg-green-500' : 'bg-amber-500'
                     }`}
                 />
               ))}
