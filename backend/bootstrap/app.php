@@ -15,6 +15,11 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->api(prepend: [
             \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
         ]);
+        
+        // Register custom middleware aliases
+        $middleware->alias([
+            'throttle.login' => \App\Http\Middleware\ThrottleLoginAttempts::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

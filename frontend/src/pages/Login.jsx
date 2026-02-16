@@ -7,9 +7,22 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState('');
+  const [lockoutInfo, setLockoutInfo] = useState(null);
+  const [failedAttempts, setFailedAttempts] = useState(0);
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
+
+  // Check lockout status when email changes
+  useEffect(() => {
+    if (!email) {
+      setLockoutInfo(null);
+      setFailedAttempts(0);
+      return;
+    }
+    
+    checkLockoutStatus(email);
+  }, [email]);
 
   useEffect(() => {
     const savedEmail = localStorage.getItem('rememberedEmail');
@@ -19,13 +32,66 @@ export default function Login() {
     }
   }, []);
 
+  const checkLockoutStatus = (emailAddress) => {
+    const lockoutKey = `loginLockout_${emailAddress}`;
+    const storedLockout = localStorage.getItem(lockoutKey);
+    
+    if (storedLockout) {
+      const lockoutData = JSON.parse(storedLockout);
+      const now = Math.floor(Date.now() / 1000);
+      
+      if (lockoutData.lockedUntil > now) {
+        // Still locked
+        const remainingSeconds = lockoutData.lockedUntil - now;
+        setLockoutInfo({
+          message: 'This account is locked due to too many failed attempts.',
+          remainingSeconds: remainingSeconds,
+        });
+        setFailedAttempts(3);
+        
+        // Start countdown
+        const interval = setInterval(() => {
+          setLockoutInfo(prev => {
+            if (!prev || prev.remainingSeconds <= 1) {
+              clearInterval(interval);
+              localStorage.removeItem(lockoutKey);
+              setFailedAttempts(0);
+              return null;
+            }
+            return {
+              ...prev,
+              remainingSeconds: prev.remainingSeconds - 1,
+            };
+          });
+        }, 1000);
+      } else {
+        // Lockout expired
+        localStorage.removeItem(lockoutKey);
+        setLockoutInfo(null);
+        setFailedAttempts(0);
+      }
+    } else {
+      // No lockout for this email
+      setLockoutInfo(null);
+      setFailedAttempts(0);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setLoading(true);
 
+    const lockoutKey = `loginLockout_${email}`;
+    const attemptsKey = `loginAttempts_${email}`;
+
     try {
       await login(email, password);
+      
+      // Successful login - clear attempts for this email
+      setFailedAttempts(0);
+      localStorage.removeItem(lockoutKey);
+      localStorage.removeItem(attemptsKey);
       
       if (rememberMe) {
         localStorage.setItem('rememberedEmail', email);
@@ -35,7 +101,87 @@ export default function Login() {
       
       navigate('/dashboard');
     } catch (err) {
-      setError(err.response?.data?.message || err.response?.data?.errors?.email?.[0] || 'Login failed');
+      const response = err.response?.data;
+      
+      // Check if it's a lockout response (429 status)
+      if (err.response?.status === 429 && response?.remaining_seconds) {
+        const lockedUntil = Math.floor(Date.now() / 1000) + response.remaining_seconds;
+        
+        // Store lockout for this specific email
+        localStorage.setItem(lockoutKey, JSON.stringify({
+          lockedUntil: lockedUntil,
+          email: email,
+        }));
+        
+        setLockoutInfo({
+          message: response.message,
+          remainingSeconds: response.remaining_seconds,
+        });
+        setFailedAttempts(3);
+        
+        // Start countdown timer
+        const interval = setInterval(() => {
+          setLockoutInfo(prev => {
+            if (!prev || prev.remainingSeconds <= 1) {
+              clearInterval(interval);
+              localStorage.removeItem(lockoutKey);
+              localStorage.removeItem(attemptsKey);
+              setFailedAttempts(0);
+              return null;
+            }
+            return {
+              ...prev,
+              remainingSeconds: prev.remainingSeconds - 1,
+            };
+          });
+        }, 1000);
+      } else {
+        // Failed login - get attempts for this specific email
+        const storedAttempts = localStorage.getItem(attemptsKey);
+        const currentAttempts = storedAttempts ? parseInt(storedAttempts) : 0;
+        const newAttempts = currentAttempts + 1;
+        
+        // Store attempts for this email
+        localStorage.setItem(attemptsKey, newAttempts.toString());
+        setFailedAttempts(newAttempts);
+        
+        // Check if this is the 3rd attempt
+        if (newAttempts >= 3) {
+          // Lock immediately on frontend for this email
+          const lockedUntil = Math.floor(Date.now() / 1000) + 300; // 5 minutes
+          
+          localStorage.setItem(lockoutKey, JSON.stringify({
+            lockedUntil: lockedUntil,
+            email: email,
+          }));
+          
+          setLockoutInfo({
+            message: 'Too many failed attempts. This account has been locked for 5 minutes.',
+            remainingSeconds: 300,
+          });
+          
+          // Start countdown
+          const interval = setInterval(() => {
+            setLockoutInfo(prev => {
+              if (!prev || prev.remainingSeconds <= 1) {
+                clearInterval(interval);
+                localStorage.removeItem(lockoutKey);
+                localStorage.removeItem(attemptsKey);
+                setFailedAttempts(0);
+                return null;
+              }
+              return {
+                ...prev,
+                remainingSeconds: prev.remainingSeconds - 1,
+              };
+            });
+          }, 1000);
+        } else {
+          // Show error with remaining attempts
+          const remainingAttempts = 3 - newAttempts;
+          setError(response?.message || response?.errors?.email?.[0] || `Invalid email or password. ${remainingAttempts} attempt(s) remaining.`);
+        }
+      }
     } finally {
       setLoading(false);
     }
@@ -53,9 +199,54 @@ export default function Login() {
           </p>
         </div>
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          {error && (
+          {lockoutInfo && (
+            <div className="rounded-md bg-red-50 border-2 border-red-400 p-4">
+              <div className="flex items-start">
+                <div className="flex-shrink-0">
+                  <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <div className="ml-3 flex-1">
+                  <h3 className="text-sm font-bold text-red-800">Account Locked</h3>
+                  <p className="text-sm text-red-700 mt-1">{lockoutInfo.message}</p>
+                  <div className="mt-2 bg-red-100 rounded px-3 py-2">
+                    <p className="text-sm font-mono text-red-900">
+                      Time remaining: {Math.floor(lockoutInfo.remainingSeconds / 60)}:{String(lockoutInfo.remainingSeconds % 60).padStart(2, '0')}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+          
+          {error && !lockoutInfo && (
             <div className="rounded-md bg-red-50 p-4">
-              <p className="text-sm text-red-800">{error}</p>
+              <div className="flex items-start">
+                <div className="flex-shrink-0">
+                  <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <div className="ml-3 flex-1">
+                  <p className="text-sm text-red-800">{error}</p>
+                  {failedAttempts > 0 && failedAttempts < 3 && (
+                    <div className="mt-2">
+                      <div className="flex items-center">
+                        <div className="flex-1 bg-red-200 rounded-full h-2">
+                          <div 
+                            className="bg-red-600 h-2 rounded-full transition-all duration-300"
+                            style={{ width: `${(failedAttempts / 3) * 100}%` }}
+                          ></div>
+                        </div>
+                        <span className="ml-2 text-xs font-medium text-red-700">
+                          {failedAttempts}/3
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           )}
           <div className="rounded-md shadow-sm -space-y-px">
@@ -109,10 +300,21 @@ export default function Login() {
           <div>
             <button
               type="submit"
-              disabled={loading}
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+              disabled={loading || lockoutInfo || failedAttempts >= 3}
+              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? 'Signing in...' : 'Sign in'}
+              {lockoutInfo || failedAttempts >= 3 ? (
+                <span className="flex items-center">
+                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                  </svg>
+                  Account Locked
+                </span>
+              ) : loading ? (
+                'Signing in...'
+              ) : (
+                'Sign in'
+              )}
             </button>
           </div>
 

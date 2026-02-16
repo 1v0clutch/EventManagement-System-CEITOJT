@@ -59,11 +59,17 @@ class EventController extends Controller
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
             'location' => 'required|string|max:255',
-            'images.*' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'images' => 'nullable|array|max:5',
+            'images.*' => 'image|mimes:jpeg,jpg,png,gif,webp|max:2048',
             'date' => 'required|date',
             'time' => 'required',
             'member_ids' => 'nullable|array',
             'is_open' => 'boolean',
+        ], [
+            'images.max' => 'You can upload a maximum of 5 images.',
+            'images.*.image' => 'Each file must be an image.',
+            'images.*.mimes' => 'Images must be in JPG, PNG, GIF, or WebP format.',
+            'images.*.max' => 'Each image must not exceed 2MB in size.',
         ]);
 
         $event = Event::create([
@@ -79,6 +85,21 @@ class EventController extends Controller
         // Handle multiple images
         if ($request->hasFile('images')) {
             foreach ($request->file('images') as $index => $image) {
+                // Additional MIME type validation
+                $allowedMimes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+                if (!in_array($image->getMimeType(), $allowedMimes)) {
+                    return response()->json([
+                        'error' => 'Invalid file type. Only JPG, PNG, GIF, and WebP images are allowed.'
+                    ], 400);
+                }
+                
+                // Check file size
+                if ($image->getSize() > 2048 * 1024) {
+                    return response()->json([
+                        'error' => 'Image file size must not exceed 2MB.'
+                    ], 400);
+                }
+                
                 $imagePath = $image->store('events', 'public');
                 $event->images()->create([
                     'image_path' => $imagePath,
@@ -109,17 +130,39 @@ class EventController extends Controller
             'title' => 'sometimes|required|string|max:255',
             'description' => 'nullable|string',
             'location' => 'sometimes|required|string|max:255',
-            'images.*' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'images' => 'nullable|array|max:5',
+            'images.*' => 'image|mimes:jpeg,jpg,png,gif,webp|max:2048',
             'date' => 'sometimes|required|date',
             'time' => 'sometimes|required',
             'member_ids' => 'nullable|array',
             'is_open' => 'boolean',
+        ], [
+            'images.max' => 'You can upload a maximum of 5 images.',
+            'images.*.image' => 'Each file must be an image.',
+            'images.*.mimes' => 'Images must be in JPG, PNG, GIF, or WebP format.',
+            'images.*.max' => 'Each image must not exceed 2MB in size.',
         ]);
 
         $event->update($request->only(['title', 'description', 'location', 'date', 'time', 'is_open']));
 
         // Handle new images
         if ($request->hasFile('images')) {
+            // Validate MIME types
+            foreach ($request->file('images') as $image) {
+                $allowedMimes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+                if (!in_array($image->getMimeType(), $allowedMimes)) {
+                    return response()->json([
+                        'error' => 'Invalid file type. Only JPG, PNG, GIF, and WebP images are allowed.'
+                    ], 400);
+                }
+                
+                if ($image->getSize() > 2048 * 1024) {
+                    return response()->json([
+                        'error' => 'Image file size must not exceed 2MB.'
+                    ], 400);
+                }
+            }
+            
             // Delete old images
             foreach ($event->images as $oldImage) {
                 \Storage::disk('public')->delete($oldImage->image_path);

@@ -7,9 +7,12 @@ use App\Http\Controllers\AvailabilityController;
 use App\Http\Controllers\ScheduleController;
 use Illuminate\Support\Facades\Route;
 
-// Public routes
+// Public routes with login attempt throttling
+Route::middleware('throttle.login')->group(function () {
+    Route::post('/login', [AuthController::class, 'login']);
+});
+
 Route::post('/register', [AuthController::class, 'register']);
-Route::post('/login', [AuthController::class, 'login']);
 Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
 Route::post('/reset-password', [AuthController::class, 'resetPassword']);
 
