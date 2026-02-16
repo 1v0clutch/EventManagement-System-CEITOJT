@@ -257,7 +257,7 @@ export default function Dashboard() {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="flex flex-col items-center space-y-4">
-          <div className="w-12 h-12 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
+          <div className="w-12 h-12 border-4 border-green-300 border-t-green-700 rounded-full animate-spin"></div>
           <p className="text-gray-500 font-medium">Loading dashboard...</p>
         </div>
       </div>
@@ -265,21 +265,21 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-gray-50 flex flex-col">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-green-100 to-gray-50 flex flex-col">
       {/* Navbar */}
-      <nav className="bg-gradient-to-r from-blue-600 via-blue-500 to-indigo-600 shadow-lg sticky top-0 z-20" aria-label="Main navigation">
+      <nav className="bg-gradient-to-r from-green-700 via-green-600 to-green-800 shadow-lg sticky top-0 z-20" aria-label="Main navigation">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16 gap-4">
             <div className="flex items-center space-x-3 flex-1">
               {/* Calendar Icon */}
-              <button className="p-2 rounded-lg hover:bg-white/20 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-blue-600" aria-label="Event Management home">
+              <button className="p-2 rounded-lg hover:bg-white/20 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-green-700" aria-label="Event Management home">
                 <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
               </button>
               <div>
                 <h1 className="text-2xl font-bold text-white tracking-tight">Event Management</h1>
-                <p className="text-xs text-blue-100 font-medium">Dashboard</p>
+                <p className="text-xs text-green-200 font-medium">Dashboard</p>
               </div>
             </div>
             <div className="flex items-center space-x-4">
@@ -288,7 +288,7 @@ export default function Dashboard() {
                 className="hidden sm:flex items-center space-x-3"
                 aria-label="Go to account settings"
               >
-                <div className="w-10 h-10 bg-gradient-to-br from-blue-200 to-blue-500 rounded-full flex items-center justify-center text-white font-bold text-sm">
+                <div className="w-10 h-10 bg-gradient-to-br from-green-300 to-green-600 rounded-full flex items-center justify-center text-white font-bold text-sm">
                   {user?.username?.charAt(0).toUpperCase()}
                 </div>
                 <span className="text-sm font-medium text-white hover:opacity-80 transition-opacity duration-200">{user?.username}</span>
@@ -308,14 +308,14 @@ export default function Dashboard() {
             className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 hover:shadow-2xl hover:scale-105 transition-all duration-300 group cursor-pointer text-left"
           >
             <div className="flex items-center space-x-4">
-              <div className="bg-gradient-to-br from-blue-100 to-blue-50 rounded-xl p-4 group-hover:from-blue-200 group-hover:to-blue-100 transition-colors duration-300">
-                <svg className="w-7 h-7 text-blue-600 group-hover:scale-110 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="bg-gradient-to-br from-green-200 to-green-100 rounded-xl p-4 group-hover:from-green-300 group-hover:to-green-200 transition-colors duration-300">
+                <svg className="w-7 h-7 text-green-700 group-hover:scale-110 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
               </div>
               <div>
                 <p className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Total Events</p>
-                <p className="text-3xl font-bold text-gray-900 group-hover:text-blue-600 transition-colors">{events.length}</p>
+                <p className="text-3xl font-bold text-gray-900 group-hover:text-green-700 transition-colors">{events.length}</p>
               </div>
             </div>
           </button>
@@ -349,14 +349,14 @@ export default function Dashboard() {
             className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 hover:shadow-2xl hover:scale-105 transition-all duration-300 group cursor-pointer text-left"
           >
             <div className="flex items-center space-x-4">
-              <div className="bg-gradient-to-br from-purple-100 to-purple-50 rounded-xl p-4 group-hover:from-purple-200 group-hover:to-purple-100 transition-colors duration-300">
-                <svg className="w-7 h-7 text-purple-600 group-hover:scale-110 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="bg-gradient-to-br from-green-100 to-green-50 rounded-xl p-4 group-hover:from-green-200 group-hover:to-green-100 transition-colors duration-300">
+                <svg className="w-7 h-7 text-green-700 group-hover:scale-110 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
                 </svg>
               </div>
               <div>
                 <p className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Members</p>
-                <p className="text-3xl font-bold text-gray-900 group-hover:text-purple-600 transition-colors">{members.length}</p>
+                <p className="text-3xl font-bold text-gray-900 group-hover:text-green-700 transition-colors">{members.length}</p>
               </div>
             </div>
           </button>
@@ -370,7 +370,7 @@ export default function Dashboard() {
           </div>
           <button
             onClick={() => navigate('/add-event', { state: { selectedDate } })}
-            className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-blue-600 via-blue-600 to-indigo-600 text-white font-semibold rounded-xl hover:from-blue-700 hover:via-blue-700 hover:to-indigo-700 shadow-lg hover:shadow-xl transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 group"
+            className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-green-700 via-green-700 to-green-800 text-white font-semibold rounded-xl hover:from-green-800 hover:via-green-800 hover:to-green-900 shadow-lg hover:shadow-xl transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-600 group"
           >
             <svg className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
@@ -544,7 +544,7 @@ export default function Dashboard() {
             <div className="pt-4 border-t border-gray-100">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
-                  <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-sm">
+                  <div className="w-8 h-8 rounded-full bg-green-200 flex items-center justify-center text-green-700 font-bold text-sm">
                     {selectedEvent.host.username.charAt(0).toUpperCase()}
                   </div>
                   <div className="text-sm">
@@ -561,30 +561,27 @@ export default function Dashboard() {
               </div>
             </div>
 
-            {/* Members & RSVP Status */}
-            {selectedEvent.members && selectedEvent.members.length > 0 && (
-              <div className="pt-4 border-t border-gray-100">
-                <p className="font-semibold text-gray-900 mb-3">Invited Members</p>
-                <div className="space-y-2">
-                  {selectedEvent.members.map((member) => (
-                    <div key={member.id} className="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2">
-                      <div className="flex items-center space-x-2">
-                        <div className="w-7 h-7 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-xs">
-                          {member.username.charAt(0).toUpperCase()}
-                        </div>
-                        <span className="text-sm text-gray-700 font-medium">{member.username}</span>
-                      </div>
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${member.status === 'accepted'
-                        ? 'bg-green-100 text-green-800'
-                        : member.status === 'declined'
-                          ? 'bg-red-100 text-red-800'
-                          : 'bg-yellow-100 text-yellow-800'
-                        }`}>
-                        {member.status === 'accepted' ? '✓ Accepted' : member.status === 'declined' ? '✗ Declined' : '● Pending'}
-                      </span>
-                    </div>
-                  ))}
-                </div>
+            {/* Actions in Modal (Optional) */}
+            {(user?.id === selectedEvent.host.id) && (
+              <div className="flex justify-end space-x-3 pt-4 border-t border-gray-100 mt-4">
+                <button
+                  onClick={() => {
+                    handleCloseModal();
+                    handleEdit(selectedEvent);
+                  }}
+                  className="px-4 py-2 text-sm font-medium text-green-800 bg-green-100 rounded-lg hover:bg-green-200"
+                >
+                  Edit
+                </button>
+                <button
+                  onClick={() => {
+                    handleCloseModal();
+                    handleDelete(selectedEvent);
+                  }}
+                  className="px-4 py-2 text-sm font-medium text-red-700 bg-red-50 rounded-lg hover:bg-red-100"
+                >
+                  Delete
+                </button>
               </div>
             )}
 
@@ -740,7 +737,7 @@ export default function Dashboard() {
                   setIsEventsListModalOpen(false);
                   handleViewEvent(event);
                 }}
-                className="w-full text-left p-4 bg-gray-50 rounded-lg hover:bg-blue-50 hover:border-blue-200 border border-gray-200 transition-all duration-200"
+                className="w-full text-left p-4 bg-gray-50 rounded-lg hover:bg-green-100 hover:border-green-300 border border-gray-200 transition-all duration-200"
               >
                 <div className="flex items-start justify-between">
                   <div className="flex-1">

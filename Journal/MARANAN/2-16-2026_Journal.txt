@@ -2,3 +2,5 @@
 
 7:00 - 8:00 : Improving security on login/register
 8:00 - 9:00 : Added new features on login where it limits the attemptson wrong login / Added improvements to ui on Create on ading Event images
+9:00 - 10:00 : Improving UI Features to match CVSU's Interface
+10:00 - 11:00 : Improving Login/Register/Forgot Password's background UI 

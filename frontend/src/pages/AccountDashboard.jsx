@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
@@ -203,9 +203,9 @@ export default function AccountDashboard() {
 
   if (!user || loggingOut) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-green-100 to-gray-50 flex items-center justify-center">
         <div className="flex flex-col items-center space-y-4">
-          <div className="w-16 h-16 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
+          <div className="w-16 h-16 border-4 border-green-300 border-t-green-700 rounded-full animate-spin"></div>
           <p className="text-gray-600 font-medium text-lg">{loggingOut ? 'Logging out...' : 'Loading account...'}</p>
         </div>
       </div>
@@ -213,25 +213,25 @@ export default function AccountDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-green-100 to-gray-50">
       {/* Navigation Bar */}
-      <nav className="bg-gradient-to-r from-blue-600 via-blue-500 to-indigo-600 shadow-lg sticky top-0 z-20" aria-label="Main navigation">
+      <nav className="bg-gradient-to-r from-green-700 via-green-600 to-green-800 shadow-lg sticky top-0 z-20" aria-label="Main navigation">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16 gap-4">
             <div className="flex items-center space-x-3 flex-1">
-              <button className="p-2 rounded-lg hover:bg-white/20 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-blue-600" aria-label="Event Management System home">
+              <button className="p-2 rounded-lg hover:bg-white/20 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-green-700" aria-label="Event Management System home">
                 <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
               </button>
               <div>
                 <h1 className="text-2xl font-bold text-white tracking-tight">Event Management</h1>
-                <p className="text-xs text-blue-100 font-medium">Account Settings</p>
+                <p className="text-xs text-green-200 font-medium">Account Settings</p>
               </div>
             </div>
             <div className="flex items-center space-x-4">
               <div className="hidden sm:flex items-center space-x-3" role="img" aria-label={`User: ${user?.username}`}>
-                <div className="w-10 h-10 bg-gradient-to-br from-blue-200 to-blue-500 rounded-full flex items-center justify-center text-white font-bold text-sm" aria-hidden="true">
+                <div className="w-10 h-10 bg-gradient-to-br from-green-300 to-green-600 rounded-full flex items-center justify-center text-white font-bold text-sm" aria-hidden="true">
                   {user?.username?.charAt(0).toUpperCase()}
                 </div>
                 <span className="text-sm font-medium text-white">{user?.username}</span>
@@ -251,7 +251,7 @@ export default function AccountDashboard() {
             </div>
             <button
               onClick={() => navigate('/dashboard')}
-              className="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-all duration-200 shadow-sm"
+              className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-green-700 hover:bg-green-800 rounded-lg transition-all duration-200 shadow-sm hover:shadow-md"
               aria-label="Go back to dashboard"
             >
               <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -286,10 +286,10 @@ export default function AccountDashboard() {
           {/* Class Schedule Section */}
           <div className="mb-8">
             <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden hover:shadow-xl transition-shadow duration-300">
-              <div className="bg-gradient-to-r from-purple-600 via-purple-500 to-pink-600 px-8 py-6 flex justify-between items-center">
+              <div className="bg-gradient-to-r from-green-700 via-green-600 to-green-800 px-8 py-6 flex justify-between items-center">
                 <div>
-                  <h3 className="text-2xl font-bold text-white">📅 Class Schedule</h3>
-                  <p className="text-purple-100 text-sm mt-1">
+                  <h3 className="text-2xl font-bold text-white">?? Class Schedule</h3>
+                  <p className="text-green-200 text-sm mt-1">
                     {scheduleLoading ? 'Loading schedule...' : `${getTotalScheduledClasses()} classes scheduled this week`}
                   </p>
                 </div>
@@ -312,7 +312,7 @@ export default function AccountDashboard() {
                     </>
                   ) : (
                     <>
-                      💾 Save Schedule
+                      ?? Save Schedule
                     </>
                   )}
                 </button>
@@ -322,7 +322,7 @@ export default function AccountDashboard() {
                 {scheduleLoading ? (
                   <div className="flex items-center justify-center py-12">
                     <div className="flex flex-col items-center space-y-4">
-                      <div className="w-12 h-12 border-4 border-purple-200 border-t-purple-600 rounded-full animate-spin"></div>
+                      <div className="w-12 h-12 border-4 border-green-300 border-t-green-700 rounded-full animate-spin"></div>
                       <p className="text-gray-600 font-medium">Loading schedule...</p>
                     </div>
                   </div>
@@ -340,13 +340,13 @@ export default function AccountDashboard() {
                           onClick={() => setSelectedDay(day)}
                           className={`px-4 py-3 rounded-lg font-semibold text-left transition-all duration-200 flex justify-between items-center ${
                             isSelected
-                              ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-md'
+                              ? 'bg-gradient-to-r from-green-600 to-green-700 text-white shadow-md'
                               : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                           }`}
                         >
                           <span>{day}</span>
                           <span className={`text-xs px-2 py-1 rounded-full font-bold ${
-                            isSelected ? 'bg-white/20 text-white' : 'bg-blue-100 text-blue-600'
+                            isSelected ? 'bg-white/20 text-white' : 'bg-green-200 text-green-700'
                           }`}>
                             {daySchedule.length}
                           </span>
@@ -356,12 +356,12 @@ export default function AccountDashboard() {
                   </div>
 
                   {/* Schedule Table - Blue Box */}
-                  <div className="flex-1 bg-blue-50 border-2 border-blue-200 rounded-lg p-6">
+                  <div className="flex-1 bg-green-100 border-2 border-green-300 rounded-lg p-6">
                     <div className="flex justify-between items-center mb-4">
                       <h4 className="text-xl font-bold text-blue-900">{selectedDay} Schedule</h4>
                       <button
                         onClick={() => addNewClass(selectedDay)}
-                        className="px-3 py-1.5 bg-blue-500 hover:bg-blue-600 text-white text-sm font-semibold rounded-lg transition-all duration-200 flex items-center gap-1"
+                        className="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-sm font-semibold rounded-lg transition-all duration-200 flex items-center gap-1"
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -381,10 +381,10 @@ export default function AccountDashboard() {
                         <p className="text-sm mt-1">Click "Add Class" to add a class</p>
                       </div>
                     ) : (
-                      <div className="bg-white rounded-lg overflow-hidden border border-blue-200">
+                      <div className="bg-white rounded-lg overflow-hidden border border-green-300">
                         <table className="w-full">
                           <thead>
-                            <tr className="bg-blue-100">
+                            <tr className="bg-green-200">
                               <th className="px-4 py-3 text-left text-sm font-bold text-blue-900">
                                 Time Range
                               </th>
@@ -400,8 +400,8 @@ export default function AccountDashboard() {
                             {(schedule[selectedDay] || []).map((slot, index) => (
                               <tr 
                                 key={slot.id}
-                                className={`border-b border-blue-100 transition-all duration-200 ${
-                                  index % 2 === 0 ? 'bg-white' : 'bg-blue-50/50'
+                                className={`border-b border-green-200 transition-all duration-200 ${
+                                  index % 2 === 0 ? 'bg-white' : 'bg-green-100/50'
                                 }`}
                               >
                                 <td className="px-4 py-3">
@@ -410,14 +410,14 @@ export default function AccountDashboard() {
                                       type="time"
                                       value={slot.startTime}
                                       onChange={(e) => updateClassSlot(selectedDay, slot.id, 'startTime', e.target.value)}
-                                      className="px-2 py-1.5 text-sm border border-blue-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 w-28"
+                                      className="px-2 py-1.5 text-sm border border-green-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-600 w-28"
                                     />
                                     <span className="text-gray-500 font-bold">-</span>
                                     <input
                                       type="time"
                                       value={slot.endTime}
                                       onChange={(e) => updateClassSlot(selectedDay, slot.id, 'endTime', e.target.value)}
-                                      className="px-2 py-1.5 text-sm border border-blue-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 w-28"
+                                      className="px-2 py-1.5 text-sm border border-green-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-600 w-28"
                                     />
                                   </div>
                                 </td>
@@ -427,7 +427,7 @@ export default function AccountDashboard() {
                                     placeholder="Enter class name..."
                                     value={slot.description}
                                     onChange={(e) => updateClassSlot(selectedDay, slot.id, 'description', e.target.value)}
-                                    className="w-full px-3 py-2 text-sm border border-blue-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    className="w-full px-3 py-2 text-sm border border-green-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-600"
                                   />
                                 </td>
                                 <td className="px-4 py-3 text-center">
@@ -459,9 +459,9 @@ export default function AccountDashboard() {
             {/* Profile Card */}
             <div className="lg:col-span-2">
               <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden hover:shadow-xl transition-shadow duration-300">
-                <div className="bg-gradient-to-r from-blue-600 via-blue-600 to-indigo-600 px-8 py-6">
+                <div className="bg-gradient-to-r from-green-700 via-green-700 to-green-800 px-8 py-6">
                   <h3 className="text-2xl font-bold text-white">
-                    {editMode ? '✎ Edit Profile' : '👤 Account Information'}
+                    {editMode ? '? Edit Profile' : '?? Account Information'}
                   </h3>
                 </div>
 
@@ -479,7 +479,7 @@ export default function AccountDashboard() {
                             name="username"
                             value={formData.username}
                             onChange={handleInputChange}
-                            className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300 hover:border-gray-300"
+                            className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-green-600 transition-all duration-300 hover:border-gray-300"
                           />
                         </div>
 
@@ -493,7 +493,7 @@ export default function AccountDashboard() {
                             name="email"
                             value={formData.email}
                             onChange={handleInputChange}
-                            className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300 hover:border-gray-300"
+                            className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-green-600 transition-all duration-300 hover:border-gray-300"
                           />
                         </div>
 
@@ -506,7 +506,7 @@ export default function AccountDashboard() {
                             name="department"
                             value={formData.department}
                             onChange={handleInputChange}
-                            className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300 hover:border-gray-300"
+                            className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-green-600 transition-all duration-300 hover:border-gray-300"
                           >
                             <option value="">Select a department</option>
                             {departments.map((dept) => (
@@ -522,7 +522,7 @@ export default function AccountDashboard() {
                             type="submit"
                             className="flex-1 px-6 py-3 bg-gradient-to-r from-green-600 to-green-700 text-white font-semibold rounded-lg hover:from-green-700 hover:to-green-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-all duration-300 shadow-lg hover:shadow-xl"
                           >
-                            ✓ Save Changes
+                            ? Save Changes
                           </button>
                           <button
                             type="button"
@@ -536,7 +536,7 @@ export default function AccountDashboard() {
                             }}
                             className="flex-1 px-6 py-3 bg-gray-100 text-gray-700 font-semibold rounded-lg hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400 transition-all duration-300"
                           >
-                            ✕ Cancel
+                            ? Cancel
                           </button>
                         </div>
                       </div>
@@ -560,9 +560,9 @@ export default function AccountDashboard() {
 
                       <button
                         onClick={() => setEditMode(true)}
-                        className="mt-8 w-full px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold rounded-lg hover:from-blue-700 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-300 shadow-lg hover:shadow-xl"
+                        className="mt-8 w-full px-6 py-3 bg-gradient-to-r from-green-700 to-green-800 text-white font-semibold rounded-lg hover:from-green-800 hover:to-green-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-600 transition-all duration-300 shadow-lg hover:shadow-xl"
                       >
-                        ✎ Edit Profile
+                        ? Edit Profile
                       </button>
                     </div>
                   )}
@@ -596,7 +596,7 @@ export default function AccountDashboard() {
 
               {/* Quick Stats */}
               <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden hover:shadow-xl transition-all duration-300">
-                <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-4">
+                <div className="bg-gradient-to-r from-green-700 to-green-800 px-6 py-4">
                   <h3 className="text-lg font-bold text-white">Account Info</h3>
                 </div>
                 <div className="px-6 py-6 space-y-4">
@@ -609,23 +609,23 @@ export default function AccountDashboard() {
 
               {/* Account Settings */}
               <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden hover:shadow-xl transition-all duration-300">
-                <div className="bg-gradient-to-r from-purple-600 to-pink-600 px-6 py-4">
+                <div className="bg-gradient-to-r from-green-700 to-green-800 px-6 py-4">
                   <h3 className="text-lg font-bold text-white">Quick Actions</h3>
                 </div>
                 <div className="px-6 py-6 space-y-2">
-                  <button className="w-full px-4 py-3 text-sm font-semibold text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-all duration-300 text-left flex items-center group">
+                  <button className="w-full px-4 py-3 text-sm font-semibold text-green-700 hover:text-blue-800 hover:bg-green-100 rounded-lg transition-all duration-300 text-left flex items-center group">
                     <svg className="w-5 h-5 mr-3 group-hover:scale-110 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
                     </svg>
                     Change Password
                   </button>
-                  <button className="w-full px-4 py-3 text-sm font-semibold text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-all duration-300 text-left flex items-center group">
+                  <button className="w-full px-4 py-3 text-sm font-semibold text-green-700 hover:text-blue-800 hover:bg-green-100 rounded-lg transition-all duration-300 text-left flex items-center group">
                     <svg className="w-5 h-5 mr-3 group-hover:scale-110 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
                     </svg>
                     Notifications
                   </button>
-                  <button className="w-full px-4 py-3 text-sm font-semibold text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-all duration-300 text-left flex items-center group">
+                  <button className="w-full px-4 py-3 text-sm font-semibold text-green-700 hover:text-blue-800 hover:bg-green-100 rounded-lg transition-all duration-300 text-left flex items-center group">
                     <svg className="w-5 h-5 mr-3 group-hover:scale-110 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                     </svg>
