@@ -17,6 +17,7 @@ export default function EventForm({ members, onEventCreated, editingEvent, onCan
   const [filterDepartment, setFilterDepartment] = useState('all');
   const [searchMember, setSearchMember] = useState('');
   const [isDragging, setIsDragging] = useState(false);
+  const [fileError, setFileError] = useState('');
 
   useEffect(() => {
     const now = new Date();
@@ -115,7 +116,54 @@ export default function EventForm({ members, onEventCreated, editingEvent, onCan
 
   const handleImageChange = (e) => {
     const files = Array.from(e.target.files);
-    addImages(files);
+    validateAndAddImages(files);
+  };
+
+  const validateAndAddImages = (files) => {
+    setFileError('');
+    
+    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+    const maxSize = 2 * 1024 * 1024; // 2MB
+    const maxFiles = 5;
+    
+    // Check if adding these files would exceed the limit
+    if (images.length + files.length > maxFiles) {
+      setFileError(`Maximum ${maxFiles} images allowed. You can only add ${maxFiles - images.length} more.`);
+      return;
+    }
+    
+    const validFiles = [];
+    const errors = [];
+    
+    files.forEach(file => {
+      // Check file type
+      if (!validTypes.includes(file.type)) {
+        errors.push(`"${file.name}" is not a valid image. Only JPG, PNG, GIF, and WebP are allowed.`);
+        return;
+      }
+      
+      // Check file size
+      if (file.size > maxSize) {
+        const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
+        errors.push(`"${file.name}" is too large (${sizeMB}MB). Maximum size is 2MB.`);
+        return;
+      }
+      
+      validFiles.push(file);
+    });
+    
+    // Show errors if any
+    if (errors.length > 0) {
+      setFileError(errors.join(' '));
+      
+      // Clear error after 5 seconds
+      setTimeout(() => setFileError(''), 5000);
+    }
+    
+    // Add valid files
+    if (validFiles.length > 0) {
+      addImages(validFiles);
+    }
   };
 
   const addImages = (files) => {
@@ -146,10 +194,8 @@ export default function EventForm({ members, onEventCreated, editingEvent, onCan
     e.preventDefault();
     setIsDragging(false);
 
-    const files = Array.from(e.dataTransfer.files).filter(file =>
-      file.type.startsWith('image/')
-    );
-    addImages(files);
+    const files = Array.from(e.dataTransfer.files);
+    validateAndAddImages(files);
   };
 
   const removeImage = (index) => {
@@ -407,20 +453,48 @@ export default function EventForm({ members, onEventCreated, editingEvent, onCan
                   </svg>
                 </div>
                 <h3 className="text-base font-bold text-gray-900">Event Images</h3>
+                <span className="text-xs text-gray-400">(Max 5 images, 2MB each)</span>
               </div>
+
+              {/* File Error Alert */}
+              {fileError && (
+                <div className="mb-4 rounded-lg bg-red-50 border border-red-200 p-3 flex items-start space-x-2 animate-shake">
+                  <div className="flex-shrink-0 mt-0.5">
+                    <svg className="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-red-800">Invalid File</p>
+                    <p className="text-xs text-red-700 mt-0.5">{fileError}</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setFileError('')}
+                    className="flex-shrink-0 text-red-400 hover:text-red-600"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+              )}
 
               <div
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
                 onDrop={handleDrop}
-                className={`border-2 border-dashed rounded-xl p-4 transition-all duration-200 ${isDragging
+                className={`border-2 border-dashed rounded-xl p-4 transition-all duration-200 ${
+                  isDragging
                     ? 'border-blue-400 bg-blue-50/50 scale-[1.01]'
+                    : fileError
+                    ? 'border-red-300 bg-red-50/30'
                     : 'border-gray-200 bg-gray-50/50 hover:border-gray-300'
-                  }`}
+                }`}
               >
                 <input
                   type="file"
-                  accept="image/*"
+                  accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
                   multiple
                   onChange={handleImageChange}
                   className="hidden"
@@ -431,13 +505,19 @@ export default function EventForm({ members, onEventCreated, editingEvent, onCan
                   {/* Add Image Button */}
                   <label
                     htmlFor="image-upload"
-                    className="flex-shrink-0 w-28 h-28 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-blue-400 hover:bg-blue-50/50 transition-all duration-200 flex items-center justify-center group"
+                    className={`flex-shrink-0 w-28 h-28 border-2 border-dashed rounded-xl cursor-pointer transition-all duration-200 flex items-center justify-center group ${
+                      images.length >= 5
+                        ? 'border-gray-200 bg-gray-100 cursor-not-allowed opacity-50'
+                        : 'border-gray-300 hover:border-blue-400 hover:bg-blue-50/50'
+                    }`}
                   >
                     <div className="text-center">
                       <svg className="mx-auto h-7 w-7 text-gray-300 group-hover:text-blue-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
                       </svg>
-                      <span className="mt-1 text-xs text-gray-400 group-hover:text-blue-500 font-medium">Add</span>
+                      <span className="mt-1 text-xs text-gray-400 group-hover:text-blue-500 font-medium">
+                        {images.length >= 5 ? 'Full' : 'Add'}
+                      </span>
                     </div>
                   </label>
 
@@ -461,18 +541,19 @@ export default function EventForm({ members, onEventCreated, editingEvent, onCan
                     </div>
                   ))}
                 </div>
-
-                {imagePreviews.length === 0 && (
-                  <p className="text-center text-xs text-gray-400 mt-2">
-                    Drag & drop or click + to add images
-                  </p>
-                )}
               </div>
 
               {imagePreviews.length > 0 && (
-                <p className="mt-2 text-xs text-gray-400">
-                  {imagePreviews.length} image{imagePreviews.length !== 1 ? 's' : ''} selected
-                </p>
+                <div className="mt-2 flex items-center justify-between">
+                  <p className="text-xs text-gray-400">
+                    {imagePreviews.length} / 5 image{imagePreviews.length !== 1 ? 's' : ''} selected
+                  </p>
+                  {images.length >= 5 && (
+                    <p className="text-xs text-amber-600 font-medium">
+                      Maximum reached
+                    </p>
+                  )}
+                </div>
               )}
             </div>
           </div>
