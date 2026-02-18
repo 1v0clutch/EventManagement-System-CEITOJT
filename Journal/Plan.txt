@@ -40,3 +40,4 @@ its must conflict on sched when events overlap between user + add a account
 feature where the user may set their class hours and used as basis for scheduling 
 events as well then only the host will see who is conflicted
 
+Email API Key: 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

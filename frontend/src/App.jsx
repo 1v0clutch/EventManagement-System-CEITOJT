@@ -3,6 +3,8 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import ForgotPassword from './pages/ForgotPassword';
+import VerifyOtp from './pages/VerifyOtp';
+import ResetPasswordOtp from './pages/ResetPasswordOtp';
 import ResetPassword from './pages/ResetPassword';
 import Dashboard from './pages/Dashboard';
 import AccountDashboard from './pages/AccountDashboard';
@@ -54,6 +56,16 @@ function App() {
           <Route path="/forgot-password" element={
             <PublicRoute>
               <ForgotPassword />
+            </PublicRoute>
+          } />
+          <Route path="/verify-otp" element={
+            <PublicRoute>
+              <VerifyOtp />
+            </PublicRoute>
+          } />
+          <Route path="/reset-password-otp" element={
+            <PublicRoute>
+              <ResetPasswordOtp />
             </PublicRoute>
           } />
           <Route path="/reset-password" element={

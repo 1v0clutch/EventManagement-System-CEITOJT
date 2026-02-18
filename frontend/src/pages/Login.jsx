@@ -131,6 +131,8 @@ export default function Login() {
                 name="email"
                 type="email"
                 required
+                pattern="^main\.[A-Za-z]+\.[A-Za-z]+@cvsu\.edu\.ph$"
+                title="Use this format: main.firstname.lastname@cvsu.edu.ph"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-green-600 focus:border-green-600 focus:z-10 sm:text-sm"

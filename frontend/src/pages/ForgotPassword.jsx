@@ -17,14 +17,13 @@ export default function ForgotPassword() {
     setLoading(true);
 
     try {
-      await api.post('/forgot-password', { email });
-      setSuccess('Password reset link has been sent to your email. Please check your inbox.');
-      setEmail('');
+      await api.post('/request-otp', { email });
+      setSuccess('OTP code has been sent to your Gmail inbox. Redirecting...');
       setTimeout(() => {
-        navigate('/login');
-      }, 3000);
+        navigate('/verify-otp', { state: { email } });
+      }, 2000);
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to send reset link. Please try again.');
+      setError(err.response?.data?.message || 'Failed to send OTP. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -64,6 +63,8 @@ export default function ForgotPassword() {
               name="email"
               type="email"
               required
+              pattern="^main\.[A-Za-z]+\.[A-Za-z]+@cvsu\.edu\.ph$"
+              title="Use this format: main.firstname.lastname@cvsu.edu.ph"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-green-600 focus:border-green-600 focus:z-10 sm:text-sm"
@@ -77,7 +78,7 @@ export default function ForgotPassword() {
               disabled={loading}
               className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-green-700 hover:bg-green-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-600 disabled:opacity-50"
             >
-              {loading ? 'Sending...' : 'Send Reset Link'}
+              {loading ? 'Sending OTP...' : 'Send OTP Code'}
             </button>
           </div>
 
