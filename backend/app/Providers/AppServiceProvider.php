@@ -19,6 +19,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        // SendGrid transport removed - now using Supabase for email delivery
+        // See: SUPABASE_MIGRATION_README.md for details
     }
 }
