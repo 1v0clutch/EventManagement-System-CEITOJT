@@ -14,12 +14,12 @@ export default function Register() {
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState('');
-  
+
   const navigate = useNavigate();
 
   const departments = [
     'Department of Agricultural and Food Engineering',
-    'Department of Civil and Environmental Engineering and Energy', 
+    'Department of Civil and Environmental Engineering and Energy',
     'Department of Computer Engineering and Architecture',
     'Department of Industrial and Electrical Technology',
     'Department of Information Technology'
@@ -31,7 +31,7 @@ export default function Register() {
       ...prev,
       [name]: value
     }));
-    
+
     // Clear error when user starts typing
     if (errors[name]) {
       setErrors(prev => ({
@@ -48,21 +48,35 @@ export default function Register() {
     setSuccess('');
 
     try {
-      await api.post('/register', formData);
-      
-      setSuccess('Registration successful! You can now sign in with your account.');
-      
-      // Redirect to login after 2 seconds
-      setTimeout(() => {
-        navigate('/login');
-      }, 2000);
-      
+      const response = await api.post('/register', {
+        ...formData,
+        email: formData.email.trim()
+      });
+
+      if (response.data.requires_verification) {
+        setSuccess('Registration successful! Please check your email for verification code.');
+
+        // Redirect to email verification after 2 seconds
+        setTimeout(() => {
+          navigate('/verify-email', {
+            state: { email: formData.email }
+          });
+        }, 2000);
+      } else {
+        setSuccess('Registration successful! You can now sign in with your account.');
+
+        // Redirect to login after 2 seconds
+        setTimeout(() => {
+          navigate('/login');
+        }, 2000);
+      }
+
     } catch (err) {
       if (err.response?.data?.errors) {
         setErrors(err.response.data.errors);
       } else {
-        setErrors({ 
-          general: err.response?.data?.message || 'Registration failed. Please try again.' 
+        setErrors({
+          general: err.response?.data?.message || 'Registration failed. Please try again.'
         });
       }
     } finally {
@@ -168,7 +182,7 @@ export default function Register() {
                   value={formData.department}
                   onChange={handleChange}
                   className="mt-1 block w-full px-3 py-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm leading-5 text-gray-900"
-                  style={{ 
+                  style={{
                     minHeight: '42px',
                     lineHeight: '1.5'
                   }}
@@ -246,8 +260,8 @@ export default function Register() {
             </div>
 
             <div className="text-center">
-              <Link 
-                to="/login" 
+              <Link
+                to="/login"
                 className="font-medium text-green-600 hover:text-green-500"
               >
                 Already have an account? Sign in

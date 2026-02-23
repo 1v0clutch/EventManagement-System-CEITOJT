@@ -10,6 +10,8 @@ use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
+use App\Services\EmailVerificationService;
+use App\Services\BrevoMailService;
 
 class AuthController extends Controller
 {
@@ -30,18 +32,54 @@ class AuthController extends Controller
                 'email.regex' => 'Only @cvsu.edu.ph email addresses are allowed.'
             ]);
 
+            $email = strtolower(trim($request->email));
+
+            // Verify CVSU email exists
+            $emailVerificationService = new EmailVerificationService();
+            $verification = $emailVerificationService->verifyCVSUEmail($email);
+
+            if (!$verification['valid']) {
+                return response()->json([
+                    'message' => $verification['message']
+                ], 400);
+            }
+
+            // Create user but mark as unverified
             $user = User::create([
                 'name' => $request->username,
-                'email' => $request->email,
+                'email' => $email,
                 'password' => Hash::make($request->password),
                 'department' => $request->department,
                 'role' => 'teacher',
+                'email_verified_at' => null, // User needs to verify email
             ]);
 
-            $token = $user->createToken('auth-token')->plainTextToken;
+            // Generate and send verification OTP
+            $otp = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+
+            // Store OTP in database
+            DB::table('email_verification_otps')->insert([
+                'email' => $email,
+                'otp' => $otp,
+                'expires_at' => now()->addMinutes(10),
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            // Send verification email
+            $brevoService = new BrevoMailService();
+            $emailSent = $brevoService->sendRegistrationOtp($email, $otp, $request->username);
+
+            if (!$emailSent) {
+                // If email fails, still allow registration but log the error
+                Log::error('Failed to send verification email during registration', [
+                    'email' => $email,
+                    'user_id' => $user->id,
+                ]);
+            }
 
             return response()->json([
-                'message' => 'Registered successfully',
+                'message' => 'Registration successful! Please check your email for verification code.',
                 'user' => [
                     'id' => $user->id,
                     'username' => $user->name,
@@ -49,10 +87,145 @@ class AuthController extends Controller
                     'department' => $user->department,
                     'role' => $user->role,
                     'schedule_initialized' => false,
+                    'email_verified' => false,
                 ],
-                'token' => $token,
+                'requires_verification' => true,
             ], 201);
         }
+    /**
+     * Verify email with OTP
+     */
+    public function verifyEmail(Request $request)
+    {
+        $request->validate([
+            'email' => 'required|email',
+            'otp' => 'required|string|size:6',
+        ]);
+
+        $email = strtolower(trim($request->email));
+        $otp = trim($request->otp);
+
+        // Find the OTP record
+        $otpRecord = DB::table('email_verification_otps')
+            ->where('email', $email)
+            ->where('otp', $otp)
+            ->where('expires_at', '>', now())
+            ->first();
+
+        if (!$otpRecord) {
+            Log::warning('Failed email verification attempt', [
+                'email' => $email,
+                'otp' => $otp,
+                'timestamp' => now(),
+                'reason' => 'Invalid or expired OTP'
+            ]);
+            return response()->json([
+                'message' => 'Invalid or expired OTP code.'
+            ], 400);
+        }
+
+        // Find the user
+        $user = User::where('email', $email)->first();
+        if (!$user) {
+            return response()->json([
+                'message' => 'User not found.'
+            ], 404);
+        }
+
+        // Mark email as verified
+        $user->email_verified_at = now();
+        $user->save();
+
+        // Delete the OTP record
+        DB::table('email_verification_otps')->where('email', $email)->delete();
+
+        // Create token for the user
+        $token = $user->createToken('auth-token')->plainTextToken;
+
+        Log::info('Email verified successfully', [
+            'email' => $email,
+            'user_id' => $user->id,
+        ]);
+
+        return response()->json([
+            'message' => 'Email verified successfully! You can now access your account.',
+            'user' => [
+                'id' => $user->id,
+                'username' => $user->name,
+                'email' => $user->email,
+                'department' => $user->department,
+                'role' => $user->role,
+                'schedule_initialized' => $user->schedule_initialized ?? false,
+                'email_verified' => true,
+            ],
+            'token' => $token,
+        ]);
+    }
+
+    /**
+     * Resend verification OTP
+     */
+    public function resendVerificationOtp(Request $request)
+    {
+        $request->validate([
+            'email' => 'required|email',
+        ]);
+
+        $email = strtolower(trim($request->email));
+
+        // Find the user
+        $user = User::where('email', $email)->first();
+        if (!$user) {
+            return response()->json([
+                'message' => 'User not found.'
+            ], 404);
+        }
+
+        // Check if already verified
+        if ($user->email_verified_at) {
+            return response()->json([
+                'message' => 'Email is already verified.'
+            ], 400);
+        }
+
+        // Delete any existing OTP
+        DB::table('email_verification_otps')->where('email', $email)->delete();
+
+        // Generate new OTP
+        $otp = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+
+        // Store new OTP
+        DB::table('email_verification_otps')->insert([
+            'email' => $email,
+            'otp' => $otp,
+            'expires_at' => now()->addMinutes(10),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        // Send verification email
+        $brevoService = new BrevoMailService();
+        $emailSent = $brevoService->sendRegistrationOtp($email, $otp, $user->name);
+
+        if (!$emailSent) {
+            Log::error('Failed to resend verification email', [
+                'email' => $email,
+                'user_id' => $user->id,
+            ]);
+            return response()->json([
+                'message' => 'Failed to send verification email. Please try again later.'
+            ], 500);
+        }
+
+        Log::info('Verification OTP resent', [
+            'email' => $email,
+            'user_id' => $user->id,
+        ]);
+
+        return response()->json([
+            'message' => 'Verification code sent! Please check your email.'
+        ]);
+    }
 
     public function login(Request $request)
     {
@@ -67,7 +240,7 @@ class AuthController extends Controller
             'email.regex' => 'Only @cvsu.edu.ph email addresses are allowed.'
         ]);
 
-        $email = $request->email;
+        $email = strtolower(trim($request->email));
         $ip = $request->ip();
         $key = 'login_attempts:' . md5($email . $ip);
         $lockoutKey = 'login_lockout:' . md5($email . $ip);
@@ -88,6 +261,21 @@ class AuthController extends Controller
             throw ValidationException::withMessages([
                 'email' => ['This account does not exist. Please check your email or register.'],
             ]);
+        }
+
+        // Check if email is verified
+        if (!$user->email_verified_at) {
+            Log::warning('Login attempt with unverified email', [
+                'email' => $email,
+                'user_id' => $user->id,
+                'ip' => $ip,
+            ]);
+            
+            return response()->json([
+                'message' => 'Please verify your email address before logging in.',
+                'requires_verification' => true,
+                'email' => $user->email,
+            ], 403);
         }
 
         // User exists - check password
@@ -167,7 +355,7 @@ class AuthController extends Controller
                 'username' => $user->name,
                 'email' => $user->email,
                 'department' => $user->department,
-                'role' => $user->role ?? 'teacher',
+                'role' => $user->role ?? 'Faculty',
                 'schedule_initialized' => $user->schedule_initialized ?? false,
             ],
             'token' => $token,
@@ -191,7 +379,7 @@ class AuthController extends Controller
                 'username' => $request->user()->name,
                 'email' => $request->user()->email,
                 'department' => $request->user()->department,
-                'role' => $request->user()->role ?? 'teacher',
+                'role' => $request->user()->role ?? 'Faculty',
                 'schedule_initialized' => $request->user()->schedule_initialized ?? false,
             ],
         ]);
@@ -209,7 +397,8 @@ class AuthController extends Controller
             'email.regex' => 'Only @cvsu.edu.ph email addresses are allowed.'
         ]);
 
-        $user = User::where('email', $request->email)->first();
+        $email = strtolower(trim($request->email));
+        $user = User::where('email', $email)->first();
 
         if (!$user) {
             return response()->json([
@@ -227,12 +416,12 @@ class AuthController extends Controller
                 'message' => 'Password reset link sent to your email.',
                 'reset_url' => $frontendUrl.'/reset-password?'.http_build_query([
                     'token' => $token,
-                    'email' => $user->email,
+                    'email' => $email,
                 ]),
             ]);
         }
 
-        $status = Password::sendResetLink($request->only('email'));
+        $status = Password::sendResetLink(['email' => $email]);
 
         if ($status === Password::RESET_LINK_SENT) {
             return response()->json([
@@ -334,11 +523,12 @@ class AuthController extends Controller
             'otp.regex' => 'OTP must be a 6-digit number.',
         ]);
 
-        $email = strtolower($request->email);
+        $email = strtolower(trim($request->email));
+        $otp = trim($request->otp);
 
         $otpRecord = DB::table('password_reset_otps')
             ->where('email', $email)
-            ->where('otp', $request->otp)
+            ->where('otp', $otp)
             ->where('used', false)
             ->where('expires_at', '>', now())
             ->first();
@@ -406,7 +596,7 @@ class AuthController extends Controller
             'password.min' => 'Password must be at least 8 characters.',
         ]);
 
-        $email = strtolower($request->email);
+        $email = strtolower(trim($request->email));
 
         $otpRecord = DB::table('password_reset_otps')
             ->where('email', $email)
@@ -494,11 +684,12 @@ class AuthController extends Controller
             'token' => 'required|string',
         ]);
 
-        $email = strtolower($request->email);
+        $email = strtolower(trim($request->email));
+        $token = trim($request->token);
 
         $record = DB::table('email_verification_otps')
             ->where('email', $email)
-            ->where('otp', $request->token)
+            ->where('otp', $token)
             ->where(function ($q) {
                 $q->whereNull('expires_at')->orWhere('expires_at', '>', now());
             })
@@ -520,7 +711,8 @@ class AuthController extends Controller
 
         // Mark email as verified if not already
         if (!$user->email_verified_at) {
-            $user->update(['email_verified_at' => now()]);
+            $user->email_verified_at = now();
+            $user->save();
         }
 
         // Delete the used verification record
@@ -548,8 +740,14 @@ class AuthController extends Controller
             'password.confirmed' => 'Passwords do not match.',
         ]);
 
+        $email = strtolower(trim($request->email));
         $status = Password::reset(
-            $request->only('email', 'password', 'password_confirmation', 'token'),
+            [
+                'email' => $email,
+                'password' => $request->password,
+                'password_confirmation' => $request->password_confirmation,
+                'token' => $request->token
+            ],
             function ($user, $password) {
                 $user->forceFill([
                     'password' => Hash::make($password),
