@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import Calendar from '../components/Calendar';
+import EventDetails from '../components/EventDetails';
 import NotificationBell from '../components/NotificationBell';
 import logo from '../assets/CEIT-LOGO.png';
 import api from '../services/api';
@@ -46,6 +47,32 @@ const Dashboard = () => {
   const handleDateSelect = (date, eventsForDate) => {
     setSelectedDate(date);
     setSelectedEvents(eventsForDate);
+  };
+
+  const handleEdit = (event) => {
+    navigate('/add-event', { state: { event } });
+  };
+
+  const handleDelete = async (event) => {
+    if (!window.confirm(`Are you sure you want to delete "${event.title}"?`)) {
+      return;
+    }
+
+    try {
+      await api.delete(`/events/${event.id}`);
+      await fetchEvents();
+      if (selectedDate === event.date) {
+        const updatedEvents = selectedEvents.filter(e => e.id !== event.id);
+        setSelectedEvents(updatedEvents);
+      }
+    } catch (error) {
+      console.error('Error deleting event:', error);
+      alert('Failed to delete event: ' + (error.response?.data?.error || error.message));
+    }
+  };
+
+  const handleViewEvent = (event) => {
+    navigate('/add-event', { state: { event, selectedDate } });
   };
 
   const handleLogout = async () => {
@@ -214,66 +241,15 @@ const Dashboard = () => {
 
             {/* Event Details Section */}
             <div>
-              <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden hover:shadow-xl transition-shadow duration-300 h-full">
-                <div className="bg-gradient-to-r from-green-700 via-green-600 to-green-800 px-8 py-6">
-                  <h3 className="text-2xl font-bold text-white flex items-center gap-2">
-                    <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                    </svg>
-                    Event Details
-                  </h3>
-                  <p className="text-green-200 text-sm mt-1">
-                    {selectedDate ? `Events on ${selectedDate}` : 'Select a date to view events'}
-                  </p>
-                </div>
-
-                <div className="p-8">
-                  {selectedDate && selectedEvents.length > 0 ? (
-                    <div className="space-y-4">
-                      {selectedEvents.map(event => (
-                        <div key={event.id} className="border-2 border-gray-200 rounded-lg p-5 hover:border-green-400 hover:shadow-md transition-all duration-200">
-                          <h4 className="font-bold text-xl text-gray-900 mb-2">{event.title}</h4>
-                          <div className="flex items-center text-sm text-gray-600 mb-3">
-                            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                            {event.time}
-                          </div>
-                          {event.description && (
-                            <p className="text-sm text-gray-700 mb-3">{event.description}</p>
-                          )}
-                          {event.location && (
-                            <div className="flex items-center text-sm text-gray-600 mb-3">
-                              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                              </svg>
-                              {event.location}
-                            </div>
-                          )}
-                          <button
-                            onClick={() => navigate('/add-event', { state: { event, selectedDate } })}
-                            className="mt-3 px-4 py-2 text-sm font-medium bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-                          >
-                            View Details
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-12 text-gray-500">
-                      <svg className="w-16 h-16 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                      </svg>
-                      <p className="text-lg font-medium">
-                        {selectedDate 
-                          ? 'No events scheduled for this date' 
-                          : 'Select a date on the calendar to view events'}
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </div>
+              <EventDetails
+                date={selectedDate}
+                events={selectedEvents}
+                members={[]}
+                currentUser={user}
+                onEdit={handleEdit}
+                onDelete={handleDelete}
+                onView={handleViewEvent}
+              />
             </div>
           </div>
         </div>
