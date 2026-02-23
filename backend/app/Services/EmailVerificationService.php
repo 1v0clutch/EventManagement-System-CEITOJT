@@ -36,9 +36,8 @@ class EmailVerificationService
         // - Timeout issues
         // 
         // For production, consider:
-        // 1. Using Supabase email verification (send OTP to email)
-        // 2. Using a third-party email verification API
-        // 3. Just validating format (current approach)
+        // 1. Using a third-party email verification API
+        // 2. Just validating format (current approach)
         
         // For now, just validate format and trust the user
         return [
@@ -79,7 +78,7 @@ class EmailVerificationService
      */
     private function isCVSUEmail($email)
     {
-        return preg_match('/^main\.[A-Za-z]+\.[A-Za-z]+@cvsu\.edu\.ph$/', $email);
+        return preg_match('/^[a-zA-Z0-9._%+-]+@cvsu\.edu\.ph$/i', $email);
     }
 
     /**
