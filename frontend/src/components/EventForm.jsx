@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import api from '../services/api';
+import DatePicker from './DatePicker';
 
 export default function EventForm({ members, onEventCreated, editingEvent, onCancelEdit, defaultDate, hasSchedule = true, currentUser }) {
   const [title, setTitle] = useState('');
@@ -27,6 +28,27 @@ export default function EventForm({ members, onEventCreated, editingEvent, onCan
     if (!time) setTime(currentTime);
   }, [defaultDate]);
 
+  const validateDateTime = () => {
+    const now = new Date();
+    const selectedDateTime = new Date(`${date}T${time}`);
+    
+    if (selectedDateTime < now) {
+      setError('Cannot set event date/time in the past');
+      return false;
+    }
+    
+    setError('');
+    return true;
+  };
+
+  const handleDateChange = (newDate) => {
+    setDate(newDate);
+  };
+
+  const handleTimeChange = (newTime) => {
+    setTime(newTime);
+  };
+
   useEffect(() => {
     if (editingEvent) {
       setTitle(editingEvent.title);
@@ -43,6 +65,12 @@ export default function EventForm({ members, onEventCreated, editingEvent, onCan
     e.preventDefault();
     setError('');
     setSuccess('');
+
+    // Validate date/time before submission
+    if (!validateDateTime()) {
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -134,13 +162,13 @@ export default function EventForm({ members, onEventCreated, editingEvent, onCan
   const validateAndAddImages = (files) => {
     setFileError('');
 
-    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
-    const maxSize = 2 * 1024 * 1024; // 2MB
+    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'application/pdf'];
+    const maxSize = 25 * 1024 * 1024; // 25MB
     const maxFiles = 5;
 
     // Check if adding these files would exceed the limit
     if (images.length + files.length > maxFiles) {
-      setFileError(`Maximum ${maxFiles} images allowed. You can only add ${maxFiles - images.length} more.`);
+      setFileError(`Maximum ${maxFiles} files allowed. You can only add ${maxFiles - images.length} more.`);
       return;
     }
 
@@ -150,14 +178,14 @@ export default function EventForm({ members, onEventCreated, editingEvent, onCan
     files.forEach(file => {
       // Check file type
       if (!validTypes.includes(file.type)) {
-        errors.push(`"${file.name}" is not a valid image. Only JPG, PNG, GIF, and WebP are allowed.`);
+        errors.push(`"${file.name}" is not a valid file. Only JPG, PNG, GIF, WebP, and PDF are allowed.`);
         return;
       }
 
       // Check file size
       if (file.size > maxSize) {
         const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
-        errors.push(`"${file.name}" is too large (${sizeMB}MB). Maximum size is 2MB.`);
+        errors.push(`"${file.name}" is too large (${sizeMB}MB). Maximum size is 25MB.`);
         return;
       }
 
@@ -183,11 +211,17 @@ export default function EventForm({ members, onEventCreated, editingEvent, onCan
       setImages(prev => [...prev, ...files]);
 
       files.forEach(file => {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          setImagePreviews(prev => [...prev, reader.result]);
-        };
-        reader.readAsDataURL(file);
+        // For PDFs, create a special preview
+        if (file.type === 'application/pdf') {
+          setImagePreviews(prev => [...prev, { type: 'pdf', name: file.name }]);
+        } else {
+          // For images, create data URL preview
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            setImagePreviews(prev => [...prev, { type: 'image', url: reader.result }]);
+          };
+          reader.readAsDataURL(file);
+        }
       });
     }
   };
@@ -313,35 +347,157 @@ export default function EventForm({ members, onEventCreated, editingEvent, onCan
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
-                  <input
-                    type="date"
-                    required
-                    value={date}
-                    onChange={(e) => setDate(e.target.value)}
-                    className="block w-full px-3 py-2.5 border border-gray-300 rounded-lg shadow-sm text-sm focus:outline-none focus:ring-2 focus:ring-green-600/20 focus:border-green-600 transition-colors"
-                  />
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Date</label>
+                    <DatePicker
+                      selectedDate={date}
+                      onDateSelect={handleDateChange}
+                      minDate={new Date().toISOString().split('T')[0]}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Time</label>
+                    <input
+                      type="time"
+                      required
+                      value={time}
+                      onChange={(e) => handleTimeChange(e.target.value)}
+                      className="block w-full px-2 py-1.5 border border-gray-300 rounded-lg shadow-sm text-xs focus:outline-none focus:ring-2 focus:ring-green-600/20 focus:border-green-600 transition-colors"
+                    />
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Time</label>
-                  <input
-                    type="time"
-                    required
-                    value={time}
-                    onChange={(e) => setTime(e.target.value)}
-                    className="block w-full px-3 py-2.5 border border-gray-300 rounded-lg shadow-sm text-sm focus:outline-none focus:ring-2 focus:ring-green-600/20 focus:border-green-600 transition-colors"
-                  />
+              </div>
+
+              {/* Event Files Section - Moved here */}
+              <div className="mt-4">
+                <div className="flex items-center space-x-2 mb-3">
+                  <div className="bg-green-50 rounded-lg p-1.5">
+                    <svg className="w-4 h-4 text-green-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                  </div>
+                  <h3 className="text-sm font-bold text-gray-900">Event Files</h3>
+                  <span className="text-xs text-gray-400">(Max 5, 25MB each)</span>
                 </div>
+
+                {/* File Error Alert */}
+                {fileError && (
+                  <div className="mb-3 rounded-lg bg-red-50 border border-red-200 p-2 flex items-start space-x-2 animate-shake">
+                    <div className="flex-shrink-0 mt-0.5">
+                      <svg className="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                      </svg>
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-xs font-medium text-red-800">Invalid File</p>
+                      <p className="text-xs text-red-700 mt-0.5">{fileError}</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setFileError('')}
+                      className="flex-shrink-0 text-red-400 hover:text-red-600"
+                    >
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                )}
+
+                <div
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  onDrop={handleDrop}
+                  className={`border-2 border-dashed rounded-lg p-3 transition-all duration-200 ${isDragging
+                    ? 'border-green-500 bg-green-100/50 scale-[1.01]'
+                    : fileError
+                      ? 'border-red-300 bg-red-50/30'
+                      : 'border-gray-200 bg-gray-50/50 hover:border-gray-300'
+                    }`}
+                >
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/jpg,image/png,image/gif,image/webp,application/pdf"
+                    multiple
+                    onChange={handleImageChange}
+                    className="hidden"
+                    id="image-upload"
+                  />
+
+                  <div className="flex gap-2 overflow-x-auto pb-1">
+                    {/* Add Image Button */}
+                    <label
+                      htmlFor="image-upload"
+                      className={`flex-shrink-0 w-20 h-20 border-2 border-dashed rounded-lg cursor-pointer transition-all duration-200 flex items-center justify-center group ${images.length >= 5
+                        ? 'border-gray-200 bg-gray-100 cursor-not-allowed opacity-50'
+                        : 'border-gray-300 hover:border-green-500 hover:bg-green-100/50'
+                        }`}
+                    >
+                      <div className="text-center">
+                        <svg className="mx-auto h-5 w-5 text-gray-300 group-hover:text-green-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
+                        </svg>
+                        <span className="mt-0.5 text-xs text-gray-400 group-hover:text-green-600 font-medium">
+                          {images.length >= 5 ? 'Full' : 'Add'}
+                        </span>
+                      </div>
+                    </label>
+
+                    {/* Image Previews */}
+                    {imagePreviews.map((preview, index) => (
+                      <div key={index} className="relative flex-shrink-0 group">
+                        {preview.type === 'pdf' ? (
+                          <div className="w-20 h-20 flex flex-col items-center justify-center bg-red-50 border-2 border-red-200 rounded-lg p-1 relative">
+                            <svg className="w-6 h-6 text-red-600 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                            </svg>
+                            <span className="text-xs text-red-700 font-medium truncate w-full text-center px-1" title={preview.name}>
+                              {preview.name.length > 12 ? preview.name.substring(0, 12) + '...' : preview.name}
+                            </span>
+                          </div>
+                        ) : (
+                          <img
+                            src={preview.url || preview}
+                            alt={`Preview ${index + 1}`}
+                            className="w-20 h-20 object-cover rounded-lg border border-gray-200"
+                          />
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => removeImage(index)}
+                          className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200 hover:bg-red-600 shadow-sm"
+                        >
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {imagePreviews.length > 0 && (
+                  <div className="mt-2 flex items-center justify-between">
+                    <p className="text-xs text-gray-400">
+                      {imagePreviews.length} / 5 file{imagePreviews.length !== 1 ? 's' : ''} selected
+                    </p>
+                    {images.length >= 5 && (
+                      <p className="text-xs text-amber-600 font-medium">
+                        Maximum reached
+                      </p>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           </div>
 
-          {/* Right Column - Members and Images (2/3 width) */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Members List Box */}
-            <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
+          {/* Right Column - Members Only (2/3 width) - Maximized */}
+          <div className="lg:col-span-2">
+            {/* Members List Box - Now Full Height */}
+            <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm h-full">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center space-x-2">
                   <div className="bg-green-50 rounded-lg p-2">
@@ -428,7 +584,7 @@ export default function EventForm({ members, onEventCreated, editingEvent, onCan
                   )}
                 </button>
               </div>
-              <div className="border border-gray-200 rounded-lg bg-gray-50/50 h-48 overflow-y-auto">
+              <div className="border border-gray-200 rounded-lg bg-gray-50/50 h-96 overflow-y-auto">
                 {searchFilteredMembers.length === 0 ? (
                   <div className="h-full flex items-center justify-center">
                     <p className="text-sm text-gray-400">
@@ -462,117 +618,6 @@ export default function EventForm({ members, onEventCreated, editingEvent, onCan
                   </div>
                 )}
               </div>
-            </div>
-
-            {/* Event Images Box */}
-            <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
-              <div className="flex items-center space-x-2 mb-4">
-                <div className="bg-green-50 rounded-lg p-2">
-                  <svg className="w-5 h-5 text-green-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                  </svg>
-                </div>
-                <h3 className="text-base font-bold text-gray-900">Event Images</h3>
-                <span className="text-xs text-gray-400">(Max 5 images, 2MB each)</span>
-              </div>
-
-              {/* File Error Alert */}
-              {fileError && (
-                <div className="mb-4 rounded-lg bg-red-50 border border-red-200 p-3 flex items-start space-x-2 animate-shake">
-                  <div className="flex-shrink-0 mt-0.5">
-                    <svg className="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                    </svg>
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-red-800">Invalid File</p>
-                    <p className="text-xs text-red-700 mt-0.5">{fileError}</p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setFileError('')}
-                    className="flex-shrink-0 text-red-400 hover:text-red-600"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-                </div>
-              )}
-
-              <div
-                onDragOver={handleDragOver}
-                onDragLeave={handleDragLeave}
-                onDrop={handleDrop}
-                className={`border-2 border-dashed rounded-xl p-4 transition-all duration-200 ${isDragging
-                  ? 'border-green-500 bg-green-100/50 scale-[1.01]'
-                  : fileError
-                    ? 'border-red-300 bg-red-50/30'
-                    : 'border-gray-200 bg-gray-50/50 hover:border-gray-300'
-                  }`}
-              >
-                <input
-                  type="file"
-                  accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
-                  multiple
-                  onChange={handleImageChange}
-                  className="hidden"
-                  id="image-upload"
-                />
-
-                <div className="flex gap-3 overflow-x-auto pb-2">
-                  {/* Add Image Button */}
-                  <label
-                    htmlFor="image-upload"
-                    className={`flex-shrink-0 w-28 h-28 border-2 border-dashed rounded-xl cursor-pointer transition-all duration-200 flex items-center justify-center group ${images.length >= 5
-                      ? 'border-gray-200 bg-gray-100 cursor-not-allowed opacity-50'
-                      : 'border-gray-300 hover:border-green-500 hover:bg-green-100/50'
-                      }`}
-                  >
-                    <div className="text-center">
-                      <svg className="mx-auto h-7 w-7 text-gray-300 group-hover:text-green-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
-                      </svg>
-                      <span className="mt-1 text-xs text-gray-400 group-hover:text-green-600 font-medium">
-                        {images.length >= 5 ? 'Full' : 'Add'}
-                      </span>
-                    </div>
-                  </label>
-
-                  {/* Image Previews */}
-                  {imagePreviews.map((preview, index) => (
-                    <div key={index} className="relative flex-shrink-0 group">
-                      <img
-                        src={preview}
-                        alt={`Preview ${index + 1}`}
-                        className="w-28 h-28 object-cover rounded-xl border border-gray-200"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => removeImage(index)}
-                        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200 hover:bg-red-600 shadow-sm"
-                      >
-                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {imagePreviews.length > 0 && (
-                <div className="mt-2 flex items-center justify-between">
-                  <p className="text-xs text-gray-400">
-                    {imagePreviews.length} / 5 image{imagePreviews.length !== 1 ? 's' : ''} selected
-                  </p>
-                  {images.length >= 5 && (
-                    <p className="text-xs text-amber-600 font-medium">
-                      Maximum reached
-                    </p>
-                  )}
-                </div>
-              )}
             </div>
           </div>
         </div>

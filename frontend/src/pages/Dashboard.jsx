@@ -5,6 +5,7 @@ import api from '../services/api';
 import Calendar from '../components/Calendar';
 import EventDetails from '../components/EventDetails';
 import NotificationBell from '../components/NotificationBell';
+import Modal from '../components/Modal';
 import logo from "../assets/CEIT-LOGO.png";
 
 export default function Dashboard() {
@@ -15,8 +16,32 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState(null);
   const [selectedDateEvents, setSelectedDateEvents] = useState([]);
+  const [userSchedule, setUserSchedule] = useState({});
   const [highlightedDate, setHighlightedDate] = useState(null);
   const [isAccountDropdownOpen, setIsAccountDropdownOpen] = useState(false);
+
+  // Modal States
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedEvent, setSelectedEvent] = useState(null);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [isMembersDropdownOpen, setIsMembersDropdownOpen] = useState(false);
+  const [isScheduleRequiredModalOpen, setIsScheduleRequiredModalOpen] = useState(false);
+  const [isMembersModalOpen, setIsMembersModalOpen] = useState(false);
+  const [isEventsListModalOpen, setIsEventsListModalOpen] = useState(false);
+  const [hasSchedule, setHasSchedule] = useState(true);
+  const [selectedMemberForView, setSelectedMemberForView] = useState(null);
+
+  // Reschedule States
+  const [isRescheduleModalOpen, setIsRescheduleModalOpen] = useState(false);
+  const [rescheduleDate, setRescheduleDate] = useState('');
+  const [rescheduleTime, setRescheduleTime] = useState('');
+  const [rescheduleReason, setRescheduleReason] = useState('');
+  const [rescheduleRequests, setRescheduleRequests] = useState([]);
+
+  // Decline Reason State
+  const [isDeclineModalOpen, setIsDeclineModalOpen] = useState(false);
+  const [declineReason, setDeclineReason] = useState('');
+  const [decliningEventId, setDecliningEventId] = useState(null);
 
   useEffect(() => {
     fetchData();
@@ -83,12 +108,24 @@ export default function Dashboard() {
     }
   };
 
-  const handleViewEvent = (event) => {
-    // Don't navigate for default events
-    if (event.is_default_event) {
-      return;
+  const handleViewEvent = async (event) => {
+    setSelectedEvent(event);
+    setIsModalOpen(true);
+
+    await fetchUserSchedule();
+
+    if (user && event.host.id === user.id) {
+      fetchRescheduleRequests(event.id);
+    } else {
+      setRescheduleRequests([]);
     }
-    navigate('/add-event', { state: { event } });
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setSelectedEvent(null);
+    setIsMembersDropdownOpen(false);
+    setCurrentImageIndex(0);
   };
 
   const handleDateSelect = (date, events) => {
@@ -107,6 +144,144 @@ export default function Dashboard() {
         setHighlightedDate(null);
       }, 2000);
     }
+  };
+
+  const handleMembersClick = () => {
+    if (members.length > 0) {
+      setSelectedMemberForView(members[0]);
+    }
+    setIsMembersModalOpen(true);
+  };
+
+  const handleYourEventsClick = () => {
+    setIsEventsListModalOpen(true);
+  };
+
+  const fetchRescheduleRequests = async (eventId) => {
+    try {
+      const response = await api.get(`/events/${eventId}/reschedule-requests`);
+      setRescheduleRequests(response.data.requests);
+    } catch (error) {
+      console.error('Error fetching requests:', error);
+    }
+  };
+
+  const handleRescheduleClick = () => {
+    setRescheduleDate(selectedEvent.date);
+    setRescheduleTime(selectedEvent.time);
+    setRescheduleReason('');
+    setIsRescheduleModalOpen(true);
+  };
+
+  const submitRescheduleRequest = async (e) => {
+    e.preventDefault();
+    try {
+      await api.post(`/events/${selectedEvent.id}/reschedule`, {
+        suggested_date: rescheduleDate,
+        suggested_time: rescheduleTime,
+        reason: rescheduleReason,
+      });
+      alert('Reschedule request sent!');
+      setIsRescheduleModalOpen(false);
+    } catch (error) {
+      console.error('Error sending request:', error);
+      alert('Failed to send request: ' + (error.response?.data?.message || error.message));
+    }
+  };
+
+  const handleRespondToReschedule = async (requestId, status) => {
+    try {
+      await api.post(`/reschedule-requests/${requestId}/respond`, { status });
+      await fetchRescheduleRequests(selectedEvent.id);
+      await fetchData();
+
+      if (status === 'accepted') {
+        setIsModalOpen(false);
+      }
+    } catch (error) {
+      console.error('Error responding:', error);
+      alert('Failed to respond: ' + (error.response?.data?.message || error.message));
+    }
+  };
+
+  const handleDeclineWithReason = async () => {
+    if (!declineReason.trim()) {
+      alert('Please provide a reason for declining');
+      return;
+    }
+
+    try {
+      // Decline the event
+      await api.post(`/events/${decliningEventId}/respond`, { status: 'declined' });
+      
+      // Send decline reason message to host
+      const event = events.find(e => e.id === decliningEventId);
+      if (event && event.host) {
+        await api.post('/messages', {
+          recipient_id: event.host.id,
+          event_id: decliningEventId,
+          type: 'decline_reason',
+          message: declineReason
+        });
+      }
+
+      // Refresh data
+      await fetchData();
+      const updatedRes = await api.get('/events');
+      const updatedEvent = updatedRes.data.events.find(e => e.id === decliningEventId);
+      if (updatedEvent) setSelectedEvent(updatedEvent);
+
+      // Close modals and reset state
+      setIsDeclineModalOpen(false);
+      setDeclineReason('');
+      setDecliningEventId(null);
+    } catch (error) {
+      console.error('Error declining invitation:', error);
+      alert('Failed to decline invitation: ' + (error.response?.data?.error || error.message));
+    }
+  };
+
+  // Helper function to fetch user schedule
+  const fetchUserSchedule = async () => {
+    try {
+      const response = await api.get('/schedule');
+      setUserSchedule(response.data.schedule || {});
+      setHasSchedule(true);
+    } catch (error) {
+      console.error('Error fetching schedule:', error);
+      setHasSchedule(false);
+    }
+  };
+
+  // Helper function to check schedule conflicts
+  const checkScheduleConflict = (event) => {
+    if (!event || !userSchedule) return null;
+    
+    const eventDate = new Date(event.date);
+    const dayOfWeek = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'][eventDate.getDay()];
+    const daySchedule = userSchedule[dayOfWeek];
+    
+    if (!daySchedule || daySchedule.length === 0) return null;
+    
+    const eventTime = event.time;
+    const conflicts = daySchedule.filter(slot => {
+      // Simple time overlap check
+      return slot.startTime <= eventTime && slot.endTime >= eventTime;
+    });
+    
+    return conflicts.length > 0 ? conflicts : null;
+  };
+
+  // Helper function to fix image URLs
+  const getFixedImageUrl = (url) => {
+    if (!url) return '';
+    if (url.startsWith('http://') || url.startsWith('https://')) return url;
+    return `${import.meta.env.VITE_API_URL || 'http://localhost:8000'}${url.startsWith('/') ? url : '/' + url}`;
+  };
+
+  // Helper function for add event click
+  const handleAddEventClick = () => {
+    navigate('/add-event', { state: { selectedDate } });
   };
 
   // Compute stats
@@ -144,7 +319,7 @@ export default function Dashboard() {
               </div>
             </div>
 
-            {/* Right corner - Home Icon, Notifications and Account */}
+            {/* Right corner - Home Icon, History, Notifications and Account */}
             <div className="flex items-center space-x-4">
               {/* Home Icon */}
               <button
@@ -154,6 +329,17 @@ export default function Dashboard() {
               >
                 <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                </svg>
+              </button>
+
+              {/* History Icon */}
+              <button
+                onClick={() => navigate('/history')}
+                className="p-2 rounded-lg hover:bg-white/10 transition-colors duration-200"
+                aria-label="View history"
+              >
+                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </button>
 
@@ -402,6 +588,642 @@ export default function Dashboard() {
           </div>
         </div>
       </main>
+
+      {/* Event Details Modal */}
+      <Modal
+        isOpen={isModalOpen}
+        onClose={handleCloseModal}
+        title="Event Details"
+        maxWidth="max-w-2xl"
+      >
+        {selectedEvent && (
+          <div className="space-y-6">
+            {/* User's Own Schedule Conflict Warning */}
+            {checkScheduleConflict(selectedEvent) && (
+              <div className="bg-orange-50 border-l-4 border-orange-400 p-4 rounded-xl">
+                <div className="flex items-start">
+                  <svg className="w-6 h-6 text-orange-400 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                  <div className="flex-1">
+                    <h4 className="text-sm font-bold text-orange-800 mb-1">Your Schedule Conflict</h4>
+                    <p className="text-sm text-orange-700">
+                      This event conflicts with your class schedule:
+                    </p>
+                    <ul className="mt-2 space-y-1">
+                      {checkScheduleConflict(selectedEvent).map((conflict, index) => (
+                        <li key={index} className="text-sm text-orange-700 flex items-center">
+                          <svg className="w-4 h-4 mr-1.5" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
+                          </svg>
+                          {conflict.startTime} - {conflict.endTime}: {conflict.description}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Event Details */}
+            <div className="text-center">
+              <h3 className="text-2xl font-bold text-gray-900 mb-2">{selectedEvent.title}</h3>
+              <p className="text-gray-500 flex items-center justify-center">
+                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                {selectedEvent.date} at {selectedEvent.time}
+              </p>
+            </div>
+
+            {selectedEvent.location && (
+              <div className="bg-gray-50 rounded-xl p-4">
+                <div className="flex items-start">
+                  <svg className="w-5 h-5 text-gray-400 mr-3 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                  <div className="flex-1">
+                    <p className="font-semibold text-gray-900 mb-1">Location</p>
+                    <p className="text-gray-600">{selectedEvent.location}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {selectedEvent.description && (
+              <div className="bg-gray-50 rounded-xl p-4">
+                <p className="font-semibold text-gray-900 mb-2">Description</p>
+                <p className="text-gray-600 leading-relaxed">
+                  {selectedEvent.description}
+                </p>
+              </div>
+            )}
+
+            <div className="bg-green-50 rounded-xl p-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center text-green-700 font-bold text-lg">
+                    {selectedEvent.host.username.charAt(0).toUpperCase()}
+                  </div>
+                  <div>
+                    <p className="font-semibold text-gray-900">Hosted by {selectedEvent.host.username}</p>
+                    <p className="text-gray-500 text-sm">{selectedEvent.host.email}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Images/Files Carousel */}
+            {selectedEvent.images && selectedEvent.images.length > 0 && (
+              <div>
+                <h4 className="font-semibold text-gray-900 mb-3">Event Files ({selectedEvent.images.length})</h4>
+                <div className="relative">
+                  {/* Main File Display */}
+                  <div className="relative w-full h-64 bg-gray-100 rounded-xl overflow-hidden">
+                    {(typeof selectedEvent.images[currentImageIndex] === 'string' 
+                      ? getFixedImageUrl(selectedEvent.images[currentImageIndex]) 
+                      : selectedEvent.images[currentImageIndex].url
+                    ).toLowerCase().endsWith('.pdf') ? (
+                      <div className="w-full h-full flex flex-col items-center justify-center bg-red-50 p-4">
+                        <svg className="w-20 h-20 text-red-600 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                        </svg>
+                        <p className="text-gray-700 font-medium mb-1">PDF Document</p>
+                        <p className="text-sm text-gray-600 mb-4 text-center break-all px-4">
+                          {typeof selectedEvent.images[currentImageIndex] === 'object' && selectedEvent.images[currentImageIndex].original_filename
+                            ? selectedEvent.images[currentImageIndex].original_filename
+                            : decodeURIComponent((typeof selectedEvent.images[currentImageIndex] === 'string' 
+                                ? getFixedImageUrl(selectedEvent.images[currentImageIndex]) 
+                                : selectedEvent.images[currentImageIndex].url
+                              ).split('/').pop())}
+                        </p>
+                        <div className="flex gap-2">
+                          <a
+                            href={typeof selectedEvent.images[currentImageIndex] === 'string' 
+                              ? getFixedImageUrl(selectedEvent.images[currentImageIndex]) 
+                              : selectedEvent.images[currentImageIndex].url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-medium flex items-center gap-2"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                            </svg>
+                            Open PDF
+                          </a>
+                          <a
+                            href={typeof selectedEvent.images[currentImageIndex] === 'string' 
+                              ? getFixedImageUrl(selectedEvent.images[currentImageIndex]) 
+                              : selectedEvent.images[currentImageIndex].url}
+                            download={typeof selectedEvent.images[currentImageIndex] === 'object' && selectedEvent.images[currentImageIndex].original_filename
+                              ? selectedEvent.images[currentImageIndex].original_filename
+                              : undefined}
+                            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium flex items-center gap-2"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                            </svg>
+                            Download
+                          </a>
+                        </div>
+                      </div>
+                    ) : (
+                      <img
+                        src={typeof selectedEvent.images[currentImageIndex] === 'string' 
+                          ? getFixedImageUrl(selectedEvent.images[currentImageIndex]) 
+                          : selectedEvent.images[currentImageIndex].url}
+                        alt={`${selectedEvent.title} ${currentImageIndex + 1}`}
+                        className="w-full h-full object-cover"
+                      />
+                    )}
+                    
+                    {/* Navigation Arrows */}
+                    {selectedEvent.images.length > 1 && (
+                      <>
+                        <button
+                          onClick={() => setCurrentImageIndex(prev => 
+                            prev === 0 ? selectedEvent.images.length - 1 : prev - 1
+                          )}
+                          className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white rounded-full p-2 transition-colors"
+                          aria-label="Previous file"
+                        >
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
+                          </svg>
+                        </button>
+                        <button
+                          onClick={() => setCurrentImageIndex(prev => 
+                            prev === selectedEvent.images.length - 1 ? 0 : prev + 1
+                          )}
+                          className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white rounded-full p-2 transition-colors"
+                          aria-label="Next file"
+                        >
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
+                          </svg>
+                        </button>
+                      </>
+                    )}
+                    
+                    {/* File Counter */}
+                    {selectedEvent.images.length > 1 && (
+                      <div className="absolute bottom-2 right-2 bg-black/50 text-white text-xs px-2 py-1 rounded">
+                        {currentImageIndex + 1} / {selectedEvent.images.length}
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Thumbnail Strip */}
+                  {selectedEvent.images.length > 1 && (
+                    <div className="flex space-x-2 mt-3 overflow-x-auto pb-2">
+                      {selectedEvent.images.map((image, index) => {
+                        const imageUrl = typeof image === 'string' ? getFixedImageUrl(image) : image.url;
+                        const isPdf = imageUrl.toLowerCase().endsWith('.pdf');
+                        const filename = isPdf 
+                          ? (typeof image === 'object' && image.original_filename 
+                              ? image.original_filename 
+                              : decodeURIComponent(imageUrl.split('/').pop()))
+                          : '';
+                        
+                        return (
+                          <button
+                            key={index}
+                            onClick={() => setCurrentImageIndex(index)}
+                            className={`flex-shrink-0 rounded-lg overflow-hidden border-2 transition-colors ${
+                              isPdf ? 'w-24 h-20' : 'w-16 h-16'
+                            } ${
+                              index === currentImageIndex 
+                                ? 'border-green-500' 
+                                : 'border-gray-200 hover:border-gray-300'
+                            }`}
+                            title={isPdf ? filename : `Image ${index + 1}`}
+                          >
+                            {isPdf ? (
+                              <div className="w-full h-full flex flex-col items-center justify-center bg-red-50 p-1">
+                                <svg className="w-6 h-6 text-red-600 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                                </svg>
+                                <span className="text-xs text-red-700 font-medium truncate w-full text-center px-1">
+                                  {filename.length > 14 ? filename.substring(0, 14) + '...' : filename}
+                                </span>
+                              </div>
+                            ) : (
+                              <img
+                                src={imageUrl}
+                                alt={`Thumbnail ${index + 1}`}
+                                className="w-full h-full object-cover"
+                              />
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Members Dropdown */}
+            {selectedEvent.members && selectedEvent.members.length > 0 && (
+              <div>
+                <button
+                  onClick={() => setIsMembersDropdownOpen(!isMembersDropdownOpen)}
+                  className="w-full flex items-center justify-between bg-gray-50 hover:bg-gray-100 rounded-xl p-4 transition-colors"
+                >
+                  <div className="flex items-center space-x-3">
+                    <div className="bg-green-100 rounded-lg p-2">
+                      <svg className="w-5 h-5 text-green-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                    </div>
+                    <div className="text-left">
+                      <h4 className="font-semibold text-gray-900">Invited Members</h4>
+                      <p className="text-sm text-gray-500">{selectedEvent.members.length} member{selectedEvent.members.length !== 1 ? 's' : ''} invited</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    {/* Member avatars preview */}
+                    <div className="flex -space-x-2">
+                      {selectedEvent.members.slice(0, 3).map((member, index) => (
+                        <div
+                          key={member.id}
+                          className="w-8 h-8 rounded-full bg-green-100 border-2 border-white flex items-center justify-center text-green-700 font-bold text-xs"
+                          style={{ zIndex: 10 - index }}
+                        >
+                          {member.username.charAt(0).toUpperCase()}
+                        </div>
+                      ))}
+                      {selectedEvent.members.length > 3 && (
+                        <div className="w-8 h-8 rounded-full bg-gray-100 border-2 border-white flex items-center justify-center text-gray-600 font-bold text-xs">
+                          +{selectedEvent.members.length - 3}
+                        </div>
+                      )}
+                    </div>
+                    <svg 
+                      className={`w-5 h-5 text-gray-400 transition-transform duration-200 ${
+                        isMembersDropdownOpen ? 'rotate-180' : ''
+                      }`} 
+                      fill="none" 
+                      stroke="currentColor" 
+                      viewBox="0 0 24 24"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </div>
+                </button>
+                
+                {/* Dropdown Content */}
+                {isMembersDropdownOpen && (
+                  <div className="mt-3 space-y-2 max-h-48 overflow-y-auto">
+                    {selectedEvent.members.map((member) => (
+                      <div key={member.id} className="flex items-center justify-between bg-white rounded-xl px-4 py-3 border border-gray-100 hover:border-gray-200 transition-colors">
+                        <div className="flex items-center space-x-3">
+                          <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center text-green-700 font-bold text-sm">
+                            {member.username.charAt(0).toUpperCase()}
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-gray-900">{member.username}</p>
+                            <p className="text-xs text-gray-500">{member.email}</p>
+                          </div>
+                        </div>
+                        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold ${
+                          member.status === 'accepted'
+                            ? 'bg-green-100 text-green-800'
+                            : member.status === 'declined'
+                              ? 'bg-red-100 text-red-800'
+                              : 'bg-yellow-100 text-yellow-800'
+                        }`}>
+                          {member.status === 'accepted' ? '✓ Accepted' : member.status === 'declined' ? '✗ Declined' : '⏳ Pending'}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Action Buttons */}
+            <div className="flex justify-between items-center pt-6 border-t border-gray-200">
+              {/* Accept/Decline for invited members */}
+              {selectedEvent.members && selectedEvent.members.some(member => member.id === user?.id) && user?.id !== selectedEvent.host.id && (() => {
+                const myMembership = selectedEvent.members.find(m => m.id === user?.id);
+                const myStatus = myMembership?.status;
+
+                if (myStatus === 'pending') {
+                  return (
+                    <div className="flex space-x-2">
+                      <button
+                        onClick={async () => {
+                          try {
+                            await api.post(`/events/${selectedEvent.id}/respond`, { status: 'accepted' });
+                            await fetchData();
+                            const updatedRes = await api.get('/events');
+                            const updatedEvent = updatedRes.data.events.find(e => e.id === selectedEvent.id);
+                            if (updatedEvent) setSelectedEvent(updatedEvent);
+                          } catch (error) {
+                            console.error('Error accepting invitation:', error);
+                            alert('Failed to accept invitation: ' + (error.response?.data?.error || error.message));
+                          }
+                        }}
+                        className="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-xl hover:bg-green-700 transition-colors"
+                      >
+                        ✓ Accept
+                      </button>
+                      <button
+                        onClick={() => {
+                          setDecliningEventId(selectedEvent.id);
+                          setIsDeclineModalOpen(true);
+                        }}
+                        className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-xl hover:bg-gray-300 transition-colors"
+                      >
+                        ✗ Decline
+                      </button>
+                    </div>
+                  );
+                } else {
+                  return (
+                    <span className={`inline-flex items-center px-3 py-1.5 rounded-xl text-sm font-semibold ${myStatus === 'accepted'
+                      ? 'bg-green-100 text-green-800'
+                      : 'bg-red-100 text-red-800'
+                      }`}>
+                      {myStatus === 'accepted' ? '✓ You accepted' : '✗ You declined'}
+                    </span>
+                  );
+                }
+              })()}
+
+              {/* Host actions */}
+              {(user?.id === selectedEvent.host.id) && (
+                <div className="flex space-x-2 ml-auto">
+                  <button
+                    onClick={() => {
+                      handleCloseModal();
+                      handleEdit(selectedEvent);
+                    }}
+                    className="px-4 py-2 text-sm font-medium text-green-800 bg-green-100 rounded-xl hover:bg-green-200 transition-colors"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    onClick={() => {
+                      handleCloseModal();
+                      handleDelete(selectedEvent);
+                    }}
+                    className="px-4 py-2 text-sm font-medium text-red-700 bg-red-50 rounded-xl hover:bg-red-100 transition-colors"
+                  >
+                    Delete
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* Schedule Required Modal */}
+      <Modal
+        isOpen={isScheduleRequiredModalOpen}
+        onClose={() => {
+          if (hasSchedule) {
+            setIsScheduleRequiredModalOpen(false);
+          }
+        }}
+        title="Class Schedule Required"
+        showCloseButton={false}
+        closeOnBackdrop={false}
+      >
+        <div className="space-y-6">
+          <div className="flex flex-col items-center text-center">
+            <div className="w-20 h-20 bg-gradient-to-br from-amber-100 to-orange-100 rounded-full flex items-center justify-center mb-4">
+              <svg className="w-10 h-10 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <h3 className="text-xl font-bold text-gray-900 mb-2">Set Up Your Class Schedule First</h3>
+            <p className="text-gray-600 leading-relaxed">
+              Before using the dashboard, you need to set up your class schedule. This helps prevent scheduling conflicts and ensures better event planning.
+            </p>
+          </div>
+
+          <div className="bg-green-50 rounded-xl p-4 border border-green-200">
+            <h4 className="text-sm font-semibold text-green-900 mb-3">Why set up your schedule?</h4>
+            <ul className="space-y-2">
+              <li className="flex items-start text-sm text-green-800">
+                <svg className="w-5 h-5 mr-2 flex-shrink-0 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span>Automatically detect scheduling conflicts</span>
+              </li>
+              <li className="flex items-start text-sm text-green-800">
+                <svg className="w-5 h-5 mr-2 flex-shrink-0 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span>Better event planning and coordination</span>
+              </li>
+              <li className="flex items-start text-sm text-green-800">
+                <svg className="w-5 h-5 mr-2 flex-shrink-0 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span>Avoid double-booking yourself</span>
+              </li>
+            </ul>
+          </div>
+
+          <div className="flex flex-col sm:flex-row gap-3">
+            <button
+              onClick={() => navigate('/account')}
+              className="flex-1 inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-green-600 to-green-700 text-white font-semibold rounded-xl hover:from-green-700 hover:to-green-800 transition-all duration-200 shadow-md hover:shadow-lg"
+            >
+              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              Set Up Schedule Now
+            </button>
+          </div>
+
+          {!hasSchedule && (
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-3">
+              <p className="text-xs text-amber-800 text-center">
+                <svg className="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
+                You must set up your schedule to access the dashboard
+              </p>
+            </div>
+          )}
+        </div>
+      </Modal>
+
+      {/* Members Modal */}
+      <Modal
+        isOpen={isMembersModalOpen}
+        onClose={() => setIsMembersModalOpen(false)}
+        title="All Members"
+        maxWidth="max-w-2xl"
+      >
+        <div className="space-y-4">
+          <p className="text-gray-600">Total members: {members.length}</p>
+          <div className="max-h-96 overflow-y-auto space-y-3">
+            {members.map((member) => (
+              <div key={member.id} className="flex items-center justify-between bg-gray-50 rounded-xl p-4 hover:bg-gray-100 transition-colors">
+                <div className="flex items-center space-x-3">
+                  <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center text-green-700 font-bold text-lg">
+                    {member.username.charAt(0).toUpperCase()}
+                  </div>
+                  <div>
+                    <p className="font-semibold text-gray-900">{member.username}</p>
+                    <p className="text-sm text-gray-500">{member.email}</p>
+                    <p className="text-xs text-gray-400">{member.department}</p>
+                  </div>
+                </div>
+                {member.id === user?.id && (
+                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                    You
+                  </span>
+                )}
+              </div>
+            ))}
+          </div>
+          {members.length === 0 && (
+            <div className="text-center py-8">
+              <svg className="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              <p className="text-gray-500">No members found</p>
+            </div>
+          )}
+        </div>
+      </Modal>
+
+      {/* Your Events Modal */}
+      <Modal
+        isOpen={isEventsListModalOpen}
+        onClose={() => setIsEventsListModalOpen(false)}
+        title="Your Events"
+        maxWidth="max-w-3xl"
+      >
+        <div className="space-y-4">
+          <p className="text-gray-600">Events you're hosting: {hostedEvents.length}</p>
+          <div className="max-h-96 overflow-y-auto space-y-4">
+            {hostedEvents.map((event) => (
+              <div key={event.id} className="bg-gray-50 rounded-xl p-4 hover:bg-gray-100 transition-colors">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <h4 className="font-semibold text-gray-900 mb-2">{event.title}</h4>
+                    <div className="space-y-1 text-sm text-gray-600">
+                      <div className="flex items-center">
+                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                        {event.date} at {event.time}
+                      </div>
+                      {event.location && (
+                        <div className="flex items-center">
+                          <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                          </svg>
+                          {event.location}
+                        </div>
+                      )}
+                      {event.members && event.members.length > 0 && (
+                        <div className="flex items-center">
+                          <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+                          </svg>
+                          {event.members.length} member{event.members.length !== 1 ? 's' : ''} invited
+                        </div>
+                      )}
+                    </div>
+                    {event.description && (
+                      <p className="text-sm text-gray-500 mt-2 line-clamp-2">{event.description}</p>
+                    )}
+                  </div>
+                  <div className="flex items-center space-x-2 ml-4">
+                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                      Host
+                    </span>
+                    <button
+                      onClick={() => {
+                        setIsEventsListModalOpen(false);
+                        handleViewEvent(event);
+                      }}
+                      className="px-3 py-1 text-xs font-medium text-green-700 bg-green-50 rounded-lg hover:bg-green-100 transition-colors"
+                    >
+                      View Details
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+          {hostedEvents.length === 0 && (
+            <div className="text-center py-8">
+              <svg className="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              <p className="text-gray-500 mb-4">You haven't created any events yet</p>
+              <button
+                onClick={() => {
+                  setIsEventsListModalOpen(false);
+                  handleAddEventClick();
+                }}
+                className="inline-flex items-center px-4 py-2 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 transition-colors"
+              >
+                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
+                </svg>
+                Create Your First Event
+              </button>
+            </div>
+          )}
+        </div>
+      </Modal>
+
+      {/* Decline Reason Modal */}
+      <Modal
+        isOpen={isDeclineModalOpen}
+        onClose={() => {
+          setIsDeclineModalOpen(false);
+          setDeclineReason('');
+          setDecliningEventId(null);
+        }}
+        title="Decline Event"
+        maxWidth="max-w-md"
+      >
+        <div className="space-y-4">
+          <p className="text-gray-600">Please provide a reason for declining this event invitation:</p>
+          <textarea
+            value={declineReason}
+            onChange={(e) => setDeclineReason(e.target.value)}
+            placeholder="Enter your reason here..."
+            className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent resize-none"
+            rows="4"
+            maxLength="1000"
+          />
+          <p className="text-xs text-gray-500 text-right">{declineReason.length}/1000</p>
+          <div className="flex gap-3 justify-end pt-4">
+            <button
+              onClick={() => {
+                setIsDeclineModalOpen(false);
+                setDeclineReason('');
+                setDecliningEventId(null);
+              }}
+              className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-xl hover:bg-gray-300 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleDeclineWithReason}
+              disabled={!declineReason.trim()}
+              className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-xl hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Send & Decline
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }
