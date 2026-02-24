@@ -5,6 +5,7 @@ use App\Http\Controllers\DefaultEventController;
 use App\Http\Controllers\EventController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\ScheduleController;
+use App\Http\Controllers\SetupAdminController;
 use Illuminate\Support\Facades\Route;
 
 // Public routes with login attempt throttling
@@ -31,8 +32,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/user', [AuthController::class, 'user']);
     
-    // Default Events (protected - for updating dates)
-    Route::put('/default-events/{id}/date', [DefaultEventController::class, 'updateDate']);
+    // Bootstrap Admin Setup
+    Route::get('/setup/check-bootstrap', [SetupAdminController::class, 'checkBootstrapStatus']);
+    Route::post('/setup/create-admin', [SetupAdminController::class, 'createPermanentAdmin']);
     
     // Events
     Route::get('/events', [EventController::class, 'index']);
@@ -40,6 +42,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/events/{event}', [EventController::class, 'update']);
     Route::delete('/events/{event}', [EventController::class, 'destroy']);
     Route::post('/events/{event}/respond', [EventController::class, 'respondToInvitation']);
+    
+    // Default Events (Academic Calendar) - Protected
+    Route::put('/default-events/{id}/date', [DefaultEventController::class, 'updateDate']);
     
     // Users
     Route::get('/users', [UserController::class, 'index']);
@@ -57,4 +62,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/events/{event}/reschedule-requests', [App\Http\Controllers\EventRescheduleRequestController::class, 'index']);
     Route::post('/events/{event}/reschedule', [App\Http\Controllers\EventRescheduleRequestController::class, 'store']);
     Route::post('/reschedule-requests/{id}/respond', [App\Http\Controllers\EventRescheduleRequestController::class, 'respond']);
+
+    // Messages
+    Route::get('/messages', [App\Http\Controllers\MessageController::class, 'index']);
+    Route::post('/messages', [App\Http\Controllers\MessageController::class, 'store']);
+    Route::post('/messages/{id}/read', [App\Http\Controllers\MessageController::class, 'markAsRead']);
+    Route::get('/messages/unread-count', [App\Http\Controllers\MessageController::class, 'unreadCount']);
+    Route::delete('/messages/{id}', [App\Http\Controllers\MessageController::class, 'destroy']);
 });

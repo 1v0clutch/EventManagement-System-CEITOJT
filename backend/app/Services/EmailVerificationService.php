@@ -78,7 +78,7 @@ class EmailVerificationService
      */
     private function isCVSUEmail($email)
     {
-        return preg_match('/^main\.[A-Za-z]+\.[A-Za-z]+@cvsu\.edu\.ph$/', $email);
+        return preg_match('/^[a-zA-Z0-9._%+-]+@cvsu\.edu\.ph$/i', $email);
     }
 
     /**
