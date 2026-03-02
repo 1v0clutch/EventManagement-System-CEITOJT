@@ -14,6 +14,7 @@ class Event extends Model
         'time',
         'host_id',
         'is_special_event',
+        'approved_request_id',
     ];
 
     protected $casts = [

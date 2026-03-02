@@ -191,11 +191,62 @@ export default function Admin() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="flex flex-col items-center space-y-4">
-          <div className="w-12 h-12 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
-          <p className="text-gray-500 font-medium">Loading users...</p>
-        </div>
+      <div className="min-h-screen bg-gray-50">
+        {/* Navigation Bar Skeleton */}
+        <nav className="bg-white shadow-md sticky top-0 z-20">
+          <div className="w-full px-4 sm:px-6 lg:px-8">
+            <div className="flex justify-between items-center h-16">
+              <div className="flex items-center space-x-3">
+                <div className="h-10 w-10 bg-gray-200 rounded-lg animate-pulse"></div>
+                <div className="space-y-2">
+                  <div className="h-6 w-32 bg-gray-200 rounded animate-pulse"></div>
+                  <div className="h-3 w-24 bg-gray-100 rounded animate-pulse"></div>
+                </div>
+              </div>
+              <div className="flex items-center space-x-4">
+                <div className="h-10 w-10 bg-gray-200 rounded-lg animate-pulse"></div>
+                <div className="h-10 w-32 bg-gray-200 rounded-lg animate-pulse"></div>
+              </div>
+            </div>
+          </div>
+        </nav>
+
+        {/* Main Content Skeleton */}
+        <main className="w-full py-8 px-4 sm:px-6 lg:px-8">
+          <div className="max-w-7xl mx-auto">
+            <div className="mb-8 animate-pulse">
+              <div className="h-10 w-48 bg-gray-300 rounded mb-2"></div>
+              <div className="h-6 w-80 bg-gray-200 rounded"></div>
+            </div>
+
+            <div className="bg-white rounded-lg shadow-md overflow-hidden animate-pulse">
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      {[1, 2, 3, 4, 5, 6].map((i) => (
+                        <th key={i} className="px-6 py-3">
+                          <div className="h-4 bg-gray-300 rounded"></div>
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {[1, 2, 3, 4, 5].map((i) => (
+                      <tr key={i}>
+                        {[1, 2, 3, 4, 5, 6].map((j) => (
+                          <td key={j} className="px-6 py-4">
+                            <div className="h-4 bg-gray-200 rounded"></div>
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </main>
       </div>
     );
   }

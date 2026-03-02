@@ -251,11 +251,68 @@ const DefaultEvents = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-green-100 to-gray-50 flex items-center justify-center">
-        <div className="flex flex-col items-center space-y-4">
-          <div className="w-16 h-16 border-4 border-green-300 border-t-green-700 rounded-full animate-spin"></div>
-          <p className="text-gray-600 font-medium text-lg">Loading academic calendar...</p>
-        </div>
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-green-100 to-gray-50">
+        {/* Navigation Bar Skeleton */}
+        <nav className="bg-gradient-to-r from-green-700 via-green-600 to-green-800 shadow-lg sticky top-0 z-20">
+          <div className="w-full px-4 sm:px-6 lg:px-8">
+            <div className="flex justify-between items-center h-16">
+              <div className="flex items-center space-x-3">
+                <div className="h-10 w-10 bg-white/20 rounded-lg animate-pulse"></div>
+                <div className="space-y-2">
+                  <div className="h-6 w-40 bg-white/20 rounded animate-pulse"></div>
+                  <div className="h-3 w-32 bg-white/10 rounded animate-pulse"></div>
+                </div>
+              </div>
+              <div className="flex items-center space-x-4">
+                <div className="h-10 w-10 bg-white/20 rounded-lg animate-pulse"></div>
+                <div className="h-10 w-10 bg-white/20 rounded-lg animate-pulse"></div>
+                <div className="h-10 w-10 bg-white/20 rounded-lg animate-pulse"></div>
+                <div className="h-10 w-32 bg-white/20 rounded-lg animate-pulse"></div>
+              </div>
+            </div>
+          </div>
+        </nav>
+
+        {/* Main Content Skeleton */}
+        <main className="w-full py-8 sm:px-6 lg:px-8">
+          <div className="px-4 py-2 sm:px-0">
+            <div className="mb-8 animate-pulse">
+              <div className="mb-4">
+                <div className="h-10 w-80 bg-gray-300 rounded mb-2"></div>
+                <div className="h-6 w-96 bg-gray-200 rounded"></div>
+              </div>
+              <div className="bg-gradient-to-r from-green-50 to-green-100 rounded-xl shadow-md border-2 border-green-200 p-5">
+                <div className="flex items-center gap-3">
+                  <div className="h-12 w-12 bg-green-300 rounded-lg"></div>
+                  <div className="flex-1">
+                    <div className="h-5 w-32 bg-green-300 rounded mb-2"></div>
+                    <div className="h-4 w-48 bg-green-200 rounded"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-8">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden animate-pulse">
+                  <div className="bg-gradient-to-r from-green-700 via-green-600 to-green-800 px-6 py-4">
+                    <div className="h-6 w-40 bg-white/20 rounded"></div>
+                  </div>
+                  <div className="p-6 space-y-3">
+                    {[1, 2, 3, 4].map((j) => (
+                      <div key={j} className="flex items-center space-x-4">
+                        <div className="h-8 w-8 bg-gray-200 rounded-full"></div>
+                        <div className="flex-1 h-6 bg-gray-200 rounded"></div>
+                        <div className="h-6 w-32 bg-gray-200 rounded"></div>
+                        <div className="h-8 w-20 bg-gray-200 rounded"></div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </main>
       </div>
     );
   }
@@ -295,6 +352,17 @@ const DefaultEvents = () => {
               >
                 <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                </svg>
+              </button>
+
+              {/* History Icon */}
+              <button
+                onClick={() => navigate('/history')}
+                className="p-2 rounded-lg hover:bg-white/10 transition-colors duration-200"
+                aria-label="View history"
+              >
+                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </button>
 

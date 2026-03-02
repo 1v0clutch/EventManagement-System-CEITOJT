@@ -1,0 +1,9 @@
+6:40 - Time in 
+
+7:00 - 8:00 : Improving consistency of UI on the dashboard 
+8:00 - 9:00 : Debugging error on member's list not showing up
+9:00 - 10:00 : Fixing inconsistency on the request between dean-chair-coord / Your-events onClick fixed
+10:00 - 11:00 : Cleanup on validation between chair-coord-dean approval, cleaned request event
+11:00 - 12:00 : Lunch break 
+12:00 - 1:00 : Fixing bugs on the add event + request between positions 
+1:00 - 2:00 : 

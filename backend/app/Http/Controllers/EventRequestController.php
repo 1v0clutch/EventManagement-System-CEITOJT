@@ -24,9 +24,7 @@ class EventRequestController extends Controller
             'time' => 'required',
             'location' => 'required|string|max:255',
             'justification' => 'required|string',
-            'expected_attendees' => 'nullable|string|max:255',
-            'budget' => 'nullable|string|max:255',
-            'resources' => 'nullable|string'
+            'expected_attendees' => 'nullable|string|max:255'
         ]);
 
         if ($validator->fails()) {
@@ -36,11 +34,46 @@ class EventRequestController extends Controller
             ], 422);
         }
 
-        // Only coordinators can submit event requests
-        if (Auth::user()->role !== 'Coordinator') {
+        $user = Auth::user();
+
+        // Only Coordinators and Chairpersons can submit event requests
+        if (!in_array($user->role, ['Coordinator', 'Chairperson'])) {
             return response()->json([
-                'message' => 'Unauthorized. Only coordinators can submit event requests.'
+                'message' => 'Unauthorized. Only Coordinators and Chairpersons can submit event requests.'
             ], 403);
+        }
+
+        // Determine required approvers based on available higher-ups
+        $requiredApprovers = [];
+        
+        if ($user->role === 'Coordinator') {
+            // Coordinators need approval from Dean and/or Chairperson (whoever is available)
+            $dean = User::where('role', 'Dean')->first();
+            $chair = User::where('role', 'Chairperson')->where('id', '!=', $user->id)->first();
+            
+            if ($dean) {
+                $requiredApprovers[] = $dean->id;
+            }
+            if ($chair) {
+                $requiredApprovers[] = $chair->id;
+            }
+            
+            if (empty($requiredApprovers)) {
+                return response()->json([
+                    'message' => 'No approvers available. Please contact an administrator.'
+                ], 400);
+            }
+        } elseif ($user->role === 'Chairperson') {
+            // Chairpersons only need Dean approval for special requests
+            $dean = User::where('role', 'Dean')->first();
+            
+            if ($dean) {
+                $requiredApprovers[] = $dean->id;
+            } else {
+                return response()->json([
+                    'message' => 'No Dean available to approve this request. Please contact an administrator.'
+                ], 400);
+            }
         }
 
         $eventRequest = EventRequest::create([
@@ -51,23 +84,24 @@ class EventRequestController extends Controller
             'location' => $request->location,
             'justification' => $request->justification,
             'expected_attendees' => $request->expected_attendees,
-            'budget' => $request->budget,
-            'resources' => $request->resources,
             'requested_by' => Auth::id(),
-            'status' => 'pending'
+            'status' => 'pending',
+            'required_approvers' => $requiredApprovers,
+            'all_approvals_received' => false
         ]);
 
-        // TODO: Send notifications to Dean and Chairperson
-        // This could be implemented later with email notifications or in-app notifications
+        // Get approver names for response
+        $approverNames = User::whereIn('id', $requiredApprovers)->pluck('name')->toArray();
 
         return response()->json([
-            'message' => 'Event request submitted successfully',
-            'request' => $eventRequest->load('requester')
+            'message' => 'Event request submitted successfully. Approval required from: ' . implode(' and ', $approverNames),
+            'request' => $eventRequest->load('requester'),
+            'required_approvers' => $approverNames
         ], 201);
     }
 
     /**
-     * Get all event requests (for Dean and Chairperson) - includes both coordinator requests and hierarchy approvals
+     * Get all event requests (for Dean and Chairperson) - ONLY coordinator/chairperson requests, NOT hierarchy approvals
      */
     public function index()
     {
@@ -80,14 +114,29 @@ class EventRequestController extends Controller
             ], 403);
         }
 
-        // Get coordinator requests
-        $coordinatorRequests = EventRequest::with(['requester', 'reviewer'])
+        // Get coordinator/chairperson requests only
+        $requests = EventRequest::with(['requester', 'reviewer', 'deanApprover', 'chairApprover'])
             ->orderBy('created_at', 'desc')
             ->get()
-            ->map(function ($request) {
+            ->map(function ($request) use ($user) {
+                // Check if current user can approve this request
+                $canApprove = false;
+                $hasApproved = false;
+                
+                if ($request->required_approvers && in_array($user->id, $request->required_approvers)) {
+                    $canApprove = true;
+                    
+                    // Check if user has already approved
+                    if ($user->role === 'Dean' && $request->dean_approved_by === $user->id) {
+                        $hasApproved = true;
+                    } elseif ($user->role === 'Chairperson' && $request->chair_approved_by === $user->id) {
+                        $hasApproved = true;
+                    }
+                }
+                
                 return [
                     'id' => $request->id,
-                    'type' => 'coordinator_request',
+                    'type' => 'event_request',
                     'title' => $request->title,
                     'description' => $request->description,
                     'date' => $request->date,
@@ -99,58 +148,21 @@ class EventRequestController extends Controller
                     'reviewer' => $request->reviewer,
                     'justification' => $request->justification,
                     'expected_attendees' => $request->expected_attendees,
-                    'budget' => $request->budget,
-                    'resources' => $request->resources,
                     'rejection_reason' => $request->rejection_reason,
                     'reviewed_at' => $request->reviewed_at,
+                    'dean_approver' => $request->deanApprover,
+                    'dean_approved_at' => $request->dean_approved_at,
+                    'chair_approver' => $request->chairApprover,
+                    'chair_approved_at' => $request->chair_approved_at,
+                    'all_approvals_received' => $request->all_approvals_received,
+                    'can_approve' => $canApprove,
+                    'has_approved' => $hasApproved,
+                    'required_approvers' => $request->required_approvers,
                 ];
             });
-
-        // Get hierarchy approval requests where current user is an approver
-        $hierarchyApprovals = EventApproval::with(['host', 'approvers.approver'])
-            ->whereHas('approvers', function ($query) use ($user) {
-                $query->where('approver_id', $user->id);
-            })
-            ->orderBy('created_at', 'desc')
-            ->get()
-            ->map(function ($approval) use ($user) {
-                // Get current user's approver record
-                $userApprover = $approval->approvers->where('approver_id', $user->id)->first();
-                
-                return [
-                    'id' => $approval->id,
-                    'type' => 'hierarchy_approval',
-                    'title' => $approval->title,
-                    'description' => $approval->description,
-                    'date' => $approval->date,
-                    'time' => $approval->time,
-                    'location' => $approval->location,
-                    'status' => $approval->status,
-                    'created_at' => $approval->created_at,
-                    'host' => $approval->host,
-                    'event_data' => $approval->event_data,
-                    'approver_status' => $userApprover ? $userApprover->status : 'pending',
-                    'approver_decision_reason' => $userApprover ? $userApprover->decision_reason : null,
-                    'approver_decided_at' => $userApprover ? $userApprover->decided_at : null,
-                    'all_approvers' => $approval->approvers->map(function ($approver) {
-                        return [
-                            'id' => $approver->approver->id,
-                            'name' => $approver->approver->name,
-                            'role' => $approver->approver->role,
-                            'status' => $approver->status,
-                            'decided_at' => $approver->decided_at,
-                        ];
-                    }),
-                ];
-            });
-
-        // Combine and sort by creation date
-        $allRequests = $coordinatorRequests->concat($hierarchyApprovals)
-            ->sortByDesc('created_at')
-            ->values();
 
         return response()->json([
-            'requests' => $allRequests
+            'requests' => $requests
         ]);
     }
 
@@ -170,6 +182,27 @@ class EventRequestController extends Controller
     }
 
     /**
+     * Check if user has any approved requests that haven't been used yet
+     */
+    public function hasApprovedRequests()
+    {
+        $user = Auth::user();
+        
+        // Get approved requests that haven't been used to create an event yet
+        $approvedRequests = EventRequest::where('requested_by', $user->id)
+            ->where('status', 'approved')
+            ->where('all_approvals_received', true)
+            ->whereDoesntHave('event') // Requests that don't have an event created yet
+            ->with(['deanApprover', 'chairApprover'])
+            ->get();
+
+        return response()->json([
+            'has_approved_requests' => $approvedRequests->count() > 0,
+            'approved_requests' => $approvedRequests
+        ]);
+    }
+
+    /**
      * Review an event request (approve/reject)
      */
     public function review(Request $request, EventRequest $eventRequest)
@@ -183,9 +216,28 @@ class EventRequestController extends Controller
             ], 403);
         }
 
+        // Check if user is a required approver
+        if (!in_array($user->id, $eventRequest->required_approvers ?? [])) {
+            return response()->json([
+                'message' => 'You are not a required approver for this request.'
+            ], 403);
+        }
+
+        // Check if user has already approved
+        if ($user->role === 'Dean' && $eventRequest->dean_approved_by) {
+            return response()->json([
+                'message' => 'You have already approved this request.'
+            ], 400);
+        }
+        if ($user->role === 'Chairperson' && $eventRequest->chair_approved_by) {
+            return response()->json([
+                'message' => 'You have already approved this request.'
+            ], 400);
+        }
+
         $validator = Validator::make($request->all(), [
             'status' => 'required|in:approved,rejected',
-            'rejection_reason' => 'required_if:status,rejected|string'
+            'rejection_reason' => 'required_if:status,rejected|nullable|string'
         ]);
 
         if ($validator->fails()) {
@@ -195,19 +247,50 @@ class EventRequestController extends Controller
             ], 422);
         }
 
-        $eventRequest->update([
-            'status' => $request->status,
-            'rejection_reason' => $request->status === 'rejected' ? $request->rejection_reason : null,
-            'reviewed_by' => $user->id,
-            'reviewed_at' => now()
-        ]);
+        // Handle rejection
+        if ($request->status === 'rejected') {
+            $eventRequest->update([
+                'status' => 'rejected',
+                'rejection_reason' => $request->rejection_reason,
+                'reviewed_by' => $user->id,
+                'reviewed_at' => now()
+            ]);
 
-        // TODO: Send notification to the requester about the decision
-        // TODO: If approved, create the actual event or provide next steps
+            return response()->json([
+                'message' => 'Event request rejected',
+                'request' => $eventRequest->load(['requester', 'reviewer', 'deanApprover', 'chairApprover'])
+            ]);
+        }
+
+        // Handle approval
+        if ($user->role === 'Dean') {
+            $eventRequest->dean_approved_by = $user->id;
+            $eventRequest->dean_approved_at = now();
+        } elseif ($user->role === 'Chairperson') {
+            $eventRequest->chair_approved_by = $user->id;
+            $eventRequest->chair_approved_at = now();
+        }
+
+        // Check if all required approvals are received
+        $allApproved = $eventRequest->checkAllApprovalsReceived();
+        
+        if ($allApproved) {
+            $eventRequest->status = 'approved';
+            $eventRequest->all_approvals_received = true;
+            $eventRequest->reviewed_by = $user->id;
+            $eventRequest->reviewed_at = now();
+        }
+
+        $eventRequest->save();
+
+        $message = $allApproved 
+            ? 'Event request fully approved! The requestor can now create the event.'
+            : 'Your approval has been recorded. Waiting for other approvers.';
 
         return response()->json([
-            'message' => 'Event request ' . $request->status . ' successfully',
-            'request' => $eventRequest->load(['requester', 'reviewer'])
+            'message' => $message,
+            'request' => $eventRequest->load(['requester', 'reviewer', 'deanApprover', 'chairApprover']),
+            'all_approvals_received' => $allApproved
         ]);
     }
 

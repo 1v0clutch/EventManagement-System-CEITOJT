@@ -293,12 +293,82 @@ export default function AccountDashboard() {
     return `${hour12}:${minutes} ${ampm}`;
   };
 
-  if (!user || loggingOut) {
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-green-100 to-gray-50">
+        {/* Navigation Bar Skeleton */}
+        <nav className="bg-gradient-to-r from-green-700 via-green-600 to-green-800 shadow-lg sticky top-0 z-20">
+          <div className="w-full px-4 sm:px-6 lg:px-8">
+            <div className="flex justify-between items-center h-16">
+              <div className="flex items-center space-x-3">
+                <div className="h-10 w-10 bg-white/20 rounded-lg animate-pulse"></div>
+                <div className="space-y-2">
+                  <div className="h-6 w-40 bg-white/20 rounded animate-pulse"></div>
+                  <div className="h-3 w-32 bg-white/10 rounded animate-pulse"></div>
+                </div>
+              </div>
+              <div className="flex items-center space-x-4">
+                <div className="h-10 w-10 bg-white/20 rounded-lg animate-pulse"></div>
+                <div className="h-10 w-10 bg-white/20 rounded-lg animate-pulse"></div>
+                <div className="h-10 w-10 bg-white/20 rounded-lg animate-pulse"></div>
+                <div className="h-10 w-32 bg-white/20 rounded-lg animate-pulse"></div>
+              </div>
+            </div>
+          </div>
+        </nav>
+
+        {/* Main Content Skeleton */}
+        <main className="w-full py-8 px-4 sm:px-6 lg:px-8">
+          <div className="max-w-4xl mx-auto space-y-6">
+            {/* Profile Card Skeleton */}
+            <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden animate-pulse">
+              <div className="bg-gradient-to-r from-green-700 via-green-600 to-green-800 px-6 py-8">
+                <div className="flex items-center space-x-6">
+                  <div className="w-24 h-24 bg-white/20 rounded-full"></div>
+                  <div className="flex-1 space-y-3">
+                    <div className="h-8 w-48 bg-white/20 rounded"></div>
+                    <div className="h-5 w-64 bg-white/10 rounded"></div>
+                  </div>
+                </div>
+              </div>
+              <div className="p-6 space-y-4">
+                {[1, 2, 3, 4].map((i) => (
+                  <div key={i} className="flex items-center space-x-4">
+                    <div className="h-5 w-5 bg-gray-200 rounded"></div>
+                    <div className="flex-1">
+                      <div className="h-4 w-24 bg-gray-200 rounded mb-1"></div>
+                      <div className="h-5 w-48 bg-gray-300 rounded"></div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Schedule Card Skeleton */}
+            <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden animate-pulse">
+              <div className="bg-gradient-to-r from-green-700 via-green-600 to-green-800 px-6 py-4">
+                <div className="h-6 w-40 bg-white/20 rounded"></div>
+              </div>
+              <div className="p-6 space-y-4">
+                {[1, 2, 3, 4, 5].map((i) => (
+                  <div key={i} className="h-16 bg-gray-200 rounded-lg"></div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  if (loggingOut) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-50 via-green-100 to-gray-50 flex items-center justify-center">
-        <div className="flex flex-col items-center space-y-4">
-          <div className="w-16 h-16 border-4 border-green-300 border-t-green-700 rounded-full animate-spin"></div>
-          <p className="text-gray-600 font-medium text-lg">{loggingOut ? 'Logging out...' : 'Loading account...'}</p>
+        <div className="bg-white rounded-2xl shadow-xl p-8">
+          <div className="flex flex-col items-center space-y-4">
+            <div className="w-16 h-16 border-4 border-green-300 border-t-green-700 rounded-full animate-spin"></div>
+            <p className="text-gray-600 font-medium text-lg">Logging out...</p>
+          </div>
         </div>
       </div>
     );
@@ -594,11 +664,16 @@ export default function AccountDashboard() {
 
               <div className="p-6">
                 {scheduleLoading ? (
-                  <div className="flex items-center justify-center py-12">
-                    <div className="flex flex-col items-center space-y-4">
-                      <div className="w-12 h-12 border-4 border-green-300 border-t-green-700 rounded-full animate-spin"></div>
-                      <p className="text-gray-600 font-medium">Loading schedule...</p>
-                    </div>
+                  <div className="space-y-4 animate-pulse">
+                    {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map((day) => (
+                      <div key={day} className="border border-gray-200 rounded-lg p-4">
+                        <div className="h-5 w-24 bg-gray-300 rounded mb-3"></div>
+                        <div className="space-y-2">
+                          <div className="h-16 bg-gray-200 rounded"></div>
+                          <div className="h-16 bg-gray-200 rounded"></div>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 ) : (
                   <div className="flex gap-6">

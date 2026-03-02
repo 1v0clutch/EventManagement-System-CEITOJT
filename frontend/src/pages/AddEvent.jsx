@@ -18,6 +18,7 @@ export default function AddEvent() {
   const [isAccountDropdownOpen, setIsAccountDropdownOpen] = useState(false);
   const editingEvent = location.state?.event || null;
   const selectedDate = location.state?.selectedDate || null;
+  const approvedRequests = location.state?.approvedRequests || [];
 
   useEffect(() => {
     // Check if user is validated
@@ -57,13 +58,13 @@ export default function AddEvent() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [isAccountDropdownOpen]);
 
-  // Redirect to dashboard if schedule not initialized
+  // Redirect to dashboard if schedule not initialized (unless editing or has approved requests)
   useEffect(() => {
-    if (!loading && !hasSchedule && !editingEvent) {
-      // User hasn't initialized schedule, redirect to dashboard
+    if (!loading && !hasSchedule && !editingEvent && approvedRequests.length === 0) {
+      // User hasn't initialized schedule and has no approved requests, redirect to dashboard
       navigate('/dashboard');
     }
-  }, [loading, hasSchedule, editingEvent, navigate]);
+  }, [loading, hasSchedule, editingEvent, approvedRequests, navigate]);
 
   const fetchUserSchedule = async () => {
     try {
@@ -353,6 +354,7 @@ export default function AddEvent() {
             defaultDate={selectedDate}
             hasSchedule={hasSchedule}
             currentUser={user}
+            approvedRequests={approvedRequests}
           />
         </div>
       </main>

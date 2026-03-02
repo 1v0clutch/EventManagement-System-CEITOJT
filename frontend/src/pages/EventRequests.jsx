@@ -3,11 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 import logo from '../assets/CEIT-LOGO.png';
+import NotificationBell from '../components/NotificationBell';
 
 export default function EventRequests() {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const [requests, setRequests] = useState([]);
+  const [events, setEvents] = useState([]); // For NotificationBell
   const [loading, setLoading] = useState(true);
   const [isAccountDropdownOpen, setIsAccountDropdownOpen] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
@@ -23,6 +25,7 @@ export default function EventRequests() {
     }
     
     fetchRequests();
+    fetchEvents(); // For NotificationBell
   }, [user, navigate]);
 
   // Close account dropdown when clicking outside
@@ -49,12 +52,25 @@ export default function EventRequests() {
     }
   };
 
+  const fetchEvents = async () => {
+    try {
+      const response = await api.get('/events');
+      setEvents(response.data.events);
+    } catch (error) {
+      console.error('Error fetching events:', error);
+    }
+  };
+
   const handleReview = async (requestId, status, reason = '') => {
     try {
-      await api.post(`/event-requests/${requestId}/review`, {
-        status,
-        rejection_reason: reason
-      });
+      const payload = { status };
+      
+      // Only include rejection_reason if status is rejected
+      if (status === 'rejected' && reason) {
+        payload.rejection_reason = reason;
+      }
+
+      await api.post(`/event-requests/${requestId}/review`, payload);
 
       setMessage({ 
         type: 'success', 
@@ -74,39 +90,6 @@ export default function EventRequests() {
       setMessage({ 
         type: 'error', 
         text: error.response?.data?.message || 'Failed to review request' 
-      });
-    }
-
-    setTimeout(() => {
-      setMessage({ type: '', text: '' });
-    }, 5000);
-  };
-
-  const handleHierarchyApproval = async (approvalId, decision, reason = '') => {
-    try {
-      await api.post(`/hierarchy-approvals/${approvalId}/review`, {
-        decision,
-        reason
-      });
-
-      setMessage({ 
-        type: 'success', 
-        text: `Hierarchy approval ${decision} successfully` 
-      });
-
-      // Refresh requests
-      await fetchRequests();
-      
-      // Reset review state
-      setReviewingRequest(null);
-      setReviewAction('');
-      setRejectionReason('');
-
-    } catch (error) {
-      console.error('Error processing hierarchy approval:', error);
-      setMessage({ 
-        type: 'error', 
-        text: error.response?.data?.message || 'Failed to process approval' 
       });
     }
 
@@ -143,11 +126,72 @@ export default function EventRequests() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-green-100 to-gray-50 flex items-center justify-center">
-        <div className="flex flex-col items-center space-y-4">
-          <div className="w-16 h-16 border-4 border-green-300 border-t-green-700 rounded-full animate-spin"></div>
-          <p className="text-gray-600 font-medium text-lg">Loading event requests...</p>
-        </div>
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-green-100 to-gray-50">
+        {/* Navigation Bar Skeleton */}
+        <nav className="bg-gradient-to-r from-green-700 via-green-600 to-green-800 shadow-lg sticky top-0 z-20">
+          <div className="w-full px-4 sm:px-6 lg:px-8">
+            <div className="flex justify-between items-center h-16">
+              <div className="flex items-center space-x-3">
+                <div className="h-10 w-10 bg-white/20 rounded-lg animate-pulse"></div>
+                <div className="space-y-2">
+                  <div className="h-6 w-40 bg-white/20 rounded animate-pulse"></div>
+                  <div className="h-3 w-32 bg-white/10 rounded animate-pulse"></div>
+                </div>
+              </div>
+              <div className="flex items-center space-x-4">
+                <div className="h-10 w-10 bg-white/20 rounded-lg animate-pulse"></div>
+                <div className="h-10 w-10 bg-white/20 rounded-lg animate-pulse"></div>
+                <div className="h-10 w-10 bg-white/20 rounded-lg animate-pulse"></div>
+                <div className="h-10 w-32 bg-white/20 rounded-lg animate-pulse"></div>
+              </div>
+            </div>
+          </div>
+        </nav>
+
+        {/* Main Content Skeleton */}
+        <main className="w-full py-8 px-4 sm:px-6 lg:px-8">
+          <div className="max-w-7xl mx-auto">
+            <div className="mb-8 animate-pulse">
+              <div className="h-10 w-64 bg-gray-300 rounded mb-2"></div>
+              <div className="h-6 w-96 bg-gray-200 rounded"></div>
+            </div>
+
+            <div className="space-y-6">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 animate-pulse">
+                  <div className="flex justify-between items-start mb-4">
+                    <div className="flex items-center space-x-3">
+                      <div className="h-6 w-32 bg-gray-200 rounded-full"></div>
+                      <div className="h-6 w-20 bg-gray-200 rounded-full"></div>
+                    </div>
+                  </div>
+                  <div className="mb-4">
+                    <div className="h-8 w-3/4 bg-gray-300 rounded mb-2"></div>
+                    <div className="flex items-center space-x-4">
+                      <div className="h-4 w-32 bg-gray-200 rounded"></div>
+                      <div className="h-4 w-40 bg-gray-200 rounded"></div>
+                      <div className="h-4 w-36 bg-gray-200 rounded"></div>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                    <div>
+                      <div className="h-5 w-24 bg-gray-300 rounded mb-2"></div>
+                      <div className="h-4 w-full bg-gray-200 rounded"></div>
+                    </div>
+                    <div>
+                      <div className="h-5 w-24 bg-gray-300 rounded mb-2"></div>
+                      <div className="h-4 w-full bg-gray-200 rounded"></div>
+                    </div>
+                  </div>
+                  <div className="flex gap-3 pt-4 border-t border-gray-200">
+                    <div className="flex-1 h-10 bg-gray-200 rounded-lg"></div>
+                    <div className="flex-1 h-10 bg-gray-200 rounded-lg"></div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </main>
       </div>
     );
   }
@@ -189,6 +233,25 @@ export default function EventRequests() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
                 </svg>
               </button>
+
+              {/* History Icon */}
+              <button
+                onClick={() => navigate('/history')}
+                className="p-2 rounded-lg hover:bg-white/10 transition-colors duration-200"
+                aria-label="View history"
+              >
+                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </button>
+
+              {/* Notifications Bell */}
+              <div className="relative">
+                <NotificationBell 
+                  events={events} 
+                  user={user}
+                />
+              </div>
 
               {/* Account Dropdown */}
               <div className="relative account-dropdown-container">
@@ -276,7 +339,7 @@ export default function EventRequests() {
           {/* Header */}
           <div className="mb-8">
             <h2 className="text-4xl font-bold text-gray-900 mb-2">Event Requests</h2>
-            <p className="text-lg text-gray-600 font-medium">Review and manage event requests from coordinators</p>
+            <p className="text-lg text-gray-600 font-medium">Review event requests from Coordinators and Chairpersons</p>
           </div>
 
           {/* Success/Error Messages */}
@@ -313,18 +376,11 @@ export default function EventRequests() {
           ) : (
             <div className="space-y-6">
               {requests.map((request) => (
-                <div key={`${request.type}-${request.id}`} className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
+                <div key={request.id} className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
                   <div className="p-6">
-                    {/* Request Type Badge */}
+                    {/* Request Status Badge */}
                     <div className="flex justify-between items-start mb-4">
                       <div className="flex items-center space-x-3">
-                        <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                          request.type === 'coordinator_request' 
-                            ? 'bg-blue-100 text-blue-800' 
-                            : 'bg-purple-100 text-purple-800'
-                        }`}>
-                          {request.type === 'coordinator_request' ? 'Coordinator Request' : 'Hierarchy Approval'}
-                        </span>
                         <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusBadge(request.status)}`}>
                           {request.status.charAt(0).toUpperCase() + request.status.slice(1)}
                         </span>
@@ -338,7 +394,7 @@ export default function EventRequests() {
                           <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                           </svg>
-                          {request.type === 'coordinator_request' ? request.requester?.name : request.host?.name}
+                          {request.requester?.name} ({request.requester?.role})
                         </span>
                         <span className="flex items-center">
                           <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -356,91 +412,55 @@ export default function EventRequests() {
                       </div>
                     </div>
 
-                    {/* Content based on request type */}
-                    {request.type === 'coordinator_request' ? (
-                      // Coordinator Request Content
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                        <div>
-                          <h4 className="font-semibold text-gray-900 mb-2">Description</h4>
-                          <p className="text-gray-700">{request.description}</p>
-                        </div>
-                        <div>
-                          <h4 className="font-semibold text-gray-900 mb-2">Justification</h4>
-                          <p className="text-gray-700">{request.justification}</p>
-                        </div>
-                        {request.expected_attendees && (
-                          <div>
-                            <h4 className="font-semibold text-gray-900 mb-2">Expected Attendees</h4>
-                            <p className="text-gray-700">{request.expected_attendees}</p>
-                          </div>
-                        )}
-                        {request.budget && (
-                          <div>
-                            <h4 className="font-semibold text-gray-900 mb-2">Budget</h4>
-                            <p className="text-gray-700">{request.budget}</p>
-                          </div>
-                        )}
-                        {request.resources && (
-                          <div className="md:col-span-2">
-                            <h4 className="font-semibold text-gray-900 mb-2">Required Resources</h4>
-                            <p className="text-gray-700">{request.resources}</p>
-                          </div>
-                        )}
+                    {/* Request Content */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                      <div>
+                        <h4 className="font-semibold text-gray-900 mb-2">Description</h4>
+                        <p className="text-gray-700">{request.description}</p>
                       </div>
-                    ) : (
-                      // Hierarchy Approval Content
-                      <div className="mb-6">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
-                          <div>
-                            <h4 className="font-semibold text-gray-900 mb-2">Description</h4>
-                            <p className="text-gray-700">{request.description}</p>
-                          </div>
-                          <div>
-                            <h4 className="font-semibold text-gray-900 mb-2">Event Host</h4>
-                            <div className="flex items-center space-x-2">
-                              <span className="font-medium text-gray-900">{request.host?.name}</span>
-                              <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full">
-                                {request.host?.role}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                        
-                        {request.event_data?.member_ids && request.event_data.member_ids.length > 0 && (
-                          <div className="mb-4">
-                            <h4 className="font-semibold text-gray-900 mb-2">Invited Members</h4>
-                            <p className="text-sm text-gray-600 mb-2">{request.event_data.member_ids.length} members invited</p>
-                          </div>
-                        )}
-
-                        {request.all_approvers && request.all_approvers.length > 0 && (
-                          <div className="mb-4">
-                            <h4 className="font-semibold text-gray-900 mb-2">Approval Status</h4>
-                            <div className="space-y-2">
-                              {request.all_approvers.map((approver, index) => (
-                                <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
-                                  <div className="flex items-center space-x-2">
-                                    <span className="font-medium text-gray-900">{approver.name}</span>
-                                    <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full">
-                                      {approver.role}
-                                    </span>
-                                  </div>
-                                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusBadge(approver.status)}`}>
-                                    {approver.status.charAt(0).toUpperCase() + approver.status.slice(1)}
-                                  </span>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
+                      <div>
+                        <h4 className="font-semibold text-gray-900 mb-2">Justification</h4>
+                        <p className="text-gray-700">{request.justification}</p>
                       </div>
-                    )}
+                      {request.expected_attendees && (
+                        <div>
+                          <h4 className="font-semibold text-gray-900 mb-2">Expected Attendees</h4>
+                          <p className="text-gray-700">{request.expected_attendees}</p>
+                        </div>
+                      )}
+                    </div>
 
-                    {/* Action buttons based on request type and status */}
+                    {/* Action buttons based on status */}
                     {request.status === 'pending' && (
-                      <div className="flex gap-3 pt-4 border-t border-gray-200">
-                        {request.type === 'coordinator_request' ? (
-                          <>
+                      <div className="space-y-4 pt-4 border-t border-gray-200">
+                        {/* Approval Status */}
+                        {(request.dean_approver || request.chair_approver) && (
+                          <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                            <h4 className="font-semibold text-green-900 mb-2">Approval Status</h4>
+                            <div className="space-y-2">
+                              {request.dean_approved_at && (
+                                <div className="flex items-center text-sm text-green-700">
+                                  <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                                  </svg>
+                                  <span>Approved by Dean {request.dean_approver?.name} on {formatDate(request.dean_approved_at)}</span>
+                                </div>
+                              )}
+                              {request.chair_approved_at && (
+                                <div className="flex items-center text-sm text-green-700">
+                                  <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                                  </svg>
+                                  <span>Approved by Chairperson {request.chair_approver?.name} on {formatDate(request.chair_approved_at)}</span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Action Buttons */}
+                        {request.can_approve && !request.has_approved && (
+                          <div className="flex gap-3">
                             <button
                               onClick={() => handleReview(request.id, 'approved')}
                               className="flex-1 px-4 py-2 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition-colors"
@@ -456,50 +476,62 @@ export default function EventRequests() {
                             >
                               Reject
                             </button>
-                          </>
-                        ) : (
-                          // Hierarchy approval buttons - only show if user's approval is pending
-                          request.approver_status === 'pending' && (
-                            <>
-                              <button
-                                onClick={() => handleHierarchyApproval(request.id, 'approved')}
-                                className="flex-1 px-4 py-2 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition-colors"
-                              >
-                                Approve
-                              </button>
-                              <button
-                                onClick={() => {
-                                  setReviewingRequest(request.id);
-                                  setReviewAction('hierarchy_rejected');
-                                }}
-                                className="flex-1 px-4 py-2 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700 transition-colors"
-                              >
-                                Reject
-                              </button>
-                            </>
-                          )
+                          </div>
+                        )}
+
+                        {request.has_approved && (
+                          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-center">
+                            <p className="text-blue-800 font-medium">
+                              ✓ You have approved this request. Waiting for other approvers.
+                            </p>
+                          </div>
+                        )}
+
+                        {!request.can_approve && !request.dean_approver && !request.chair_approver && (
+                          <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 text-center">
+                            <p className="text-gray-600 font-medium">
+                              Waiting for approvals from required approvers
+                            </p>
+                          </div>
                         )}
                       </div>
                     )}
 
-                    {/* Rejection reason display */}
-                    {request.status === 'rejected' && (
-                      <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
-                        <h4 className="font-semibold text-red-900 mb-2">Rejection Reason</h4>
-                        <p className="text-red-700">
-                          {request.type === 'coordinator_request' 
-                            ? request.rejection_reason 
-                            : request.approver_decision_reason || 'No reason provided'}
+                    {/* Fully Approved Status */}
+                    {request.status === 'approved' && request.all_approvals_received && (
+                      <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+                        <h4 className="font-semibold text-green-900 mb-2 flex items-center">
+                          <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                          </svg>
+                          Fully Approved
+                        </h4>
+                        <div className="space-y-1 text-sm text-green-700">
+                          {request.dean_approver && (
+                            <p>✓ Dean: {request.dean_approver.name}</p>
+                          )}
+                          {request.chair_approver && (
+                            <p>✓ Chairperson: {request.chair_approver.name}</p>
+                          )}
+                        </div>
+                        <p className="mt-2 text-green-800 font-medium">
+                          The requestor can now create this event.
                         </p>
                       </div>
                     )}
 
+                    {/* Rejection reason display */}
+                    {request.status === 'rejected' && request.rejection_reason && (
+                      <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+                        <h4 className="font-semibold text-red-900 mb-2">Rejection Reason</h4>
+                        <p className="text-red-700">{request.rejection_reason}</p>
+                      </div>
+                    )}
+
                     {/* Review timestamp */}
-                    {(request.reviewed_at || request.approver_decided_at) && (
+                    {request.reviewed_at && (
                       <div className="mt-4 text-sm text-gray-500">
-                        {request.type === 'coordinator_request' 
-                          ? `Reviewed by ${request.reviewer?.name} on ${formatDate(request.reviewed_at)}`
-                          : `You decided on ${formatDate(request.approver_decided_at)}`}
+                        Reviewed by {request.reviewer?.name} on {formatDate(request.reviewed_at)}
                       </div>
                     )}
                   </div>
@@ -511,14 +543,12 @@ export default function EventRequests() {
       </main>
 
       {/* Rejection Modal */}
-      {reviewingRequest && (reviewAction === 'rejected' || reviewAction === 'hierarchy_rejected') && (
+      {reviewingRequest && reviewAction === 'rejected' && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm">
           <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
-            <h3 className="text-xl font-bold text-gray-900 mb-4">
-              {reviewAction === 'rejected' ? 'Reject Event Request' : 'Reject Hierarchy Approval'}
-            </h3>
+            <h3 className="text-xl font-bold text-gray-900 mb-4">Reject Event Request</h3>
             <p className="text-gray-600 mb-4">
-              Please provide a reason for rejecting this {reviewAction === 'rejected' ? 'request' : 'approval'}:
+              Please provide a reason for rejecting this request:
             </p>
             
             <textarea
@@ -541,17 +571,11 @@ export default function EventRequests() {
                 Cancel
               </button>
               <button
-                onClick={() => {
-                  if (reviewAction === 'rejected') {
-                    handleReview(reviewingRequest, 'rejected', rejectionReason);
-                  } else {
-                    handleHierarchyApproval(reviewingRequest, 'rejected', rejectionReason);
-                  }
-                }}
+                onClick={() => handleReview(reviewingRequest, 'rejected', rejectionReason)}
                 disabled={!rejectionReason.trim()}
                 className="flex-1 px-4 py-2 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
-                {reviewAction === 'rejected' ? 'Reject Request' : 'Reject Approval'}
+                Reject Request
               </button>
             </div>
           </div>

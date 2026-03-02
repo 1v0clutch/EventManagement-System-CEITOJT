@@ -122,6 +122,22 @@ export default function History() {
             </svg>
           </div>
         );
+      case 'event_request_approved':
+        return (
+          <div className="w-10 h-10 bg-emerald-100 rounded-full flex items-center justify-center">
+            <svg className={`${iconClasses} text-emerald-600`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+        );
+      case 'event_request_rejected':
+        return (
+          <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
+            <svg className={`${iconClasses} text-red-600`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+        );
       case 'event_request_reviewed':
         return (
           <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center">
@@ -181,6 +197,10 @@ export default function History() {
         return `Invited to: ${activity.title}`;
       case 'event_request_submitted':
         return `Requested: ${activity.title}`;
+      case 'event_request_approved':
+        return `Approved Request: ${activity.title}`;
+      case 'event_request_rejected':
+        return `Rejected Request: ${activity.title}`;
       case 'event_request_reviewed':
         return `Reviewed: ${activity.title}`;
       case 'hierarchy_approval_requested':
@@ -512,8 +532,26 @@ export default function History() {
 
         {/* Activities List */}
         {loading ? (
-          <div className="flex justify-center items-center py-12">
-            <div className="w-12 h-12 border-4 border-green-600 border-t-transparent rounded-full animate-spin"></div>
+          <div className="space-y-4 animate-pulse">
+            {[1, 2, 3, 4, 5].map((i) => (
+              <div key={i} className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
+                <div className="flex items-start space-x-4">
+                  <div className="w-10 h-10 bg-gray-200 rounded-full flex-shrink-0"></div>
+                  <div className="flex-1 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="h-6 w-3/4 bg-gray-300 rounded"></div>
+                      <div className="h-5 w-20 bg-gray-200 rounded-full"></div>
+                    </div>
+                    <div className="h-4 w-full bg-gray-200 rounded"></div>
+                    <div className="h-4 w-2/3 bg-gray-200 rounded"></div>
+                    <div className="flex items-center space-x-4 pt-2">
+                      <div className="h-4 w-32 bg-gray-200 rounded"></div>
+                      <div className="h-4 w-24 bg-gray-200 rounded"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         ) : activities.length === 0 ? (
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
@@ -714,10 +752,18 @@ export default function History() {
                         <h4 className="text-xs font-medium text-gray-600 mb-1">Justification</h4>
                         <p className="text-sm text-gray-700">{selectedActivity.details.justification}</p>
                       </div>
-                      {selectedActivity.details.reviewer && (
+                      {selectedActivity.details.dean_approver && (
                         <div>
-                          <h4 className="text-xs font-medium text-gray-600 mb-1">Reviewed By</h4>
-                          <p className="text-sm text-gray-700">{selectedActivity.details.reviewer.name}</p>
+                          <h4 className="text-xs font-medium text-gray-600 mb-1">Dean Approval</h4>
+                          <p className="text-sm text-green-700">✓ Approved by {selectedActivity.details.dean_approver.name}</p>
+                          <p className="text-xs text-gray-500">on {formatDate(selectedActivity.details.dean_approved_at)}</p>
+                        </div>
+                      )}
+                      {selectedActivity.details.chair_approver && (
+                        <div>
+                          <h4 className="text-xs font-medium text-gray-600 mb-1">Chairperson Approval</h4>
+                          <p className="text-sm text-green-700">✓ Approved by {selectedActivity.details.chair_approver.name}</p>
+                          <p className="text-xs text-gray-500">on {formatDate(selectedActivity.details.chair_approved_at)}</p>
                         </div>
                       )}
                       {selectedActivity.details.rejection_reason && (
@@ -726,6 +772,63 @@ export default function History() {
                           <p className="text-sm text-red-700">{selectedActivity.details.rejection_reason}</p>
                         </div>
                       )}
+                      {selectedActivity.details.all_approvals_received && (
+                        <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg">
+                          <p className="text-sm font-medium text-green-800">✓ All approvals received - You can now create this event!</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {selectedActivity.type === 'event_request_approved' && selectedActivity.details && (
+                  <div>
+                    <h3 className="text-sm font-semibold text-gray-700 mb-2">Approval Details</h3>
+                    <div className="bg-green-50 rounded-lg p-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <div>
+                          <p className="text-sm text-gray-600">Requested by</p>
+                          <p className="font-medium text-gray-900">{selectedActivity.details.requester?.name}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-sm text-gray-600">Your Role</p>
+                          <span className="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-700">
+                            {selectedActivity.details.approval_role}
+                          </span>
+                        </div>
+                      </div>
+                      <p className="text-xs text-gray-500">
+                        Approved on {formatDate(selectedActivity.details.approved_at)}
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {selectedActivity.type === 'event_request_rejected' && selectedActivity.details && (
+                  <div>
+                    <h3 className="text-sm font-semibold text-gray-700 mb-2">Rejection Details</h3>
+                    <div className="bg-red-50 rounded-lg p-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <div>
+                          <p className="text-sm text-gray-600">Requested by</p>
+                          <p className="font-medium text-gray-900">{selectedActivity.details.requester?.name}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-sm text-gray-600">Status</p>
+                          <span className="px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-700">
+                            Rejected
+                          </span>
+                        </div>
+                      </div>
+                      {selectedActivity.details.rejection_reason && (
+                        <div className="mt-3">
+                          <p className="text-xs text-gray-600 mb-1">Reason</p>
+                          <p className="text-sm text-red-700">{selectedActivity.details.rejection_reason}</p>
+                        </div>
+                      )}
+                      <p className="text-xs text-gray-500 mt-2">
+                        Rejected on {formatDate(selectedActivity.details.reviewed_at)}
+                      </p>
                     </div>
                   </div>
                 )}

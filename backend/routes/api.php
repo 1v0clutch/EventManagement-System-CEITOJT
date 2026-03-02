@@ -49,6 +49,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/event-requests', [EventRequestController::class, 'index']);
     Route::post('/event-requests', [EventRequestController::class, 'store']);
     Route::get('/event-requests/my-requests', [EventRequestController::class, 'myRequests']);
+    Route::get('/event-requests/has-approved', [EventRequestController::class, 'hasApprovedRequests']);
     Route::post('/event-requests/{eventRequest}/review', [EventRequestController::class, 'review']);
     Route::delete('/event-requests/{eventRequest}', [EventRequestController::class, 'destroy']);
     

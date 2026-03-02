@@ -20,8 +20,14 @@ const ProtectedRoute = ({ children }) => {
   
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-xl">Loading...</div>
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-green-100 to-gray-50 flex items-center justify-center">
+        <div className="bg-white rounded-2xl shadow-xl p-8 animate-pulse">
+          <div className="flex flex-col items-center space-y-4">
+            <div className="w-16 h-16 bg-green-200 rounded-full"></div>
+            <div className="h-6 w-48 bg-gray-200 rounded"></div>
+            <div className="h-4 w-32 bg-gray-100 rounded"></div>
+          </div>
+        </div>
       </div>
     );
   }
@@ -43,8 +49,14 @@ const RoleProtectedRoute = ({ children, allowedRoles }) => {
   
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-xl">Loading...</div>
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-green-100 to-gray-50 flex items-center justify-center">
+        <div className="bg-white rounded-2xl shadow-xl p-8 animate-pulse">
+          <div className="flex flex-col items-center space-y-4">
+            <div className="w-16 h-16 bg-green-200 rounded-full"></div>
+            <div className="h-6 w-48 bg-gray-200 rounded"></div>
+            <div className="h-4 w-32 bg-gray-100 rounded"></div>
+          </div>
+        </div>
       </div>
     );
   }
@@ -71,8 +83,14 @@ const AccountRoute = ({ children }) => {
   
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-xl">Loading...</div>
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-green-100 to-gray-50 flex items-center justify-center">
+        <div className="bg-white rounded-2xl shadow-xl p-8 animate-pulse">
+          <div className="flex flex-col items-center space-y-4">
+            <div className="w-16 h-16 bg-green-200 rounded-full"></div>
+            <div className="h-6 w-48 bg-gray-200 rounded"></div>
+            <div className="h-4 w-32 bg-gray-100 rounded"></div>
+          </div>
+        </div>
       </div>
     );
   }
@@ -85,8 +103,14 @@ const PublicRoute = ({ children }) => {
   
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-xl">Loading...</div>
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-green-100 to-gray-50 flex items-center justify-center">
+        <div className="bg-white rounded-2xl shadow-xl p-8 animate-pulse">
+          <div className="flex flex-col items-center space-y-4">
+            <div className="w-16 h-16 bg-green-200 rounded-full"></div>
+            <div className="h-6 w-48 bg-gray-200 rounded"></div>
+            <div className="h-4 w-32 bg-gray-100 rounded"></div>
+          </div>
+        </div>
       </div>
     );
   }
@@ -139,12 +163,12 @@ function App() {
             </AccountRoute>
           } />
           <Route path="/add-event" element={
-            <RoleProtectedRoute allowedRoles={['Admin', 'Dean', 'Chairperson']}>
+            <RoleProtectedRoute allowedRoles={['Admin', 'Dean', 'Chairperson', 'Coordinator']}>
               <AddEvent />
             </RoleProtectedRoute>
           } />
           <Route path="/request-event" element={
-            <RoleProtectedRoute allowedRoles={['Coordinator']}>
+            <RoleProtectedRoute allowedRoles={['Coordinator', 'Chairperson']}>
               <RequestEvent />
             </RoleProtectedRoute>
           } />
