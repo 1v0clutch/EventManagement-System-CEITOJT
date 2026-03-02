@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect, useRef } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 import logo from "../assets/CEIT-LOGO.png";
@@ -8,6 +8,7 @@ import CreatePermanentAdminModal from '../components/CreatePermanentAdminModal';
 
 export default function Admin() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, logout } = useAuth();
   const [users, setUsers] = useState([]);
   const [events, setEvents] = useState([]);
@@ -20,6 +21,8 @@ export default function Admin() {
   const [showCreateAdminModal, setShowCreateAdminModal] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
   const [isEditUserModalOpen, setIsEditUserModalOpen] = useState(false);
+  const [showPendingOnly, setShowPendingOnly] = useState(false);
+  const tableRef = useRef(null);
 
   const roles = [
     'Admin',
@@ -47,6 +50,19 @@ export default function Admin() {
     fetchEvents();
     checkBootstrapStatus();
   }, [user, navigate]);
+
+  // Handle navigation state to show pending users
+  useEffect(() => {
+    if (location.state?.highlightPending) {
+      setShowPendingOnly(true);
+      // Scroll to table after a short delay to ensure it's rendered
+      setTimeout(() => {
+        tableRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 100);
+      // Clear the state
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location, navigate]);
 
   // Close account dropdown when clicking outside
   useEffect(() => {
@@ -182,12 +198,16 @@ export default function Admin() {
     }
   };
 
-  // Filter users based on search term
-  const filteredUsers = users.filter(u => 
-    u.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    u.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (u.department && u.department.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
+  // Filter users based on search term and pending status
+  const filteredUsers = users.filter(u => {
+    const matchesSearch = u.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      u.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (u.department && u.department.toLowerCase().includes(searchTerm.toLowerCase()));
+    
+    const matchesPendingFilter = !showPendingOnly || !u.is_validated;
+    
+    return matchesSearch && matchesPendingFilter;
+  });
 
   if (loading) {
     return (
@@ -475,22 +495,44 @@ export default function Admin() {
 
           {/* Search Bar */}
           <div className="bg-white rounded-lg shadow-md mb-6 p-4 border-t-4 border-green-500">
-            <div className="relative">
-              <input
-                type="text"
-                placeholder="Search by name, email, or department..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
-              />
-              <svg className="absolute left-3 top-2.5 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
+            <div className="flex gap-4 items-center">
+              <div className="flex-1 relative">
+                <input
+                  type="text"
+                  placeholder="Search by name, email, or department..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                />
+                <svg className="absolute left-3 top-2.5 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </div>
+              
+              {/* Pending Filter Button */}
+              <button
+                onClick={() => setShowPendingOnly(!showPendingOnly)}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all whitespace-nowrap ${
+                  showPendingOnly
+                    ? 'bg-blue-600 text-white shadow-md'
+                    : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+                }`}
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                </svg>
+                {showPendingOnly ? 'Show All' : 'Pending Only'}
+                {showPendingOnly && (
+                  <span className="ml-1 px-2 py-0.5 bg-white text-blue-600 rounded-full text-xs font-bold">
+                    {filteredUsers.length}
+                  </span>
+                )}
+              </button>
             </div>
           </div>
 
           {/* Users Table */}
-          <div className="bg-white rounded-lg shadow-md overflow-hidden border-t-4 border-green-500">
+          <div ref={tableRef} className="bg-white rounded-lg shadow-md overflow-hidden border-t-4 border-green-500">
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gradient-to-r from-green-50 to-green-100">

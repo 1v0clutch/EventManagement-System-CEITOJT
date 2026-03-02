@@ -188,9 +188,9 @@ function App() {
             </ProtectedRoute>
           } />
           <Route path="/default-events" element={
-            <ProtectedRoute>
+            <RoleProtectedRoute allowedRoles={['Admin']}>
               <DefaultEvents />
-            </ProtectedRoute>
+            </RoleProtectedRoute>
           } />
           <Route path="/" element={<Navigate to="/account" />} />
         </Routes>

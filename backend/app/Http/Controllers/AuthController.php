@@ -34,6 +34,11 @@ class AuthController extends Controller
             ]);
 
             $email = strtolower(trim($request->email));
+            
+            // Capitalize first letter of each word in names
+            $firstName = $this->capitalizeWords(trim($request->first_name));
+            $lastName = $this->capitalizeWords(trim($request->last_name));
+            $middleInitial = $request->middle_initial ? $this->capitalizeWords(trim($request->middle_initial)) : null;
 
             // Verify CVSU email exists
             $emailVerificationService = new EmailVerificationService();
@@ -46,23 +51,23 @@ class AuthController extends Controller
             }
 
             // Construct full name from parts
-            $middleInitial = '';
-            if ($request->middle_initial) {
+            $middleInitialFormatted = '';
+            if ($middleInitial) {
                 // Extract first letter of each word in middle name and format as initials
-                $middleWords = explode(' ', trim($request->middle_initial));
+                $middleWords = explode(' ', $middleInitial);
                 $initials = array_map(function($word) {
                     return strtoupper(substr(trim($word), 0, 1)) . '.';
                 }, array_filter($middleWords));
-                $middleInitial = ' ' . implode(' ', $initials);
+                $middleInitialFormatted = ' ' . implode(' ', $initials);
             }
-            $fullName = trim($request->first_name . $middleInitial . ' ' . $request->last_name);
+            $fullName = trim($firstName . $middleInitialFormatted . ' ' . $lastName);
 
             // Create user but mark as unverified and not validated
             $user = User::create([
                 'name' => $fullName,
-                'first_name' => $request->first_name,
-                'middle_name' => $request->middle_initial, // Store full middle name
-                'last_name' => $request->last_name,
+                'first_name' => $firstName,
+                'middle_name' => $middleInitial, // Store full middle name
+                'last_name' => $lastName,
                 'email' => $email,
                 'password' => Hash::make($request->password),
                 'department' => null, // To be set by admin
@@ -785,5 +790,22 @@ class AuthController extends Controller
         return response()->json([
             'message' => 'Invalid reset token or email.',
         ], 400);
+    }
+
+    /**
+     * Capitalize the first letter of each word in a string
+     * 
+     * @param string $text
+     * @return string
+     */
+    private function capitalizeWords($text)
+    {
+        // Split by spaces and capitalize each word
+        $words = explode(' ', $text);
+        $capitalizedWords = array_map(function($word) {
+            return ucfirst(strtolower(trim($word)));
+        }, $words);
+        
+        return implode(' ', array_filter($capitalizedWords));
     }
 }
