@@ -21,6 +21,13 @@ const DefaultEvents = () => {
   const [endYear, setEndYear] = useState('');
   const [schoolYearError, setSchoolYearError] = useState('');
 
+  // Redirect non-admin users
+  useEffect(() => {
+    if (user && user.role !== 'Admin') {
+      navigate('/dashboard');
+    }
+  }, [user, navigate]);
+
   const monthNames = [
     'January', 'February', 'March', 'April', 'May', 'June',
     'July', 'August', 'September', 'October', 'November', 'December'

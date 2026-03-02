@@ -24,9 +24,6 @@ Route::post('/reset-password-otp', [AuthController::class, 'resetPasswordWithOtp
 Route::post('/reset-password', [AuthController::class, 'resetPassword']);
 Route::post('/verify-email-link', [AuthController::class, 'verifyEmailLink']);
 
-// Public routes - Default Events (academic calendar)
-Route::get('/default-events', [DefaultEventController::class, 'index']);
-
 // Protected routes
 Route::middleware('auth:sanctum')->group(function () {
     // Auth
@@ -57,12 +54,16 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/hierarchy-approvals/{approval}/review', [EventRequestController::class, 'reviewHierarchyApproval']);
     Route::get('/hierarchy-approvals/{approval}/details', [EventRequestController::class, 'getApprovalDetails']);
     
-    // Default Events (Academic Calendar) - Protected
-    Route::put('/default-events/{id}/date', [DefaultEventController::class, 'updateDate']);
+    // Default Events (Academic Calendar) - Admin Only
+    Route::middleware('admin')->group(function () {
+        Route::get('/default-events', [DefaultEventController::class, 'index']);
+        Route::put('/default-events/{id}/date', [DefaultEventController::class, 'updateDate']);
+    });
     
     // Users
     Route::get('/users', [UserController::class, 'index']);
     Route::get('/users/all', [UserController::class, 'all']);
+    Route::get('/users/pending-validation', [UserController::class, 'pendingValidation']);
     Route::put('/users/{id}/role', [UserController::class, 'updateRole']);
     Route::put('/user/profile', [UserController::class, 'update']);
     Route::post('/users/{id}/validate', [UserController::class, 'validateUser']);

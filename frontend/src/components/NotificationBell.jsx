@@ -8,6 +8,7 @@ export default function NotificationBell({ events, user, onNotificationClick, ap
   const [messages, setMessages] = useState([]);
   const [selectedMessage, setSelectedMessage] = useState(null);
   const [isMessageModalOpen, setIsMessageModalOpen] = useState(false);
+  const [pendingUsers, setPendingUsers] = useState([]);
   const navigate = useNavigate();
 
   // Get pending invitations count
@@ -20,6 +21,10 @@ export default function NotificationBell({ events, user, onNotificationClick, ap
   useEffect(() => {
     if (user) {
       fetchMessages();
+      // Fetch pending validations if user is admin
+      if (user.role === 'Admin') {
+        fetchPendingValidations();
+      }
     }
   }, [user]);
 
@@ -43,9 +48,25 @@ export default function NotificationBell({ events, user, onNotificationClick, ap
     }
   };
 
+  const fetchPendingValidations = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) return;
+      
+      const response = await axios.get(`${import.meta.env.VITE_API_URL}/users/pending-validation`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setPendingUsers(response.data.pending_users || []);
+    } catch (error) {
+      if (error.response?.status !== 401 && error.response?.status !== 403) {
+        console.error('Error fetching pending validations:', error);
+      }
+    }
+  };
+
   // Get unread messages count
   const unreadMessages = messages.filter(msg => !msg.is_read);
-  const totalNotifications = pendingInvitations.length + unreadMessages.length + approvedRequests.length;
+  const totalNotifications = pendingInvitations.length + unreadMessages.length + pendingUsers.length;
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -171,8 +192,7 @@ export default function NotificationBell({ events, user, onNotificationClick, ap
             <div className="p-4 border-b border-gray-200">
               <h3 className="text-sm font-bold text-gray-900">Notifications</h3>
               <p className="text-xs text-gray-500 mt-1">
-                {approvedRequests.length > 0 && `${approvedRequests.length} approved request${approvedRequests.length !== 1 ? 's' : ''}, `}
-                {pendingInvitations.length} invitation{pendingInvitations.length !== 1 ? 's' : ''}, {unreadMessages.length} message{unreadMessages.length !== 1 ? 's' : ''}
+                {pendingInvitations.length} invitation{pendingInvitations.length !== 1 ? 's' : ''}, {unreadMessages.length} message{unreadMessages.length !== 1 ? 's' : ''}{user?.role === 'Admin' ? `, ${pendingUsers.length} pending validation${pendingUsers.length !== 1 ? 's' : ''}` : ''}
               </p>
             </div>
             <div className="max-h-96 overflow-y-auto">
@@ -313,6 +333,44 @@ export default function NotificationBell({ events, user, onNotificationClick, ap
                         </div>
                         <span className="flex-shrink-0 inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-800">
                           Declined
+                        </span>
+                      </div>
+                    </button>
+                  ))}
+
+                  {/* Pending User Validations (Admin Only) */}
+                  {user?.role === 'Admin' && pendingUsers.map(pendingUser => (
+                    <button
+                      key={`user-${pendingUser.id}`}
+                      onClick={() => {
+                        setIsOpen(false);
+                        navigate('/admin', { state: { highlightPending: true } });
+                      }}
+                      className="w-full p-4 hover:bg-gray-50 transition-colors text-left bg-blue-50/30"
+                    >
+                      <div className="flex items-start space-x-3">
+                        <div className="flex-shrink-0 w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                          <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                          </svg>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <p className="text-sm font-semibold text-gray-900 truncate">
+                              {pendingUser.username}
+                            </p>
+                            <span className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0"></span>
+                          </div>
+                          <p className="text-xs text-gray-600 mt-1">
+                            {pendingUser.email}
+                          </p>
+                          <p className="text-xs text-gray-500 mt-1">
+                            Needs validation
+                          </p>
+                          <p className="text-xs text-gray-400 mt-1">{formatDate(pendingUser.created_at)}</p>
+                        </div>
+                        <span className="flex-shrink-0 inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-800">
+                          New User
                         </span>
                       </div>
                     </button>

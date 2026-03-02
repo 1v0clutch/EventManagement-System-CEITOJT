@@ -46,6 +46,34 @@ class UserController extends Controller
         ]);
     }
 
+    public function pendingValidation(Request $request)
+    {
+        // Only admins can see pending validations
+        if (!$request->user()->isAdmin()) {
+            return response()->json([
+                'error' => 'Only admins can view pending validations.'
+            ], 403);
+        }
+
+        // Get all unvalidated users
+        $pendingUsers = User::where('is_validated', false)
+            ->where('email_verified_at', '!=', null) // Only show users who verified their email
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return response()->json([
+            'pending_users' => $pendingUsers->map(fn($user) => [
+                'id' => $user->id,
+                'username' => $user->name,
+                'email' => $user->email,
+                'department' => $user->department,
+                'role' => $user->role,
+                'created_at' => $user->created_at,
+            ]),
+            'count' => $pendingUsers->count(),
+        ]);
+    }
+
     public function validateUser(Request $request, $id)
     {
         $user = User::findOrFail($id);
@@ -144,9 +172,9 @@ class UserController extends Controller
             'department' => 'sometimes|string|max:255',
         ]);
 
-        // Map 'username' to 'name' in the database
+        // Map 'username' to 'name' in the database and capitalize each word
         if (isset($validated['username'])) {
-            $validated['name'] = $validated['username'];
+            $validated['name'] = $this->capitalizeWords($validated['username']);
             unset($validated['username']);
         }
 
@@ -164,5 +192,22 @@ class UserController extends Controller
                 'schedule_initialized' => $user->schedule_initialized ?? false,
             ],
         ]);
+    }
+
+    /**
+     * Capitalize the first letter of each word in a string
+     * 
+     * @param string $text
+     * @return string
+     */
+    private function capitalizeWords($text)
+    {
+        // Split by spaces and capitalize each word
+        $words = explode(' ', $text);
+        $capitalizedWords = array_map(function($word) {
+            return ucfirst(strtolower(trim($word)));
+        }, $words);
+        
+        return implode(' ', array_filter($capitalizedWords));
     }
 }

@@ -1,0 +1,10 @@
+7:00 - 8:00 testing and checking what implemented lastweek to Determined improvements needed
+8:00 - 9:00 improving the ui for the things that added lastweek
+9:00 - 10:00 making it so only admin can change thye academic calendar
+10:00 - 11:00 debugging users can still access the academic calendar testing
+11:00 - 12:00 lunch and some testing
+12:00 - 1:00 small adjustment to ui and ux fix format of name input
+1:00 - 2:00 adding the needed to validate user to notification
+2:00 - 3:00 debugging and testing implemented
+3:00 - 4:00 redirect the notification to admin panel
+4:00 - 5:00 debugging and testing implemented

@@ -29,7 +29,19 @@ export default function Register() {
       middleInitial = ' ' + initials.join(' ');
     }
     
-    return (formData.first_name + middleInitial + ' ' + formData.last_name).trim();
+    // Capitalize first letter of each word
+    const capitalizeWords = (text) => {
+      return text.split(' ')
+        .map(word => word.trim())
+        .filter(word => word.length > 0)
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+        .join(' ');
+    };
+    
+    const firstName = capitalizeWords(formData.first_name);
+    const lastName = capitalizeWords(formData.last_name);
+    
+    return (firstName + middleInitial + ' ' + lastName).trim();
   };
 
   const handleChange = (e) => {
@@ -44,6 +56,23 @@ export default function Register() {
       setErrors(prev => ({
         ...prev,
         [name]: ''
+      }));
+    }
+  };
+
+  // Capitalize names when user finishes typing (onBlur)
+  const handleNameBlur = (e) => {
+    const { name, value } = e.target;
+    if (value.trim()) {
+      const capitalizedValue = value.split(' ')
+        .map(word => word.trim())
+        .filter(word => word.length > 0)
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+        .join(' ');
+      
+      setFormData(prev => ({
+        ...prev,
+        [name]: capitalizedValue
       }));
     }
   };
@@ -152,6 +181,7 @@ export default function Register() {
                     required
                     value={formData.first_name}
                     onChange={handleChange}
+                    onBlur={handleNameBlur}
                     className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
                     placeholder="Enter your first name"
                   />
@@ -171,6 +201,7 @@ export default function Register() {
                     required
                     value={formData.last_name}
                     onChange={handleChange}
+                    onBlur={handleNameBlur}
                     className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
                     placeholder="Enter your last name"
                   />
@@ -190,6 +221,7 @@ export default function Register() {
                   type="text"
                   value={formData.middle_initial}
                   onChange={handleChange}
+                  onBlur={handleNameBlur}
                   className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
                   placeholder="Enter your middle name (e.g., Santos, De La Cruz)"
                 />
