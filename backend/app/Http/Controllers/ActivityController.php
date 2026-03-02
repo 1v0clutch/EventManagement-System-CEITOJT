@@ -73,10 +73,10 @@ class ActivityController extends Controller
                 ];
             });
 
-        // 3. Event requests submitted by user (if coordinator)
-        if ($user->role === 'Coordinator') {
+        // 3. Event requests submitted by user (if coordinator/chairperson)
+        if (in_array($user->role, ['Coordinator', 'Chairperson'])) {
             $eventRequests = EventRequest::where('requested_by', $user->id)
-                ->with(['reviewer'])
+                ->with(['reviewer', 'deanApprover', 'chairApprover'])
                 ->get()
                 ->map(function ($request) {
                     return [
@@ -95,37 +95,96 @@ class ActivityController extends Controller
                             'reviewer' => $request->reviewer,
                             'reviewed_at' => $request->reviewed_at,
                             'rejection_reason' => $request->rejection_reason,
+                            'dean_approver' => $request->deanApprover,
+                            'dean_approved_at' => $request->dean_approved_at,
+                            'chair_approver' => $request->chairApprover,
+                            'chair_approved_at' => $request->chair_approved_at,
+                            'all_approvals_received' => $request->all_approvals_received,
                         ]
                     ];
                 });
             $activities = $activities->concat($eventRequests);
         }
 
-        // 4. Event requests reviewed by user (if Dean/Chairperson/Admin)
+        // 4. Event requests where user approved (Dean/Chairperson individual approvals)
         if (in_array($user->role, ['Dean', 'Chairperson', 'Admin'])) {
-            $reviewedRequests = EventRequest::where('reviewed_by', $user->id)
+            $approvedRequests = collect();
+            
+            if ($user->role === 'Dean') {
+                $approvedRequests = EventRequest::where('dean_approved_by', $user->id)
+                    ->with(['requester'])
+                    ->get()
+                    ->map(function ($request) {
+                        return [
+                            'id' => $request->id,
+                            'type' => 'event_request_approved',
+                            'title' => $request->title,
+                            'description' => $request->description,
+                            'date' => $request->date,
+                            'time' => $request->time,
+                            'location' => $request->location,
+                            'created_at' => $request->dean_approved_at,
+                            'status' => 'approved',
+                            'details' => [
+                                'request' => $request,
+                                'requester' => $request->requester,
+                                'approval_role' => 'Dean',
+                                'approved_at' => $request->dean_approved_at,
+                            ]
+                        ];
+                    });
+            } elseif ($user->role === 'Chairperson') {
+                $approvedRequests = EventRequest::where('chair_approved_by', $user->id)
+                    ->with(['requester'])
+                    ->get()
+                    ->map(function ($request) {
+                        return [
+                            'id' => $request->id,
+                            'type' => 'event_request_approved',
+                            'title' => $request->title,
+                            'description' => $request->description,
+                            'date' => $request->date,
+                            'time' => $request->time,
+                            'location' => $request->location,
+                            'created_at' => $request->chair_approved_at,
+                            'status' => 'approved',
+                            'details' => [
+                                'request' => $request,
+                                'requester' => $request->requester,
+                                'approval_role' => 'Chairperson',
+                                'approved_at' => $request->chair_approved_at,
+                            ]
+                        ];
+                    });
+            }
+            
+            $activities = $activities->concat($approvedRequests);
+            
+            // Also include rejected requests
+            $rejectedRequests = EventRequest::where('reviewed_by', $user->id)
+                ->where('status', 'rejected')
                 ->with(['requester'])
                 ->get()
                 ->map(function ($request) {
                     return [
                         'id' => $request->id,
-                        'type' => 'event_request_reviewed',
+                        'type' => 'event_request_rejected',
                         'title' => $request->title,
                         'description' => $request->description,
                         'date' => $request->date,
                         'time' => $request->time,
                         'location' => $request->location,
                         'created_at' => $request->reviewed_at,
-                        'status' => $request->status,
+                        'status' => 'rejected',
                         'details' => [
                             'request' => $request,
                             'requester' => $request->requester,
-                            'decision' => $request->status,
                             'rejection_reason' => $request->rejection_reason,
+                            'reviewed_at' => $request->reviewed_at,
                         ]
                     ];
                 });
-            $activities = $activities->concat($reviewedRequests);
+            $activities = $activities->concat($rejectedRequests);
         }
 
         // 5. Hierarchy approvals where user is the host

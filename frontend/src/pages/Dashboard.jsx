@@ -43,6 +43,13 @@ export default function Dashboard() {
   const [declineReason, setDeclineReason] = useState('');
   const [decliningEventId, setDecliningEventId] = useState(null);
 
+  // Approved Requests State
+  const [hasApprovedRequests, setHasApprovedRequests] = useState(false);
+  const [approvedRequests, setApprovedRequests] = useState([]);
+
+  // Event Requests State
+  const [myEventRequests, setMyEventRequests] = useState([]);
+
   useEffect(() => {
     // Check if user is validated
     if (user && !user.is_validated) {
@@ -51,6 +58,8 @@ export default function Dashboard() {
     }
     
     fetchData();
+    checkApprovedRequests();
+    fetchMyEventRequests();
     
     // Auto-select today's date
     const today = new Date();
@@ -89,6 +98,28 @@ export default function Dashboard() {
       console.error('Error fetching data:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const checkApprovedRequests = async () => {
+    try {
+      const response = await api.get('/event-requests/has-approved');
+      setHasApprovedRequests(response.data.has_approved_requests);
+      setApprovedRequests(response.data.approved_requests || []);
+    } catch (error) {
+      console.error('Error checking approved requests:', error);
+      setHasApprovedRequests(false);
+      setApprovedRequests([]);
+    }
+  };
+
+  const fetchMyEventRequests = async () => {
+    try {
+      const response = await api.get('/event-requests/my-requests');
+      setMyEventRequests(response.data.requests || []);
+    } catch (error) {
+      console.error('Error fetching event requests:', error);
+      setMyEventRequests([]);
     }
   };
 
@@ -355,6 +386,7 @@ export default function Dashboard() {
                   events={events}
                   user={user}
                   onNotificationClick={handleViewEvent}
+                  approvedRequests={approvedRequests}
                 />
               </div>
 
@@ -459,8 +491,11 @@ export default function Dashboard() {
             </>
           ) : (
             <>
-              {/* Your Events (Hosted by User) */}
-              <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 hover:shadow-2xl hover:scale-105 transition-all duration-300 group cursor-pointer text-left">
+              {/* Your Events (Hosted by User + Event Requests) */}
+              <button
+                onClick={handleYourEventsClick}
+                className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 hover:shadow-2xl hover:scale-105 transition-all duration-300 group cursor-pointer text-left w-full"
+              >
                 <div className="flex items-center space-x-4">
                   <div className="bg-gradient-to-br from-green-200 to-green-100 rounded-xl p-4 group-hover:from-green-300 group-hover:to-green-200 transition-colors duration-300">
                     <svg className="w-7 h-7 text-green-700 group-hover:scale-110 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -469,10 +504,10 @@ export default function Dashboard() {
                   </div>
                   <div>
                     <p className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Your Events</p>
-                    <p className="text-3xl font-bold text-gray-900 group-hover:text-green-700 transition-colors">{hostedEvents.length}</p>
+                    <p className="text-3xl font-bold text-gray-900 group-hover:text-green-700 transition-colors">{hostedEvents.length + myEventRequests.length}</p>
                   </div>
                 </div>
-              </div>
+              </button>
 
               {/* Upcoming Events */}
               <button
@@ -497,7 +532,10 @@ export default function Dashboard() {
               </button>
 
               {/* Total Members */}
-              <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 hover:shadow-2xl hover:scale-105 transition-all duration-300 group cursor-pointer text-left">
+              <button
+                onClick={handleMembersClick}
+                className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 hover:shadow-2xl hover:scale-105 transition-all duration-300 group cursor-pointer text-left w-full"
+              >
                 <div className="flex items-center space-x-4">
                   <div className="bg-gradient-to-br from-green-100 to-green-50 rounded-xl p-4 group-hover:from-green-200 group-hover:to-green-100 transition-colors duration-300">
                     <svg className="w-7 h-7 text-green-700 group-hover:scale-110 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -509,7 +547,7 @@ export default function Dashboard() {
                     <p className="text-3xl font-bold text-gray-900 group-hover:text-green-700 transition-colors">{members.length}</p>
                   </div>
                 </div>
-              </div>
+              </button>
             </>
           )}
         </div>
@@ -535,7 +573,7 @@ export default function Dashboard() {
             {['Admin', 'Dean', 'Chairperson'].includes(user?.role) && (
               <button
                 onClick={() => navigate('/event-requests')}
-                className="inline-flex items-center px-6 py-3 font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 group bg-white text-blue-700 border-2 border-blue-700 hover:bg-blue-50 focus:ring-blue-600"
+                className="inline-flex items-center px-6 py-3 font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 group bg-white text-green-700 border-2 border-green-700 hover:bg-green-50 focus:ring-green-600"
               >
                 <svg className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -549,18 +587,72 @@ export default function Dashboard() {
               // Faculty Members cannot create events - no button shown
               null
             ) : user?.role === 'Coordinator' ? (
-              // Coordinators can request events
-              <button
-                onClick={() => navigate('/request-event', { state: { selectedDate } })}
-                className="inline-flex items-center px-6 py-3 font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 group bg-gradient-to-r from-blue-600 via-blue-600 to-blue-700 text-white hover:from-blue-700 hover:via-blue-700 hover:to-blue-800 focus:ring-blue-600"
-              >
-                <svg className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
-                </svg>
-                Request Event
-              </button>
-            ) : user?.role === 'Chairperson' || user?.role === 'Dean' || user?.role === 'Admin' ? (
-              // Chairpersons, Deans, and Admins can create events directly
+              // Coordinators: Show Request Event button always, Add Event only if approved
+              <div className="flex gap-3">
+                <button
+                  onClick={() => navigate('/request-event', { state: { selectedDate } })}
+                  className="inline-flex items-center px-6 py-3 font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 group bg-gradient-to-r from-green-700 via-green-700 to-green-800 text-white hover:from-green-800 hover:via-green-800 hover:to-green-900 focus:ring-green-600"
+                >
+                  <svg className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  Request Event
+                </button>
+                {hasApprovedRequests && (
+                  <button
+                    onClick={() => navigate('/add-event', { state: { selectedDate, approvedRequests } })}
+                    className="inline-flex items-center px-6 py-3 font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 group bg-gradient-to-r from-green-700 via-green-700 to-green-800 text-white hover:from-green-800 hover:via-green-800 hover:to-green-900 focus:ring-green-600"
+                  >
+                    <svg className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
+                    </svg>
+                    Add Event
+                    <span className="ml-2 px-2 py-0.5 bg-white/20 rounded-full text-xs">
+                      {approvedRequests.length}
+                    </span>
+                  </button>
+                )}
+              </div>
+            ) : user?.role === 'Chairperson' ? (
+              // Chairpersons: Can create events directly, but also show Request Event if they have special needs
+              // Also show Add Event with approved requests badge if they have any
+              <div className="flex gap-3">
+                {hasApprovedRequests ? (
+                  <button
+                    onClick={() => navigate('/add-event', { state: { selectedDate, approvedRequests } })}
+                    className="inline-flex items-center px-6 py-3 font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 group bg-gradient-to-r from-green-700 via-green-700 to-green-800 text-white hover:from-green-800 hover:via-green-800 hover:to-green-900 focus:ring-green-600"
+                  >
+                    <svg className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
+                    </svg>
+                    Add Event
+                    <span className="ml-2 px-2 py-0.5 bg-white/20 rounded-full text-xs">
+                      {approvedRequests.length}
+                    </span>
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => navigate('/add-event', { state: { selectedDate } })}
+                    className="inline-flex items-center px-6 py-3 font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 group bg-gradient-to-r from-green-700 via-green-700 to-green-800 text-white hover:from-green-800 hover:via-green-800 hover:to-green-900 focus:ring-green-600"
+                  >
+                    <svg className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
+                    </svg>
+                    Add Event
+                  </button>
+                )}
+                <button
+                  onClick={() => navigate('/request-event', { state: { selectedDate } })}
+                  className="inline-flex items-center px-6 py-3 font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 group bg-white text-green-700 border-2 border-green-700 hover:bg-green-50 focus:ring-green-600"
+                >
+                  <svg className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  Request Event
+                </button>
+              </div>
+            ) : user?.role === 'Dean' || user?.role === 'Admin' ? (
+              // Deans and Admins can create events directly
               <button
                 onClick={() => navigate('/add-event', { state: { selectedDate } })}
                 className="inline-flex items-center px-6 py-3 font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 group bg-gradient-to-r from-green-700 via-green-700 to-green-800 text-white hover:from-green-800 hover:via-green-800 hover:to-green-900 focus:ring-green-600"
@@ -1138,84 +1230,161 @@ export default function Dashboard() {
       <Modal
         isOpen={isEventsListModalOpen}
         onClose={() => setIsEventsListModalOpen(false)}
-        title="Your Events"
-        maxWidth="max-w-3xl"
+        title="Your Events & Requests"
+        maxWidth="max-w-4xl"
       >
-        <div className="space-y-4">
-          <p className="text-gray-600">Events you're hosting: {hostedEvents.length}</p>
-          <div className="max-h-96 overflow-y-auto space-y-4">
-            {hostedEvents.map((event) => (
-              <div key={event.id} className="bg-gray-50 rounded-xl p-4 hover:bg-gray-100 transition-colors">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <h4 className="font-semibold text-gray-900 mb-2">{event.title}</h4>
-                    <div className="space-y-1 text-sm text-gray-600">
-                      <div className="flex items-center">
-                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                        </svg>
-                        {event.date} at {event.time}
-                      </div>
-                      {event.location && (
-                        <div className="flex items-center">
-                          <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                          </svg>
-                          {event.location}
-                        </div>
-                      )}
-                      {event.members && event.members.length > 0 && (
-                        <div className="flex items-center">
-                          <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
-                          </svg>
-                          {event.members.length} member{event.members.length !== 1 ? 's' : ''} invited
-                        </div>
-                      )}
-                    </div>
-                    {event.description && (
-                      <p className="text-sm text-gray-500 mt-2 line-clamp-2">{event.description}</p>
-                    )}
-                  </div>
-                  <div className="flex items-center space-x-2 ml-4">
-                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                      Host
-                    </span>
-                    <button
-                      onClick={() => {
-                        setIsEventsListModalOpen(false);
-                        handleViewEvent(event);
-                      }}
-                      className="px-3 py-1 text-xs font-medium text-green-700 bg-green-50 rounded-lg hover:bg-green-100 transition-colors"
-                    >
-                      View Details
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-          {hostedEvents.length === 0 && (
-            <div className="text-center py-8">
-              <svg className="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-              </svg>
-              <p className="text-gray-500 mb-4">You haven't created any events yet</p>
-              <button
-                onClick={() => {
-                  setIsEventsListModalOpen(false);
-                  handleAddEventClick();
-                }}
-                className="inline-flex items-center px-4 py-2 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 transition-colors"
-              >
-                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
+        <div className="space-y-6">
+          {/* Event Requests Section */}
+          {myEventRequests.length > 0 && (
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center">
+                <svg className="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
-                Create Your First Event
-              </button>
+                Event Requests ({myEventRequests.length})
+              </h3>
+              <div className="max-h-64 overflow-y-auto space-y-3">
+                {myEventRequests.map((request) => (
+                  <div key={request.id} className="bg-gray-50 rounded-xl p-4 border-l-4 border-blue-500">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <h4 className="font-semibold text-gray-900 mb-2">{request.title}</h4>
+                        <div className="space-y-1 text-sm text-gray-600">
+                          <div className="flex items-center">
+                            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                            {new Date(request.date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })} at {request.time}
+                          </div>
+                          <div className="flex items-center">
+                            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                            {request.location}
+                          </div>
+                          <div className="flex items-center">
+                            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            Submitted {new Date(request.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                          </div>
+                        </div>
+                        {request.description && (
+                          <p className="text-sm text-gray-500 mt-2 line-clamp-2">{request.description}</p>
+                        )}
+                      </div>
+                      <div className="flex flex-col items-end space-y-2 ml-4">
+                        <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
+                          request.status === 'approved' 
+                            ? 'bg-green-100 text-green-800' 
+                            : request.status === 'rejected'
+                            ? 'bg-red-100 text-red-800'
+                            : 'bg-yellow-100 text-yellow-800'
+                        }`}>
+                          {request.status === 'approved' ? '✓ Approved' : request.status === 'rejected' ? '✗ Rejected' : '⏳ Pending'}
+                        </span>
+                        {request.status === 'rejected' && request.rejection_reason && (
+                          <p className="text-xs text-red-600 max-w-xs text-right">
+                            Reason: {request.rejection_reason}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
+
+          {/* Hosted Events Section */}
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center">
+              <svg className="w-5 h-5 mr-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              Hosted Events ({hostedEvents.length})
+            </h3>
+            <div className="max-h-96 overflow-y-auto space-y-4">
+              {hostedEvents.map((event) => (
+                <div key={event.id} className="bg-gray-50 rounded-xl p-4 hover:bg-gray-100 transition-colors border-l-4 border-green-500">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <h4 className="font-semibold text-gray-900 mb-2">{event.title}</h4>
+                      <div className="space-y-1 text-sm text-gray-600">
+                        <div className="flex items-center">
+                          <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                          </svg>
+                          {event.date} at {event.time}
+                        </div>
+                        {event.location && (
+                          <div className="flex items-center">
+                            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                            {event.location}
+                          </div>
+                        )}
+                        {event.members && event.members.length > 0 && (
+                          <div className="flex items-center">
+                            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                            {event.members.length} member{event.members.length !== 1 ? 's' : ''} invited
+                          </div>
+                        )}
+                      </div>
+                      {event.description && (
+                        <p className="text-sm text-gray-500 mt-2 line-clamp-2">{event.description}</p>
+                      )}
+                    </div>
+                    <div className="flex items-center space-x-2 ml-4">
+                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                        Host
+                      </span>
+                      <button
+                        onClick={() => {
+                          setIsEventsListModalOpen(false);
+                          handleViewEvent(event);
+                        }}
+                        className="px-3 py-1 text-xs font-medium text-green-700 bg-green-50 rounded-lg hover:bg-green-100 transition-colors"
+                      >
+                        View Details
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            {hostedEvents.length === 0 && myEventRequests.length === 0 && (
+              <div className="text-center py-8">
+                <svg className="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                <p className="text-gray-500 mb-4">You haven't created any events or requests yet</p>
+                {user?.role !== 'Faculty Member' && (
+                  <button
+                    onClick={() => {
+                      setIsEventsListModalOpen(false);
+                      if (user?.role === 'Coordinator') {
+                        navigate('/request-event');
+                      } else {
+                        handleAddEventClick();
+                      }
+                    }}
+                    className="inline-flex items-center px-4 py-2 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 transition-colors"
+                  >
+                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
+                    </svg>
+                    {user?.role === 'Coordinator' ? 'Request Your First Event' : 'Create Your First Event'}
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       </Modal>
 

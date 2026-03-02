@@ -99,10 +99,36 @@ class EventController extends Controller
     {
         $user = $request->user();
         
-        // Role-based restrictions for event creation
-        if (!in_array($user->role, ['Admin', 'Dean', 'Chairperson'])) {
+        // Check if this is from an approved request
+        $approvedRequestId = $request->input('approved_request_id');
+        $approvedRequest = null;
+        
+        if ($approvedRequestId) {
+            // Verify the approved request belongs to the user and is approved
+            $approvedRequest = \App\Models\EventRequest::where('id', $approvedRequestId)
+                ->where('requested_by', $user->id)
+                ->where('status', 'approved')
+                ->whereDoesntHave('event') // Not already used
+                ->first();
+                
+            if (!$approvedRequest) {
+                return response()->json([
+                    'error' => 'Invalid or already used approved request.'
+                ], 403);
+            }
+        }
+        
+        // Role-based restrictions for event creation (allow Coordinators with approved requests)
+        if (!in_array($user->role, ['Admin', 'Dean', 'Chairperson', 'Coordinator'])) {
             return response()->json([
-                'error' => 'Unauthorized. Only Admin, Dean, and Chairperson can create events directly.'
+                'error' => 'Unauthorized. Only Admin, Dean, Chairperson, and Coordinator (with approved requests) can create events.'
+            ], 403);
+        }
+        
+        // Coordinators must have an approved request
+        if ($user->role === 'Coordinator' && !$approvedRequest) {
+            return response()->json([
+                'error' => 'Coordinators must have an approved event request to create events.'
             ], 403);
         }
 
@@ -115,6 +141,7 @@ class EventController extends Controller
             'date' => 'required|date|after_or_equal:today',
             'time' => 'required',
             'member_ids' => 'nullable|array',
+            'approved_request_id' => 'nullable|exists:event_requests,id',
         ], [
             'images.max' => 'You can upload a maximum of 5 files.',
             'images.*.file' => 'Each upload must be a valid file.',
@@ -133,29 +160,32 @@ class EventController extends Controller
             ], 422);
         }
 
-        // Hierarchy validation for invitations
+        // Hierarchy validation for invitations (skip if using approved request)
         $memberIds = $request->member_ids ? collect($request->member_ids)
             ->filter(fn($id) => $id != $user->id) // Exclude host
             ->unique()
             ->values()
             ->toArray() : [];
 
-        $hierarchyService = new HierarchyService();
-        $validationResult = $hierarchyService->validateInvitations($user, $memberIds);
+        // Skip hierarchy validation if this is from an approved request
+        if (!$approvedRequest) {
+            $hierarchyService = new HierarchyService();
+            $validationResult = $hierarchyService->validateInvitations($user, $memberIds);
 
-        // If hierarchy approval is required, create pending approval instead of direct event
-        if ($validationResult->requiresApproval) {
-            return $this->createPendingApproval($request, $user, $validationResult->approversNeeded);
+            // If hierarchy approval is required, create pending approval instead of direct event
+            if ($validationResult->requiresApproval) {
+                return $this->createPendingApproval($request, $user, $validationResult->approversNeeded);
+            }
         }
 
         // No hierarchy violations - create event directly (existing logic)
-        return $this->createEventDirectly($request, $user, $memberIds);
+        return $this->createEventDirectly($request, $user, $memberIds, $approvedRequestId);
     }
 
     /**
      * Create event directly when no hierarchy approval is needed
      */
-    private function createEventDirectly(Request $request, User $user, array $memberIds)
+    private function createEventDirectly(Request $request, User $user, array $memberIds, $approvedRequestId = null)
     {
         $event = Event::create([
             'title' => $request->title,
@@ -164,6 +194,7 @@ class EventController extends Controller
             'date' => $request->date,
             'time' => $request->time,
             'host_id' => $user->id,
+            'approved_request_id' => $approvedRequestId,
         ]);
 
         // Handle multiple images/files

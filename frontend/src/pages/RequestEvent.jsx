@@ -19,9 +19,7 @@ export default function RequestEvent() {
     time: '',
     location: '',
     justification: '',
-    expectedAttendees: '',
-    budget: '',
-    resources: ''
+    expectedAttendees: ''
   });
 
   // Close account dropdown when clicking outside
@@ -68,9 +66,7 @@ export default function RequestEvent() {
         time: '',
         location: '',
         justification: '',
-        expectedAttendees: '',
-        budget: '',
-        resources: ''
+        expectedAttendees: ''
       });
 
       setTimeout(() => {
@@ -235,14 +231,14 @@ export default function RequestEvent() {
 
           {/* Request Form */}
           <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
-            <div className="bg-gradient-to-r from-blue-600 via-blue-600 to-blue-700 px-8 py-6">
+            <div className="bg-gradient-to-r from-green-700 via-green-600 to-green-800 px-8 py-6">
               <h3 className="text-2xl font-bold text-white flex items-center gap-2">
                 <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
                 Event Request Form
               </h3>
-              <p className="text-blue-200 text-sm mt-1">
+              <p className="text-green-200 text-sm mt-1">
                 Provide detailed information about your proposed event
               </p>
             </div>
@@ -261,7 +257,7 @@ export default function RequestEvent() {
                     value={formData.title}
                     onChange={handleInputChange}
                     required
-                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600 transition-all duration-300"
+                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-green-600 transition-all duration-300"
                     placeholder="Enter event title"
                   />
                 </div>
@@ -277,7 +273,7 @@ export default function RequestEvent() {
                     value={formData.location}
                     onChange={handleInputChange}
                     required
-                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600 transition-all duration-300"
+                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-green-600 transition-all duration-300"
                     placeholder="Enter event location"
                   />
                 </div>
@@ -293,7 +289,7 @@ export default function RequestEvent() {
                     value={formData.date}
                     onChange={handleInputChange}
                     required
-                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600 transition-all duration-300"
+                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-green-600 transition-all duration-300"
                   />
                 </div>
 
@@ -308,7 +304,7 @@ export default function RequestEvent() {
                     value={formData.time}
                     onChange={handleInputChange}
                     required
-                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600 transition-all duration-300"
+                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-green-600 transition-all duration-300"
                   />
                 </div>
               </div>
@@ -325,7 +321,7 @@ export default function RequestEvent() {
                   onChange={handleInputChange}
                   required
                   rows={4}
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600 transition-all duration-300"
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-green-600 transition-all duration-300"
                   placeholder="Describe the event, its purpose, and activities"
                 />
               </div>
@@ -342,57 +338,24 @@ export default function RequestEvent() {
                   onChange={handleInputChange}
                   required
                   rows={3}
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600 transition-all duration-300"
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-green-600 transition-all duration-300"
                   placeholder="Explain why this event is necessary and its benefits"
                 />
               </div>
 
               {/* Additional Information */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label htmlFor="expectedAttendees" className="block text-sm font-semibold text-gray-900 mb-2">
-                    Expected Attendees
-                  </label>
-                  <input
-                    type="text"
-                    id="expectedAttendees"
-                    name="expectedAttendees"
-                    value={formData.expectedAttendees}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600 transition-all duration-300"
-                    placeholder="e.g., 50 students, faculty members"
-                  />
-                </div>
-
-                <div>
-                  <label htmlFor="budget" className="block text-sm font-semibold text-gray-900 mb-2">
-                    Estimated Budget
-                  </label>
-                  <input
-                    type="text"
-                    id="budget"
-                    name="budget"
-                    value={formData.budget}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600 transition-all duration-300"
-                    placeholder="e.g., ₱5,000"
-                  />
-                </div>
-              </div>
-
-              {/* Resources */}
               <div>
-                <label htmlFor="resources" className="block text-sm font-semibold text-gray-900 mb-2">
-                  Required Resources
+                <label htmlFor="expectedAttendees" className="block text-sm font-semibold text-gray-900 mb-2">
+                  Expected Attendees
                 </label>
-                <textarea
-                  id="resources"
-                  name="resources"
-                  value={formData.resources}
+                <input
+                  type="text"
+                  id="expectedAttendees"
+                  name="expectedAttendees"
+                  value={formData.expectedAttendees}
                   onChange={handleInputChange}
-                  rows={3}
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600 transition-all duration-300"
-                  placeholder="List any equipment, materials, or support needed"
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-green-600 transition-all duration-300"
+                  placeholder="e.g., 50 students, faculty members"
                 />
               </div>
 
@@ -408,7 +371,7 @@ export default function RequestEvent() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-semibold rounded-lg hover:from-blue-700 hover:to-blue-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+                  className="flex-1 px-6 py-3 bg-gradient-to-r from-green-700 to-green-800 text-white font-semibold rounded-lg hover:from-green-800 hover:to-green-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-600 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
                 >
                   {loading ? (
                     <>

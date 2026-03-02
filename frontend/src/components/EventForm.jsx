@@ -3,7 +3,7 @@ import api from '../services/api';
 import DatePicker from './DatePicker';
 import HierarchyWarning from './HierarchyWarning';
 
-export default function EventForm({ members, onEventCreated, editingEvent, onCancelEdit, defaultDate, hasSchedule = true, currentUser }) {
+export default function EventForm({ members, onEventCreated, editingEvent, onCancelEdit, defaultDate, hasSchedule = true, currentUser, approvedRequests = [] }) {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [location, setLocation] = useState('');
@@ -20,6 +20,9 @@ export default function EventForm({ members, onEventCreated, editingEvent, onCan
   const [searchMember, setSearchMember] = useState('');
   const [isDragging, setIsDragging] = useState(false);
   const [fileError, setFileError] = useState('');
+  
+  // Approved request state
+  const [selectedApprovedRequest, setSelectedApprovedRequest] = useState(null);
   
   // Hierarchy validation state
   const [hierarchyValidation, setHierarchyValidation] = useState({
@@ -68,12 +71,39 @@ export default function EventForm({ members, onEventCreated, editingEvent, onCan
       setDate(editingEvent.date);
       setTime(editingEvent.time);
       setSelectedMembers(editingEvent.members.map(m => m.id));
+    } else if (approvedRequests.length === 1 && !selectedApprovedRequest) {
+      // Auto-select if there's only one approved request
+      const request = approvedRequests[0];
+      console.log('Auto-selecting approved request:', request);
+      handleApprovedRequestSelect(request);
     }
-  }, [editingEvent]);
+  }, [editingEvent, approvedRequests, selectedApprovedRequest]);
 
-  // Validate hierarchy when selected members change
+  // Handle approved request selection
+  const handleApprovedRequestSelect = (request) => {
+    setSelectedApprovedRequest(request);
+    setTitle(request.title);
+    setDescription(request.description || '');
+    setLocation(request.location || '');
+    
+    // Parse date properly - handle both date strings and timestamps
+    const requestDate = request.date.includes('T') 
+      ? request.date.split('T')[0]  // Extract YYYY-MM-DD from timestamp
+      : request.date;
+    setDate(requestDate);
+    setTime(request.time);
+    
+    // Auto-invite the approvers (Dean/Chairperson who approved)
+    const approverIds = [];
+    if (request.dean_approved_by) approverIds.push(request.dean_approved_by);
+    if (request.chair_approved_by) approverIds.push(request.chair_approved_by);
+    console.log('Auto-inviting approvers:', approverIds);
+    setSelectedMembers(approverIds);
+  };
+
+  // Validate hierarchy when selected members change (skip if using approved request)
   useEffect(() => {
-    if (selectedMembers.length > 0 && !editingEvent) {
+    if (selectedMembers.length > 0 && !editingEvent && !selectedApprovedRequest) {
       validateHierarchy();
     } else {
       setHierarchyValidation({
@@ -82,7 +112,7 @@ export default function EventForm({ members, onEventCreated, editingEvent, onCan
         approversNeeded: [],
       });
     }
-  }, [selectedMembers, editingEvent]);
+  }, [selectedMembers, editingEvent, selectedApprovedRequest]);
 
   const validateHierarchy = async () => {
     if (selectedMembers.length === 0) return;
@@ -135,6 +165,14 @@ export default function EventForm({ members, onEventCreated, editingEvent, onCan
         formData.append('member_ids[]', id);
       });
 
+      // Add approved_request_id if creating from an approved request
+      if (selectedApprovedRequest) {
+        console.log('Adding approved_request_id:', selectedApprovedRequest.id);
+        formData.append('approved_request_id', selectedApprovedRequest.id);
+      } else {
+        console.log('No approved request selected');
+      }
+
       if (editingEvent) {
         await api.post(`/events/${editingEvent.id}`, formData, {
           headers: { 'Content-Type': 'multipart/form-data' },
@@ -157,6 +195,8 @@ export default function EventForm({ members, onEventCreated, editingEvent, onCan
 
       onEventCreated();
     } catch (err) {
+      console.error('Error creating event:', err);
+      console.error('Error response:', err.response?.data);
       setError(err.response?.data?.error || err.response?.data?.message || 'Operation failed');
     } finally {
       setLoading(false);
@@ -361,6 +401,60 @@ export default function EventForm({ members, onEventCreated, editingEvent, onCan
       />
 
       <form onSubmit={handleSubmit}>
+        {/* Approved Request Selector - Only show if there are approved requests */}
+        {approvedRequests.length > 0 && !editingEvent && (
+          <div className="mb-6 bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-200 rounded-xl p-5 shadow-sm">
+            <div className="flex items-start space-x-3">
+              <div className="bg-green-100 rounded-lg p-2 flex-shrink-0">
+                <svg className="w-5 h-5 text-green-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div className="flex-1">
+                <h3 className="text-sm font-bold text-green-900 mb-2">Approved Event Request</h3>
+                {approvedRequests.length === 1 ? (
+                  <div className="bg-white rounded-lg p-4 border border-green-200">
+                    <p className="text-sm font-semibold text-gray-900 mb-2">{approvedRequests[0].title}</p>
+                    <div className="space-y-1 text-xs text-gray-600">
+                      <p><span className="font-medium">Date:</span> {new Date(approvedRequests[0].date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })} at {approvedRequests[0].time}</p>
+                      <p><span className="font-medium">Location:</span> {approvedRequests[0].location}</p>
+                      {approvedRequests[0].description && (
+                        <p className="mt-2"><span className="font-medium">Description:</span> {approvedRequests[0].description}</p>
+                      )}
+                    </div>
+                    <p className="text-xs text-green-700 mt-3 font-medium">✓ Form pre-filled with request details. You can now invite members and finalize the event.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <p className="text-sm text-gray-700">Select which approved request to create an event for:</p>
+                    {approvedRequests.map((request) => (
+                      <button
+                        key={request.id}
+                        type="button"
+                        onClick={() => handleApprovedRequestSelect(request)}
+                        className={`w-full text-left bg-white rounded-lg p-4 border-2 transition-all ${
+                          selectedApprovedRequest?.id === request.id
+                            ? 'border-green-500 shadow-md'
+                            : 'border-green-200 hover:border-green-300 hover:shadow-sm'
+                        }`}
+                      >
+                        <p className="text-sm font-semibold text-gray-900 mb-2">{request.title}</p>
+                        <div className="space-y-1 text-xs text-gray-600">
+                          <p><span className="font-medium">Date:</span> {new Date(request.date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })} at {request.time}</p>
+                          <p><span className="font-medium">Location:</span> {request.location}</p>
+                        </div>
+                        {selectedApprovedRequest?.id === request.id && (
+                          <p className="text-xs text-green-700 mt-2 font-medium">✓ Selected</p>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left Column - Event Details Box (1/3 width) */}
           <div className="lg:col-span-1 bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
