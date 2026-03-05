@@ -111,3 +111,8 @@ College Academic Council Meeting
 Start of Vacation
 
 walang password
+
+
+
+adjust history filter per position sa /history
+adjust rules sa add event based on program between deans between different departments

@@ -9,6 +9,7 @@ import EmailVerification from './pages/EmailVerification';
 import Dashboard from './pages/Dashboard';
 import AccountDashboard from './pages/AccountDashboard';
 import AddEvent from './pages/AddEvent';
+import PersonalEvent from './pages/PersonalEvent';
 import RequestEvent from './pages/RequestEvent';
 import EventRequests from './pages/EventRequests';
 import Admin from './pages/Admin';
@@ -167,8 +168,13 @@ function App() {
               <AddEvent />
             </RoleProtectedRoute>
           } />
+          <Route path="/personal-event" element={
+            <ProtectedRoute>
+              <PersonalEvent />
+            </ProtectedRoute>
+          } />
           <Route path="/request-event" element={
-            <RoleProtectedRoute allowedRoles={['Coordinator', 'Chairperson']}>
+            <RoleProtectedRoute allowedRoles={['Faculty Member']}>
               <RequestEvent />
             </RoleProtectedRoute>
           } />

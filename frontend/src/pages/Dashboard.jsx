@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 import Calendar from '../components/Calendar';
@@ -10,6 +10,7 @@ import logo from "../assets/CEIT-LOGO.png";
 
 export default function Dashboard() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, logout } = useAuth();
   const [events, setEvents] = useState([]);
   const [defaultEvents, setDefaultEvents] = useState([]);
@@ -67,6 +68,17 @@ export default function Dashboard() {
     const todayStr = today.toISOString().split('T')[0];
     setSelectedDate(todayStr);
   }, []);
+
+  // Listen for refresh from navigation state (e.g., after creating event)
+  useEffect(() => {
+    if (location.state?.refresh) {
+      fetchData();
+      checkApprovedRequests();
+      fetchMyEventRequests();
+      // Clear the state to prevent re-fetching on every render
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location.state]);
 
   // Close account dropdown when clicking outside
   useEffect(() => {
@@ -182,7 +194,11 @@ export default function Dashboard() {
   };
 
   const handleEdit = (event) => {
-    navigate('/add-event', { state: { event } });
+    if (event.is_personal) {
+      navigate('/personal-event', { state: { event } });
+    } else {
+      navigate('/add-event', { state: { event } });
+    }
   };
 
   const handleDelete = async (event) => {
@@ -721,10 +737,7 @@ export default function Dashboard() {
             
             {/* Role-based Event Creation Buttons */}
             {user?.role === 'Faculty Member' ? (
-              // Faculty Members cannot create events - no button shown
-              null
-            ) : user?.role === 'Coordinator' ? (
-              // Coordinators: Show Request Event button always, Add Event only if approved
+              // Faculty Members can only request events
               <div className="flex gap-3">
                 <button
                   onClick={() => navigate('/request-event', { state: { selectedDate } })}
@@ -735,70 +748,38 @@ export default function Dashboard() {
                   </svg>
                   Request Event
                 </button>
-                {hasApprovedRequests && (
-                  <button
-                    onClick={() => navigate('/add-event', { state: { selectedDate, approvedRequests } })}
-                    className="inline-flex items-center px-6 py-3 font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 group bg-gradient-to-r from-green-700 via-green-700 to-green-800 text-white hover:from-green-800 hover:via-green-800 hover:to-green-900 focus:ring-green-600"
-                  >
-                    <svg className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
-                    </svg>
-                    Add Event
-                    <span className="ml-2 px-2 py-0.5 bg-white/20 rounded-full text-xs">
-                      {approvedRequests.length}
-                    </span>
-                  </button>
-                )}
-              </div>
-            ) : user?.role === 'Chairperson' ? (
-              // Chairpersons: Can create events directly, but also show Request Event if they have special needs
-              // Also show Add Event with approved requests badge if they have any
-              <div className="flex gap-3">
-                {hasApprovedRequests ? (
-                  <button
-                    onClick={() => navigate('/add-event', { state: { selectedDate, approvedRequests } })}
-                    className="inline-flex items-center px-6 py-3 font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 group bg-gradient-to-r from-green-700 via-green-700 to-green-800 text-white hover:from-green-800 hover:via-green-800 hover:to-green-900 focus:ring-green-600"
-                  >
-                    <svg className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
-                    </svg>
-                    Add Event
-                    <span className="ml-2 px-2 py-0.5 bg-white/20 rounded-full text-xs">
-                      {approvedRequests.length}
-                    </span>
-                  </button>
-                ) : (
-                  <button
-                    onClick={() => navigate('/add-event', { state: { selectedDate } })}
-                    className="inline-flex items-center px-6 py-3 font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 group bg-gradient-to-r from-green-700 via-green-700 to-green-800 text-white hover:from-green-800 hover:via-green-800 hover:to-green-900 focus:ring-green-600"
-                  >
-                    <svg className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
-                    </svg>
-                    Add Event
-                  </button>
-                )}
                 <button
-                  onClick={() => navigate('/request-event', { state: { selectedDate } })}
+                  onClick={() => navigate('/personal-event', { state: { selectedDate } })}
                   className="inline-flex items-center px-6 py-3 font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 group bg-white text-green-700 border-2 border-green-700 hover:bg-green-50 focus:ring-green-600"
                 >
                   <svg className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                   </svg>
-                  Request Event
+                  Personal Event
                 </button>
               </div>
-            ) : user?.role === 'Dean' || user?.role === 'Admin' ? (
-              // Deans and Admins can create events directly
-              <button
-                onClick={() => navigate('/add-event', { state: { selectedDate } })}
-                className="inline-flex items-center px-6 py-3 font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 group bg-gradient-to-r from-green-700 via-green-700 to-green-800 text-white hover:from-green-800 hover:via-green-800 hover:to-green-900 focus:ring-green-600"
-              >
-                <svg className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
-                </svg>
-                Add Event
-              </button>
+            ) : user?.role === 'Coordinator' || user?.role === 'Chairperson' || user?.role === 'Dean' || user?.role === 'Admin' ? (
+              // Coordinators, Chairpersons, Deans, and Admins can create events directly
+              <div className="flex gap-3">
+                <button
+                  onClick={() => navigate('/add-event', { state: { selectedDate } })}
+                  className="inline-flex items-center px-6 py-3 font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 group bg-gradient-to-r from-green-700 via-green-700 to-green-800 text-white hover:from-green-800 hover:via-green-800 hover:to-green-900 focus:ring-green-600"
+                >
+                  <svg className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
+                  </svg>
+                  Add Event
+                </button>
+                <button
+                  onClick={() => navigate('/personal-event', { state: { selectedDate } })}
+                  className="inline-flex items-center px-6 py-3 font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 group bg-white text-green-700 border-2 border-green-700 hover:bg-green-50 focus:ring-green-600"
+                >
+                  <svg className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                  Personal Event
+                </button>
+              </div>
             ) : null}
           </div>
         </div>
@@ -1512,24 +1493,22 @@ export default function Dashboard() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
                 <p className="text-gray-500 mb-4">You haven't created any events or requests yet</p>
-                {user?.role !== 'Faculty Member' && (
-                  <button
-                    onClick={() => {
-                      setIsEventsListModalOpen(false);
-                      if (user?.role === 'Coordinator') {
-                        navigate('/request-event');
-                      } else {
-                        handleAddEventClick();
-                      }
-                    }}
-                    className="inline-flex items-center px-4 py-2 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 transition-colors"
-                  >
-                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
-                    </svg>
-                    {user?.role === 'Coordinator' ? 'Request Your First Event' : 'Create Your First Event'}
-                  </button>
-                )}
+                <button
+                  onClick={() => {
+                    setIsEventsListModalOpen(false);
+                    if (user?.role === 'Faculty Member') {
+                      navigate('/request-event');
+                    } else {
+                      handleAddEventClick();
+                    }
+                  }}
+                  className="inline-flex items-center px-4 py-2 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 transition-colors"
+                >
+                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
+                  </svg>
+                  {user?.role === 'Faculty Member' ? 'Request Your First Event' : 'Create Your First Event'}
+                </button>
               </div>
             )}
           </div>

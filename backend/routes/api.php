@@ -37,10 +37,16 @@ Route::middleware('auth:sanctum')->group(function () {
     // Events
     Route::get('/events', [EventController::class, 'index']);
     Route::post('/events', [EventController::class, 'store']);
-    Route::post('/events/validate-hierarchy', [EventController::class, 'validateHierarchy']);
+    // COMMENTED OUT - Hierarchy validation feature disabled
+    // Route::post('/events/validate-hierarchy', [EventController::class, 'validateHierarchy']);
     Route::put('/events/{event}', [EventController::class, 'update']);
     Route::delete('/events/{event}', [EventController::class, 'destroy']);
     Route::post('/events/{event}/respond', [EventController::class, 'respondToInvitation']);
+    
+    // Personal Events
+    Route::post('/personal-events', [App\Http\Controllers\PersonalEventController::class, 'store']);
+    Route::put('/personal-events/{event}', [App\Http\Controllers\PersonalEventController::class, 'update']);
+    Route::delete('/personal-events/{event}', [App\Http\Controllers\PersonalEventController::class, 'destroy']);
     
     // Event Requests
     Route::get('/event-requests', [EventRequestController::class, 'index']);
@@ -54,18 +60,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/hierarchy-approvals/{approval}/review', [EventRequestController::class, 'reviewHierarchyApproval']);
     Route::get('/hierarchy-approvals/{approval}/details', [EventRequestController::class, 'getApprovalDetails']);
     
-<<<<<<< Updated upstream
-    // Default Events (Academic Calendar) - Admin Only
-    Route::middleware('admin')->group(function () {
-        Route::get('/default-events', [DefaultEventController::class, 'index']);
-        Route::put('/default-events/{id}/date', [DefaultEventController::class, 'updateDate']);
-    });
-=======
     // Default Events (Academic Calendar) - Protected
+    Route::get('/default-events', [DefaultEventController::class, 'index']);
     Route::put('/default-events/{id}/date', [DefaultEventController::class, 'updateDate']);
     Route::post('/default-events/create-empty', [DefaultEventController::class, 'createEmptyEvent']);
     Route::post('/default-events/create-with-details', [DefaultEventController::class, 'createEventWithDetails']);
->>>>>>> Stashed changes
     
     // Users
     Route::get('/users', [UserController::class, 'index']);

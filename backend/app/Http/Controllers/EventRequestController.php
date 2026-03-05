@@ -36,44 +36,30 @@ class EventRequestController extends Controller
 
         $user = Auth::user();
 
-        // Only Coordinators and Chairpersons can submit event requests
-        if (!in_array($user->role, ['Coordinator', 'Chairperson'])) {
+        // Only Faculty Members can submit event requests
+        if ($user->role !== 'Faculty Member') {
             return response()->json([
-                'message' => 'Unauthorized. Only Coordinators and Chairpersons can submit event requests.'
+                'message' => 'Unauthorized. Only Faculty Members can submit event requests.'
             ], 403);
         }
 
-        // Determine required approvers based on available higher-ups
+        // Faculty Members need approval from Dean and/or Chairperson (whoever is available)
         $requiredApprovers = [];
         
-        if ($user->role === 'Coordinator') {
-            // Coordinators need approval from Dean and/or Chairperson (whoever is available)
-            $dean = User::where('role', 'Dean')->first();
-            $chair = User::where('role', 'Chairperson')->where('id', '!=', $user->id)->first();
-            
-            if ($dean) {
-                $requiredApprovers[] = $dean->id;
-            }
-            if ($chair) {
-                $requiredApprovers[] = $chair->id;
-            }
-            
-            if (empty($requiredApprovers)) {
-                return response()->json([
-                    'message' => 'No approvers available. Please contact an administrator.'
-                ], 400);
-            }
-        } elseif ($user->role === 'Chairperson') {
-            // Chairpersons only need Dean approval for special requests
-            $dean = User::where('role', 'Dean')->first();
-            
-            if ($dean) {
-                $requiredApprovers[] = $dean->id;
-            } else {
-                return response()->json([
-                    'message' => 'No Dean available to approve this request. Please contact an administrator.'
-                ], 400);
-            }
+        $dean = User::where('role', 'Dean')->first();
+        $chair = User::where('role', 'Chairperson')->first();
+        
+        if ($dean) {
+            $requiredApprovers[] = $dean->id;
+        }
+        if ($chair) {
+            $requiredApprovers[] = $chair->id;
+        }
+        
+        if (empty($requiredApprovers)) {
+            return response()->json([
+                'message' => 'No approvers available. Please contact an administrator.'
+            ], 400);
         }
 
         $eventRequest = EventRequest::create([

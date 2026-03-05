@@ -345,6 +345,9 @@ export default function EventForm({ members, onEventCreated, editingEvent, onCan
     // Exclude current user (host)
     if (member.id === currentUser?.id) return false;
     
+    // Always show selected members regardless of filters
+    if (selectedMembers.includes(member.id)) return true;
+    
     // Filter by department
     if (filterDepartment !== 'all' && member.department !== filterDepartment) return false;
     
@@ -354,14 +357,33 @@ export default function EventForm({ members, onEventCreated, editingEvent, onCan
     return true;
   });
 
-  // Further filter by search term
-  const searchFilteredMembers = filteredMembers.filter(member =>
-    member.username.toLowerCase().includes(searchMember.toLowerCase()) ||
-    member.email.toLowerCase().includes(searchMember.toLowerCase())
-  );
+  // Further filter by search term and sort selected members first
+  const searchFilteredMembers = filteredMembers
+    .filter(member =>
+      member.username.toLowerCase().includes(searchMember.toLowerCase()) ||
+      member.email.toLowerCase().includes(searchMember.toLowerCase())
+    )
+    .sort((a, b) => {
+      // Sort selected members first
+      const aSelected = selectedMembers.includes(a.id);
+      const bSelected = selectedMembers.includes(b.id);
+      
+      if (aSelected && !bSelected) return -1;
+      if (!aSelected && bSelected) return 1;
+      
+      // If both selected or both not selected, sort alphabetically
+      return a.username.localeCompare(b.username);
+    });
 
   const availableDepartments = [...new Set(members.map(m => m.department).filter(Boolean))];
-  const availableRoles = [...new Set(members.map(m => m.role).filter(Boolean))];
+  const availableRoles = [...new Set(members.map(m => m.role).filter(Boolean))]
+    .filter(role => {
+      // Only exclude "Dean" role when current user is a Dean
+      if (currentUser?.role === 'Dean' && role === 'Dean') {
+        return false;
+      }
+      return true;
+    });
 
   return (
     <div className="animate-fade-in">

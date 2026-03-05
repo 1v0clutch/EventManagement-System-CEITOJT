@@ -27,6 +27,12 @@ export default function AddEvent() {
       return;
     }
     
+    // Redirect personal events to personal event page
+    if (editingEvent && editingEvent.is_personal) {
+      navigate('/personal-event', { state: { event: editingEvent } });
+      return;
+    }
+    
     const loadData = async () => {
       await Promise.all([fetchMembers(), fetchUserSchedule(), fetchEvents()]);
     };
@@ -102,7 +108,8 @@ export default function AddEvent() {
   };
 
   const handleEventCreated = () => {
-    navigate('/dashboard');
+    // Navigate back with a timestamp to force Dashboard to refresh
+    navigate('/dashboard', { state: { refresh: Date.now() } });
   };
 
   const handleCancelEdit = () => {
