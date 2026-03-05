@@ -1,0 +1,10 @@
+7:00 - Time in
+
+7:00 - 9:00 : Transcripting Supervisor's suggestion and insights on improvements for the system 
+9:00 - 11:00 : Formulating/brainstorming heirarchy for the positions and planning new implementations 
+11:00 - 12:00 : Lunch break
+12:00 - 1:00 : Fixing bug on the calendar view 
+1:00 - 2:00 : Implemented calendar feature hover listing out all the events on that day, commented out initially the request event
+2:00 - 3:00 : Personal Events for each individual implemented
+3:00 - 4:00 : Request event placed to faculty only instead of coordinator / Implemented a much more cleaner approach to filtering out names in /add-event
+4:00 - 5:00 : Improving the filtering of the dean, and all individuals creating an event on the /add-event

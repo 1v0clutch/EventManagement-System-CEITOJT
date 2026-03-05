@@ -15,10 +15,13 @@ class Event extends Model
         'host_id',
         'is_special_event',
         'approved_request_id',
+        'is_personal',
+        'personal_color',
     ];
 
     protected $casts = [
         'is_special_event' => 'boolean',
+        'is_personal' => 'boolean',
     ];
 
     public function host()

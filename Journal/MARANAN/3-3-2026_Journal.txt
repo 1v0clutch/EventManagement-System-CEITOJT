@@ -1,3 +1,8 @@
 7:00 - Time In
 
 7:00 - 11:00 - Testing implementations on account, interface, database
+11:00 - 12:00 - Lunch break
+12:00 - 1:00 - Implemented all improved modules together
+1:00 - 3:00 - Fixing bug on calendar not showing up on interface and other bugs on leels of access / met peers and brainstormed for suggestion and insight
+3:00 - 4:00 - Meeting with supervisor for implementation and suggestion
+4:00 - 5:00 - Fixing bugs on calendar again

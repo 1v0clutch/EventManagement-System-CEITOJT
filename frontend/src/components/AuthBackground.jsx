@@ -1,16 +1,16 @@
 import { useState, useEffect } from 'react';
+import cvsu from '../assets/CVSU.jpg';
+import cvsu1 from '../assets/cvsu1.png';
 
-// Configuration: Add your image URLs here
+// Configuration: Background images
 export const BACKGROUND_IMAGES = [
-  // Add image URLs here, e.g.:
-  // '/images/campus1.jpg',
-  // '/images/campus2.jpg',
-  // '/images/campus3.jpg',
+  cvsu,
+  cvsu1,
 ];
 
 // Configuration: Slideshow settings
-const SLIDESHOW_INTERVAL = 5000; // 5 seconds per image
-const FADE_DURATION = 1000; // 1 second fade transition
+const SLIDESHOW_INTERVAL = 8000; // 8 seconds per image
+const FADE_DURATION = 2000; // 2 second fade transition
 
 export default function AuthBackground() {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -37,7 +37,7 @@ export default function AuthBackground() {
           {BACKGROUND_IMAGES.map((image, index) => (
             <div
               key={index}
-              className="absolute inset-0 bg-cover bg-center transition-opacity duration-1000"
+              className="absolute inset-0 bg-cover bg-center transition-opacity duration-2000"
               style={{
                 backgroundImage: `url(${image})`,
                 opacity: currentImageIndex === index ? 1 : 0,

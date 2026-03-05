@@ -216,7 +216,8 @@ export default function History() {
   };
 
   const getStatusBadge = (activity) => {
-    const status = activity.status;
+    const status = activity?.status;
+    if (!status) return <span className="px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-700">Unknown</span>;
     let badgeClass = '';
     let statusText = '';
 
@@ -456,36 +457,34 @@ export default function History() {
                 >
                   Invitations
                 </button>
-                <button
-                  onClick={() => setFilterType('event_request_submitted')}
-                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                    filterType === 'event_request_submitted'
-                      ? 'bg-green-600 text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-                >
-                  Requests
-                </button>
-                <button
-                  onClick={() => setFilterType('hierarchy_approval_requested')}
-                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                    filterType === 'hierarchy_approval_requested'
-                      ? 'bg-green-600 text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-                >
-                  Approvals
-                </button>
-                <button
-                  onClick={() => setFilterType('message_sent')}
-                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                    filterType === 'message_sent'
-                      ? 'bg-green-600 text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-                >
-                  Messages
-                </button>
+                
+                {/* Show Requests filter for Faculty Members only */}
+                {user?.role === 'Faculty Member' && (
+                  <button
+                    onClick={() => setFilterType('event_request_submitted')}
+                    className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                      filterType === 'event_request_submitted'
+                        ? 'bg-green-600 text-white'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    Requests
+                  </button>
+                )}
+                
+                {/* Show Approvals filter for Dean, Chairperson, and Coordinator */}
+                {(user?.role === 'Dean' || user?.role === 'Chairperson' || user?.role === 'Coordinator') && (
+                  <button
+                    onClick={() => setFilterType('hierarchy_approval_requested')}
+                    className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                      filterType === 'hierarchy_approval_requested'
+                        ? 'bg-green-600 text-white'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    Approvals
+                  </button>
+                )}
               </div>
             </div>
 
@@ -521,7 +520,7 @@ export default function History() {
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   }`}
                 >
-                  Approved
+                  Accepted
                 </button>
                 <button
                   onClick={() => setFilterStatus('rejected')}

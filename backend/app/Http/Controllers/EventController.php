@@ -23,6 +23,14 @@ class EventController extends Controller
                         $q->where('users.id', $user->id);
                     });
             })
+            // Exclude personal events from other users
+            ->where(function ($query) use ($user) {
+                $query->where('is_personal', false)
+                    ->orWhere(function ($q) use ($user) {
+                        $q->where('is_personal', true)
+                          ->where('host_id', $user->id);
+                    });
+            })
             ->orderBy('date')
             ->orderBy('time')
             ->get();
@@ -58,6 +66,8 @@ class EventController extends Controller
                     'status' => $m->pivot->status,
                 ]),
                 'is_default_event' => false,
+                'is_personal' => $event->is_personal ?? false,
+                'personal_color' => $event->personal_color,
             ];
         });
 
@@ -99,6 +109,9 @@ class EventController extends Controller
     {
         $user = $request->user();
         
+        // COMMENTED OUT - Request Event Feature Disabled
+        // Allow all roles except Faculty Member to create events directly
+        /*
         // Check if this is from an approved request
         $approvedRequestId = $request->input('approved_request_id');
         $approvedRequest = null;
@@ -131,6 +144,14 @@ class EventController extends Controller
                 'error' => 'Coordinators must have an approved event request to create events.'
             ], 403);
         }
+        */
+        
+        // Simplified: Only Faculty Members cannot create events directly
+        if ($user->role === 'Faculty Member') {
+            return response()->json([
+                'error' => 'Faculty Members cannot create events directly. Please submit an event request.'
+            ], 403);
+        }
 
         $request->validate([
             'title' => 'required|string|max:255',
@@ -160,6 +181,7 @@ class EventController extends Controller
             ], 422);
         }
 
+        // COMMENTED OUT - Hierarchy validation feature disabled
         // Hierarchy validation for invitations (skip if using approved request)
         $memberIds = $request->member_ids ? collect($request->member_ids)
             ->filter(fn($id) => $id != $user->id) // Exclude host
@@ -167,19 +189,19 @@ class EventController extends Controller
             ->values()
             ->toArray() : [];
 
-        // Skip hierarchy validation if this is from an approved request
-        if (!$approvedRequest) {
-            $hierarchyService = new HierarchyService();
-            $validationResult = $hierarchyService->validateInvitations($user, $memberIds);
-
-            // If hierarchy approval is required, create pending approval instead of direct event
-            if ($validationResult->requiresApproval) {
-                return $this->createPendingApproval($request, $user, $validationResult->approversNeeded);
-            }
-        }
+        // Skip hierarchy validation if this is from an approved request (COMMENTED OUT)
+        // if (!$approvedRequest) {
+        //     $hierarchyService = new HierarchyService();
+        //     $validationResult = $hierarchyService->validateInvitations($user, $memberIds);
+        //
+        //     // If hierarchy approval is required, create pending approval instead of direct event
+        //     if ($validationResult->requiresApproval) {
+        //         return $this->createPendingApproval($request, $user, $validationResult->approversNeeded);
+        //     }
+        // }
 
         // No hierarchy violations - create event directly (existing logic)
-        return $this->createEventDirectly($request, $user, $memberIds, $approvedRequestId);
+        return $this->createEventDirectly($request, $user, $memberIds, null); // No approved_request_id
     }
 
     /**
@@ -396,50 +418,51 @@ class EventController extends Controller
         return response()->json(['message' => 'Event updated successfully', 'event' => $event->load(['host', 'members', 'images'])]);
     }
 
+    // COMMENTED OUT - Hierarchy validation feature disabled
     /**
      * Validate hierarchy rules for real-time feedback
      */
-    public function validateHierarchy(Request $request)
-    {
-        $user = $request->user();
-        
-        $request->validate([
-            'member_ids' => 'nullable|array',
-            'member_ids.*' => 'integer|exists:users,id',
-        ]);
-
-        $memberIds = $request->member_ids ? collect($request->member_ids)
-            ->filter(fn($id) => $id != $user->id) // Exclude host
-            ->unique()
-            ->values()
-            ->toArray() : [];
-
-        if (empty($memberIds)) {
-            return response()->json([
-                'requires_approval' => false,
-                'violations' => [],
-                'approvers_needed' => [],
-            ]);
-        }
-
-        $hierarchyService = new HierarchyService();
-        $validationResult = $hierarchyService->validateInvitations($user, $memberIds);
-
-        // Get approver details if needed
-        $approverDetails = [];
-        if (!empty($validationResult->approversNeeded)) {
-            $approvers = User::whereIn('id', $validationResult->approversNeeded)
-                ->select('id', 'name', 'role')
-                ->get();
-            $approverDetails = $approvers->toArray();
-        }
-
-        return response()->json([
-            'requires_approval' => $validationResult->requiresApproval,
-            'violations' => $validationResult->violations,
-            'approvers_needed' => $approverDetails,
-        ]);
-    }
+    // public function validateHierarchy(Request $request)
+    // {
+    //     $user = $request->user();
+    //     
+    //     $request->validate([
+    //         'member_ids' => 'nullable|array',
+    //         'member_ids.*' => 'integer|exists:users,id',
+    //     ]);
+    //
+    //     $memberIds = $request->member_ids ? collect($request->member_ids)
+    //         ->filter(fn($id) => $id != $user->id) // Exclude host
+    //         ->unique()
+    //         ->values()
+    //         ->toArray() : [];
+    //
+    //     if (empty($memberIds)) {
+    //         return response()->json([
+    //             'requires_approval' => false,
+    //             'violations' => [],
+    //             'approvers_needed' => [],
+    //         ]);
+    //     }
+    //
+    //     $hierarchyService = new HierarchyService();
+    //     $validationResult = $hierarchyService->validateInvitations($user, $memberIds);
+    //
+    //     // Get approver details if needed
+    //     $approverDetails = [];
+    //     if (!empty($validationResult->approversNeeded)) {
+    //         $approvers = User::whereIn('id', $validationResult->approversNeeded)
+    //             ->select('id', 'name', 'role')
+    //             ->get();
+    //         $approverDetails = $approvers->toArray();
+    //     }
+    //
+    //     return response()->json([
+    //         'requires_approval' => $validationResult->requiresApproval,
+    //         'violations' => $validationResult->violations,
+    //         'approvers_needed' => $approverDetails,
+    //     ]);
+    // }
 
     public function destroy(Request $request, Event $event)
     {

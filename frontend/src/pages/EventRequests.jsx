@@ -347,7 +347,7 @@ export default function EventRequests() {
           {/* Header */}
           <div className="mb-8">
             <h2 className="text-4xl font-bold text-gray-900 mb-2">Event Requests</h2>
-            <p className="text-lg text-gray-600 font-medium">Review event requests from Coordinators and Chairpersons</p>
+            <p className="text-lg text-gray-600 font-medium">Review event requests from Faculty</p>
           </div>
 
           {/* Success/Error Messages */}
