@@ -1,17 +1,9 @@
 import React from 'react';
 
 export default function HierarchyWarning({ violations, approversNeeded, validating }) {
+  // Hide the validating state entirely
   if (validating) {
-    return (
-      <div className="mb-4 rounded-xl bg-blue-50 border border-blue-200 p-4 flex items-start space-x-3">
-        <div className="flex-shrink-0 mt-0.5">
-          <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-        </div>
-        <div>
-          <p className="text-sm font-medium text-blue-800">Validating hierarchy rules...</p>
-        </div>
-      </div>
-    );
+    return null;
   }
 
   if (!violations || violations.length === 0) {

@@ -15,6 +15,7 @@ class EventApproval extends Model
         'title',
         'description',
         'location',
+        'event_type',
         'date',
         'time',
         'host_id',

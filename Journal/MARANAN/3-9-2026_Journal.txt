@@ -1,0 +1,7 @@
+7:00 - Time in
+
+7:00 - 9:00 : Implementation of the new heirarchial position's (Dean, Chairperson, CEIT Officer, Coordinator, Faculty, Staff) levels of access through the system (not finished)
+9:00 - 11:00 : Improving the distinguishment between event or meeting on the /add-event
+11:00 - 12:00 : Lunch Break
+12:00 - 1:00 : Testing implementations on all account's level of access from dean-staff / Fixing bugs
+1:00 - 2:00 : Fixing bug for the faculty/staff side meeting requests for approval + dean/chairperson side for approval

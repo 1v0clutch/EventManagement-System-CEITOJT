@@ -7,7 +7,14 @@ export default function EventForm({ members, onEventCreated, editingEvent, onCan
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [location, setLocation] = useState('');
+<<<<<<< Updated upstream
   const [schoolYear, setSchoolYear] = useState('');
+=======
+  const [eventType, setEventType] = useState(
+    // Faculty and Staff can only create meetings
+    currentUser?.role === 'Faculty Member' || currentUser?.role === 'Staff' ? 'meeting' : 'event'
+  );
+>>>>>>> Stashed changes
   const [images, setImages] = useState([]);
   const [imagePreviews, setImagePreviews] = useState([]);
   const [date, setDate] = useState('');
@@ -100,7 +107,11 @@ export default function EventForm({ members, onEventCreated, editingEvent, onCan
       setTitle(editingEvent.title);
       setDescription(editingEvent.description || '');
       setLocation(editingEvent.location || '');
+<<<<<<< Updated upstream
       setSchoolYear(editingEvent.school_year || '');
+=======
+      setEventType(editingEvent.event_type || 'event');
+>>>>>>> Stashed changes
       setImagePreviews(editingEvent.images || []);
       setDate(editingEvent.date);
       setTime(editingEvent.time);
@@ -136,18 +147,18 @@ export default function EventForm({ members, onEventCreated, editingEvent, onCan
   };
 
   // Validate hierarchy when selected members change (skip if using approved request)
+  // DISABLED - Hierarchy validation feature disabled
   useEffect(() => {
-    if (selectedMembers.length > 0 && !editingEvent && !selectedApprovedRequest) {
-      validateHierarchy();
-    } else {
-      setHierarchyValidation({
-        requiresApproval: false,
-        violations: [],
-        approversNeeded: [],
-      });
-    }
+    // Reset validation state
+    setHierarchyValidation({
+      requiresApproval: false,
+      violations: [],
+      approversNeeded: [],
+    });
   }, [selectedMembers, editingEvent, selectedApprovedRequest]);
 
+  // DISABLED - Hierarchy validation feature disabled
+  /*
   const validateHierarchy = async () => {
     if (selectedMembers.length === 0) return;
     
@@ -170,6 +181,7 @@ export default function EventForm({ members, onEventCreated, editingEvent, onCan
       setValidatingHierarchy(false);
     }
   };
+  */
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -188,6 +200,7 @@ export default function EventForm({ members, onEventCreated, editingEvent, onCan
       formData.append('title', title);
       formData.append('description', description);
       formData.append('location', location);
+      formData.append('event_type', eventType);
       formData.append('date', date);
       formData.append('time', time);
       
@@ -245,6 +258,7 @@ export default function EventForm({ members, onEventCreated, editingEvent, onCan
     setTitle('');
     setDescription('');
     setLocation('');
+    setEventType('event');
     setImages([]);
     setImagePreviews([]);
     const now = new Date();
@@ -465,6 +479,25 @@ export default function EventForm({ members, onEventCreated, editingEvent, onCan
       />
 
       <form onSubmit={handleSubmit}>
+        {/* Faculty/Staff Meeting Approval Notice */}
+        {(currentUser?.role === 'Faculty Member' || currentUser?.role === 'Staff') && !editingEvent && (
+          <div className="mb-6 bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-xl p-5 shadow-sm">
+            <div className="flex items-start space-x-3">
+              <div className="bg-blue-100 rounded-lg p-2 flex-shrink-0">
+                <svg className="w-5 h-5 text-blue-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div className="flex-1">
+                <h3 className="text-sm font-bold text-blue-900 mb-2">Meeting Approval Required</h3>
+                <p className="text-sm text-blue-700">
+                  As a {currentUser?.role}, your meeting will be submitted for approval by the Dean and Chairperson before it is created.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Approved Request Selector - Only show if there are approved requests */}
         {approvedRequests.length > 0 && !editingEvent && (
           <div className="mb-6 bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-200 rounded-xl p-5 shadow-sm">
@@ -574,22 +607,47 @@ export default function EventForm({ members, onEventCreated, editingEvent, onCan
                 </div>
               </div>
 
+              {/* Event Type Selection */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">School Year</label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                <label className="block text-sm font-medium text-gray-700 mb-3">Type</label>
+                {currentUser?.role === 'Faculty Member' || currentUser?.role === 'Staff' ? (
+                  // Faculty and Staff can only create meetings
+                  <div className="flex items-center space-x-2 bg-amber-50 border border-amber-200 rounded-lg p-3">
+                    <svg className="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
+                    <div>
+                      <p className="text-sm font-medium text-amber-800">Meeting Only</p>
+                      <p className="text-xs text-amber-600">Faculty and Staff can only create meetings (requires approval)</p>
+                    </div>
                   </div>
-                  <input
-                    type="text"
-                    value={schoolYear}
-                    readOnly
-                    className="block w-full pl-9 pr-3 py-2.5 border border-gray-300 rounded-lg shadow-sm text-sm bg-gray-50 text-gray-700 cursor-not-allowed"
-                  />
-                </div>
-                <p className="mt-1 text-xs text-gray-500">Automatically determined based on event date</p>
+                ) : (
+                  // Dean, CEIT Official, Chairperson can choose
+                  <div className="flex space-x-4">
+                    <label className="flex items-center cursor-pointer">
+                      <input
+                        type="radio"
+                        name="eventType"
+                        value="event"
+                        checked={eventType === 'event'}
+                        onChange={(e) => setEventType(e.target.value)}
+                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
+                      />
+                      <span className="ml-2 text-sm text-gray-700 font-medium">Event</span>
+                    </label>
+                    <label className="flex items-center cursor-pointer">
+                      <input
+                        type="radio"
+                        name="eventType"
+                        value="meeting"
+                        checked={eventType === 'meeting'}
+                        onChange={(e) => setEventType(e.target.value)}
+                        className="h-4 w-4 text-orange-600 focus:ring-orange-500 border-gray-300"
+                      />
+                      <span className="ml-2 text-sm text-gray-700 font-medium">Meeting</span>
+                    </label>
+                  </div>
+                )}
               </div>
 
               <div className="space-y-4">

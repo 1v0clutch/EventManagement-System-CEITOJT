@@ -47,6 +47,7 @@ class EventController extends Controller
                 'title' => $event->title,
                 'description' => $event->description,
                 'location' => $event->location,
+                'event_type' => $event->event_type ?? 'event',
                 'images' => $event->images->map(fn($img) => [
                     'url' => asset('storage/' . $img->image_path),
                     'original_filename' => $img->original_filename,
@@ -106,51 +107,26 @@ class EventController extends Controller
         ]);
     }
 
+    /**
+     * Get user's meeting approval requests (for Faculty/Staff)
+     * OR get approval requests for Dean/Chairperson to review
+     */
+
     public function store(Request $request)
     {
         $user = $request->user();
         
-        // COMMENTED OUT - Request Event Feature Disabled
-        // Allow all roles except Faculty Member to create events directly
-        /*
-        // Check if this is from an approved request
-        $approvedRequestId = $request->input('approved_request_id');
-        $approvedRequest = null;
-        
-        if ($approvedRequestId) {
-            // Verify the approved request belongs to the user and is approved
-            $approvedRequest = \App\Models\EventRequest::where('id', $approvedRequestId)
-                ->where('requested_by', $user->id)
-                ->where('status', 'approved')
-                ->whereDoesntHave('event') // Not already used
-                ->first();
-                
-            if (!$approvedRequest) {
-                return response()->json([
-                    'error' => 'Invalid or already used approved request.'
-                ], 403);
-            }
-        }
-        
-        // Role-based restrictions for event creation (allow Coordinators with approved requests)
-        if (!in_array($user->role, ['Admin', 'Dean', 'Chairperson', 'Coordinator', 'CEIT Official'])) {
-            return response()->json([
-                'error' => 'Unauthorized. Only Admin, Dean, Chairperson, Coordinator, and CEIT Official can create events.'
-            ], 403);
-        }
-        
-        // Coordinators must have an approved request
-        if ($user->role === 'Coordinator' && !$approvedRequest) {
-            return response()->json([
-                'error' => 'Coordinators must have an approved event request to create events.'
-            ], 403);
-        }
-        */
-        
-        // Simplified: Only Faculty Members and Staff cannot create events directly
+        // Faculty Members and Staff CANNOT create events directly - they must use Request Event feature
         if (in_array($user->role, ['Faculty Member', 'Staff'])) {
             return response()->json([
-                'error' => 'Faculty Members and Staff cannot create events directly. Please submit an event request.'
+                'error' => 'Faculty Members and Staff cannot create events directly. Please use the Request Event feature.'
+            ], 403);
+        }
+        
+        // Only Admin, Dean, Chairperson, CEIT Official can create events directly
+        if (!in_array($user->role, ['Admin', 'Dean', 'Chairperson', 'CEIT Official'])) {
+            return response()->json([
+                'error' => 'Unauthorized. Only Admin, Dean, Chairperson, and CEIT Official can create events.'
             ], 403);
         }
 
@@ -158,18 +134,20 @@ class EventController extends Controller
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
             'location' => 'required|string|max:255',
+            'event_type' => 'required|in:event,meeting',
             'images' => 'nullable|array|max:5',
             'images.*' => 'file|mimes:jpeg,jpg,png,gif,webp,pdf|max:25600',
             'date' => 'required|date|after_or_equal:today',
             'time' => 'required',
             'member_ids' => 'nullable|array',
-            'approved_request_id' => 'nullable|exists:event_requests,id',
         ], [
             'images.max' => 'You can upload a maximum of 5 files.',
             'images.*.file' => 'Each upload must be a valid file.',
             'images.*.mimes' => 'Files must be in JPG, PNG, GIF, WebP, or PDF format.',
             'images.*.max' => 'Each file must not exceed 25MB in size.',
             'date.after_or_equal' => 'Event date cannot be in the past.',
+            'event_type.required' => 'Event type is required.',
+            'event_type.in' => 'Event type must be either event or meeting.',
         ]);
 
         // Validate that date/time is not in the past
@@ -182,43 +160,31 @@ class EventController extends Controller
             ], 422);
         }
 
-        // COMMENTED OUT - Hierarchy validation feature disabled
-        // Hierarchy validation for invitations (skip if using approved request)
+        // Get member IDs
         $memberIds = $request->member_ids ? collect($request->member_ids)
             ->filter(fn($id) => $id != $user->id) // Exclude host
             ->unique()
             ->values()
             ->toArray() : [];
 
-        // Skip hierarchy validation if this is from an approved request (COMMENTED OUT)
-        // if (!$approvedRequest) {
-        //     $hierarchyService = new HierarchyService();
-        //     $validationResult = $hierarchyService->validateInvitations($user, $memberIds);
-        //
-        //     // If hierarchy approval is required, create pending approval instead of direct event
-        //     if ($validationResult->requiresApproval) {
-        //         return $this->createPendingApproval($request, $user, $validationResult->approversNeeded);
-        //     }
-        // }
-
-        // No hierarchy violations - create event directly (existing logic)
-        return $this->createEventDirectly($request, $user, $memberIds, null); // No approved_request_id
+        // Create event directly for authorized roles
+        return $this->createEventDirectly($request, $user, $memberIds);
     }
 
     /**
      * Create event directly when no hierarchy approval is needed
      */
-    private function createEventDirectly(Request $request, User $user, array $memberIds, $approvedRequestId = null)
+    private function createEventDirectly(Request $request, User $user, array $memberIds)
     {
         $event = Event::create([
             'title' => $request->title,
             'description' => $request->description,
             'location' => $request->location,
+            'event_type' => $request->event_type,
             'date' => $request->date,
             'time' => $request->time,
             'school_year' => $request->school_year,
             'host_id' => $user->id,
-            'approved_request_id' => $approvedRequestId,
         ]);
 
         // Handle multiple images/files
@@ -266,67 +232,6 @@ class EventController extends Controller
     /**
      * Create pending approval when hierarchy validation fails
      */
-    private function createPendingApproval(Request $request, User $user, array $approversNeeded)
-    {
-        // Prepare event data for approval workflow
-        $eventData = [
-            'title' => $request->title,
-            'description' => $request->description,
-            'location' => $request->location,
-            'date' => $request->date,
-            'time' => $request->time,
-            'host_id' => $user->id,
-            'member_ids' => $request->member_ids ? collect($request->member_ids)
-                ->filter(fn($id) => $id != $user->id)
-                ->unique()
-                ->values()
-                ->toArray() : [],
-        ];
-
-        // Handle file uploads for approval workflow
-        $imageData = [];
-        if ($request->hasFile('images')) {
-            foreach ($request->file('images') as $index => $image) {
-                // Validate file
-                $allowedMimes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'application/pdf'];
-                if (!in_array($image->getMimeType(), $allowedMimes)) {
-                    return response()->json([
-                        'error' => 'Invalid file type. Only JPG, PNG, GIF, WebP, and PDF files are allowed.'
-                    ], 400);
-                }
-                
-                if ($image->getSize() > 25600 * 1024) {
-                    return response()->json([
-                        'error' => 'File size must not exceed 25MB.'
-                    ], 400);
-                }
-                
-                // Store file temporarily for approval workflow
-                $imagePath = $image->store('events/pending', 'public');
-                $imageData[] = [
-                    'path' => $imagePath,
-                    'original_filename' => $image->getClientOriginalName(),
-                ];
-            }
-        }
-        
-        $eventData['images'] = $imageData;
-
-        // Create pending approval
-        $workflow = new EventApprovalWorkflow();
-        $approval = $workflow->createPendingEvent($eventData, $approversNeeded);
-
-        // Get approver names for response
-        $approverNames = User::whereIn('id', $approversNeeded)->pluck('name')->toArray();
-
-        return response()->json([
-            'message' => 'Event requires approval from higher-level roles',
-            'approval_id' => $approval->id,
-            'status' => 'pending_approval',
-            'approvers_needed' => $approverNames,
-            'approval' => $approval->load(['host', 'approvers.approver']),
-        ], 202); // 202 Accepted - request received but not yet processed
-    }
 
     public function update(Request $request, Event $event)
     {
@@ -338,6 +243,7 @@ class EventController extends Controller
             'title' => 'sometimes|required|string|max:255',
             'description' => 'nullable|string',
             'location' => 'sometimes|required|string|max:255',
+            'event_type' => 'sometimes|required|in:event,meeting',
             'images' => 'nullable|array|max:5',
             'images.*' => 'file|mimes:jpeg,jpg,png,gif,webp,pdf|max:25600',
             'date' => 'sometimes|required|date|after_or_equal:today',
@@ -349,6 +255,8 @@ class EventController extends Controller
             'images.*.mimes' => 'Files must be in JPG, PNG, GIF, WebP, or PDF format.',
             'images.*.max' => 'Each file must not exceed 25MB in size.',
             'date.after_or_equal' => 'Event date cannot be in the past.',
+            'event_type.required' => 'Event type is required.',
+            'event_type.in' => 'Event type must be either event or meeting.',
         ]);
 
         // Validate that date/time is not in the past if being updated
@@ -363,7 +271,7 @@ class EventController extends Controller
             }
         }
 
-        $event->update($request->only(['title', 'description', 'location', 'date', 'time', 'school_year']));
+        $event->update($request->only(['title', 'description', 'location', 'event_type', 'date', 'time']));
 
         // Handle new images/files
         if ($request->hasFile('images')) {

@@ -26,6 +26,12 @@ export default function AddEvent() {
       return;
     }
     
+    // Faculty Members and Staff cannot access /add-event - redirect to Request Event
+    if (user && (user.role === 'Faculty Member' || user.role === 'Staff')) {
+      navigate('/request-event');
+      return;
+    }
+    
     // Redirect personal events to personal event page
     if (editingEvent && editingEvent.is_personal) {
       navigate('/personal-event', { state: { event: editingEvent } });

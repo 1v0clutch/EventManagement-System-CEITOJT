@@ -157,10 +157,32 @@ class EventRequestController extends Controller
      */
     public function myRequests()
     {
-        $requests = EventRequest::where('requested_by', Auth::id())
-            ->with(['reviewer'])
-            ->orderBy('created_at', 'desc')
-            ->get();
+        $user = Auth::user();
+        
+        // For Faculty/Staff: Show their own submitted requests (all statuses)
+        if (in_array($user->role, ['Faculty Member', 'Staff'])) {
+            $requests = EventRequest::where('requested_by', $user->id)
+                ->with(['requester', 'reviewer', 'deanApprover', 'chairApprover'])
+                ->orderBy('created_at', 'desc')
+                ->get();
+        }
+        // For Dean/Chairperson: Show requests they've approved or declined (not pending)
+        else if (in_array($user->role, ['Dean', 'Chairperson'])) {
+            $requests = EventRequest::with(['requester', 'reviewer', 'deanApprover', 'chairApprover'])
+                ->where(function ($query) use ($user) {
+                    if ($user->role === 'Dean') {
+                        $query->where('dean_approved_by', $user->id);
+                    } else if ($user->role === 'Chairperson') {
+                        $query->where('chair_approved_by', $user->id);
+                    }
+                })
+                ->orderBy('created_at', 'desc')
+                ->get();
+        }
+        // For other roles: Return empty
+        else {
+            $requests = collect([]);
+        }
 
         return response()->json([
             'requests' => $requests
