@@ -33,10 +33,12 @@ export default function NotificationBell({ events, user, onNotificationClick, ap
       const response = await api.get('/messages/unread');
       setMessages(response.data.messages || []);
     } catch (error) {
-      // Only log non-auth errors to avoid console spam
-      if (error.response?.status !== 401) {
+      // Silently handle error - messages endpoint may not exist (405 Method Not Allowed)
+      // Only log non-auth and non-405 errors
+      if (error.response?.status !== 401 && error.response?.status !== 405) {
         console.error('Error fetching messages:', error);
       }
+      setMessages([]);
     }
   };
 

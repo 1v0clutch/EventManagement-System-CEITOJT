@@ -12,7 +12,6 @@ export default function History() {
   const [loading, setLoading] = useState(true);
   const [isAccountDropdownOpen, setIsAccountDropdownOpen] = useState(false);
   const [filterType, setFilterType] = useState('all');
-  const [filterStatus, setFilterStatus] = useState('all');
   const [selectedActivity, setSelectedActivity] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [pagination, setPagination] = useState({
@@ -21,6 +20,7 @@ export default function History() {
     total: 0,
     last_page: 1,
   });
+  const [eventRequests, setEventRequests] = useState([]);
 
   useEffect(() => {
     // Check if user is validated
@@ -31,7 +31,12 @@ export default function History() {
     
     fetchActivities();
     fetchEvents(); // For NotificationBell
-  }, [filterType, filterStatus]);
+    
+    // Fetch event requests for Faculty/Staff/Dean/Chairperson
+    if (user?.role === 'Faculty Member' || user?.role === 'Staff' || user?.role === 'Dean' || user?.role === 'Chairperson') {
+      fetchEventRequests();
+    }
+  }, [filterType]);
 
   const fetchEvents = async () => {
     try {
@@ -42,13 +47,21 @@ export default function History() {
     }
   };
 
+  const fetchEventRequests = async () => {
+    try {
+      const response = await api.get('/event-requests/my-requests');
+      setEventRequests(response.data.requests || []);
+    } catch (error) {
+      console.error('Error fetching event requests:', error);
+    }
+  };
+
   const fetchActivities = async (page = 1) => {
     try {
       setLoading(true);
       const response = await api.get('/activities', {
         params: {
           type: filterType,
-          status: filterStatus,
           page: page,
           per_page: 20
         }
@@ -61,6 +74,7 @@ export default function History() {
       setLoading(false);
     }
   };
+
 
   const handleLogout = async () => {
     try {
@@ -321,17 +335,17 @@ export default function History() {
                   Invitations
                 </button>
                 
-                {/* Show Requests filter for Faculty Members and Staff only */}
-                {(user?.role === 'Faculty Member' || user?.role === 'Staff') && (
+                {/* Show Request History filter for Faculty Members, Staff, Dean, and Chairperson */}
+                {(user?.role === 'Faculty Member' || user?.role === 'Staff' || user?.role === 'Dean' || user?.role === 'Chairperson') && (
                   <button
-                    onClick={() => setFilterType('event_request_submitted')}
+                    onClick={() => setFilterType('request_history')}
                     className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                      filterType === 'event_request_submitted'
+                      filterType === 'request_history'
                         ? 'bg-green-600 text-white'
                         : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                     }`}
                   >
-                    Requests
+                    Request History
                   </button>
                 )}
                 
@@ -350,80 +364,207 @@ export default function History() {
                 )}
               </div>
             </div>
-
-            {/* Status Filter */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
-              <div className="flex gap-2 flex-wrap">
-                <button
-                  onClick={() => setFilterStatus('all')}
-                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                    filterStatus === 'all'
-                      ? 'bg-green-600 text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-                >
-                  All
-                </button>
-                <button
-                  onClick={() => setFilterStatus('pending')}
-                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                    filterStatus === 'pending'
-                      ? 'bg-green-600 text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-                >
-                  Pending
-                </button>
-                <button
-                  onClick={() => setFilterStatus('approved')}
-                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                    filterStatus === 'approved'
-                      ? 'bg-green-600 text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-                >
-                  Accepted
-                </button>
-                <button
-                  onClick={() => setFilterStatus('rejected')}
-                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                    filterStatus === 'rejected'
-                      ? 'bg-green-600 text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-                >
-                  Rejected
-                </button>
-              </div>
-            </div>
           </div>
         </div>
 
-        {/* Activities List */}
-        {loading ? (
-          <div className="space-y-4 animate-pulse">
-            {[1, 2, 3, 4, 5].map((i) => (
-              <div key={i} className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
-                <div className="flex items-start space-x-4">
-                  <div className="w-10 h-10 bg-gray-200 rounded-full flex-shrink-0"></div>
-                  <div className="flex-1 space-y-3">
-                    <div className="flex items-center justify-between">
-                      <div className="h-6 w-3/4 bg-gray-300 rounded"></div>
-                      <div className="h-5 w-20 bg-gray-200 rounded-full"></div>
-                    </div>
-                    <div className="h-4 w-full bg-gray-200 rounded"></div>
-                    <div className="h-4 w-2/3 bg-gray-200 rounded"></div>
-                    <div className="flex items-center space-x-4 pt-2">
-                      <div className="h-4 w-32 bg-gray-200 rounded"></div>
-                      <div className="h-4 w-24 bg-gray-200 rounded"></div>
+        {/* Activities List or Request History */}
+        {filterType === 'request_history' && (user?.role === 'Faculty Member' || user?.role === 'Staff' || user?.role === 'Dean' || user?.role === 'Chairperson') ? (
+          // Show Request History for Faculty/Staff/Dean/Chairperson
+          loading ? (
+            <div className="space-y-4 animate-pulse">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
+                  <div className="flex items-start space-x-4">
+                    <div className="w-10 h-10 bg-gray-200 rounded-full flex-shrink-0"></div>
+                    <div className="flex-1 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="h-6 w-3/4 bg-gray-300 rounded"></div>
+                        <div className="h-5 w-20 bg-gray-200 rounded-full"></div>
+                      </div>
+                      <div className="h-4 w-full bg-gray-200 rounded"></div>
+                      <div className="h-4 w-2/3 bg-gray-200 rounded"></div>
+                      <div className="flex items-center space-x-4 pt-2">
+                        <div className="h-4 w-32 bg-gray-200 rounded"></div>
+                        <div className="h-4 w-24 bg-gray-200 rounded"></div>
+                      </div>
                     </div>
                   </div>
                 </div>
+              ))}
+            </div>
+          ) : eventRequests.length === 0 ? (
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
+              <svg className="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">No meeting requests</h3>
+              <p className="text-gray-600">
+                {(user?.role === 'Faculty Member' || user?.role === 'Staff') 
+                  ? "You haven't submitted any meeting requests yet. Note: Faculty and Staff can only request meetings (not events) and require approval from BOTH Dean AND Chairperson."
+                  : "No meeting requests have been approved or declined yet"}
+              </p>
+            </div>
+          ) : (
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+              <div className="divide-y divide-gray-200">
+                {eventRequests.map((request, index) => (
+                  <div
+                    key={`request-${request.id}-${index}`}
+                    onClick={() => handleViewActivity({
+                      id: request.id,
+                      type: 'event_request_submitted',
+                      title: request.title,
+                      description: request.description,
+                      date: request.date,
+                      time: request.time,
+                      location: request.location,
+                      status: request.status,
+                      created_at: request.created_at,
+                      details: {
+                        justification: request.justification,
+                        dean_approver: request.deanApprover,
+                        dean_approved_at: request.dean_approved_at,
+                        chair_approver: request.chairApprover,
+                        chair_approved_at: request.chair_approved_at,
+                        rejection_reason: request.rejection_reason,
+                        all_approvals_received: request.all_approvals_received,
+                        requester: request.requester
+                      }
+                    })}
+                    className="p-6 hover:bg-green-50 transition-colors cursor-pointer"
+                  >
+                    <div className="flex items-start space-x-4">
+                      {/* Request Icon */}
+                      <div className="flex-shrink-0">
+                        <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                          <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                          </svg>
+                        </div>
+                      </div>
+
+                      {/* Request Content */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <h3 className="text-sm font-semibold text-gray-900 mb-1">
+                              Meeting Request: {request.title}
+                            </h3>
+                            
+                            {/* Show requester info for Dean/Chairperson */}
+                            {(user?.role === 'Dean' || user?.role === 'Chairperson') && request.requester && (
+                              <p className="text-xs text-gray-500 mb-1">
+                                Requested by {request.requester.name} ({request.requester.role})
+                              </p>
+                            )}
+                            
+                            <p className="text-sm text-gray-600 mb-2 line-clamp-2">
+                              {request.description}
+                            </p>
+                            
+                            {/* Compact Approval Status */}
+                            <div className="flex items-center space-x-3 mb-2">
+                              <div className="flex items-center space-x-1">
+                                <span className="text-xs text-gray-500">Dean:</span>
+                                {request.dean_approved_by ? (
+                                  <span className="px-1.5 py-0.5 text-xs font-medium rounded bg-green-100 text-green-700">
+                                    ✓
+                                  </span>
+                                ) : request.status === 'rejected' ? (
+                                  <span className="px-1.5 py-0.5 text-xs font-medium rounded bg-red-100 text-red-700">
+                                    ✗
+                                  </span>
+                                ) : (
+                                  <span className="px-1.5 py-0.5 text-xs font-medium rounded bg-yellow-100 text-yellow-700">
+                                    ⏳
+                                  </span>
+                                )}
+                              </div>
+                              <div className="flex items-center space-x-1">
+                                <span className="text-xs text-gray-500">Chair:</span>
+                                {request.chair_approved_by ? (
+                                  <span className="px-1.5 py-0.5 text-xs font-medium rounded bg-green-100 text-green-700">
+                                    ✓
+                                  </span>
+                                ) : request.status === 'rejected' ? (
+                                  <span className="px-1.5 py-0.5 text-xs font-medium rounded bg-red-100 text-red-700">
+                                    ✗
+                                  </span>
+                                ) : (
+                                  <span className="px-1.5 py-0.5 text-xs font-medium rounded bg-yellow-100 text-yellow-700">
+                                    ⏳
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                            
+                            <div className="flex items-center space-x-4 text-xs text-gray-500">
+                              <span className="flex items-center">
+                                <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                </svg>
+                                {request.date} at {request.time}
+                              </span>
+                              <span className="flex items-center">
+                                <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                </svg>
+                                {request.location}
+                              </span>
+                              <span>{formatDate(request.created_at)}</span>
+                            </div>
+                          </div>
+                          <div className="flex-shrink-0 ml-4">
+                            {request.status === 'pending' && (
+                              <span className="px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-700">
+                                Pending
+                              </span>
+                            )}
+                            {request.status === 'approved' && (
+                              <span className="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-700">
+                                Approved
+                              </span>
+                            )}
+                            {request.status === 'rejected' && (
+                              <span className="px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-700">
+                                Rejected
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
-        ) : activities.length === 0 ? (
+            </div>
+          )
+        ) : (
+          // Show Regular Activities List
+          loading ? (
+            <div className="space-y-4 animate-pulse">
+              {[1, 2, 3, 4, 5].map((i) => (
+                <div key={i} className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
+                  <div className="flex items-start space-x-4">
+                    <div className="w-10 h-10 bg-gray-200 rounded-full flex-shrink-0"></div>
+                    <div className="flex-1 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="h-6 w-3/4 bg-gray-300 rounded"></div>
+                        <div className="h-5 w-20 bg-gray-200 rounded-full"></div>
+                      </div>
+                      <div className="h-4 w-full bg-gray-200 rounded"></div>
+                      <div className="h-4 w-2/3 bg-gray-200 rounded"></div>
+                      <div className="flex items-center space-x-4 pt-2">
+                        <div className="h-4 w-32 bg-gray-200 rounded"></div>
+                        <div className="h-4 w-24 bg-gray-200 rounded"></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : activities.length === 0 ? (
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
             <svg className="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -510,6 +651,7 @@ export default function History() {
               </div>
             )}
           </div>
+        )
         )}
       </div>
 
@@ -616,7 +758,11 @@ export default function History() {
 
                 {selectedActivity.type === 'event_request_submitted' && selectedActivity.details && (
                   <div>
-                    <h3 className="text-sm font-semibold text-gray-700 mb-2">Request Details</h3>
+                    <h3 className="text-sm font-semibold text-gray-700 mb-2">Meeting Request Details</h3>
+                    <div className="mb-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                      <p className="text-sm font-medium text-blue-800 mb-1">Approval Requirement:</p>
+                      <p className="text-sm text-blue-700">This meeting request requires approval from BOTH Dean AND Chairperson before you can create the meeting.</p>
+                    </div>
                     <div className="space-y-3">
                       <div>
                         <h4 className="text-xs font-medium text-gray-600 mb-1">Justification</h4>
@@ -644,7 +790,7 @@ export default function History() {
                       )}
                       {selectedActivity.details.all_approvals_received && (
                         <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg">
-                          <p className="text-sm font-medium text-green-800">✓ All approvals received - You can now create this event!</p>
+                          <p className="text-sm font-medium text-green-800">✓ Both Dean and Chairperson have approved - You can now create this meeting!</p>
                         </div>
                       )}
                     </div>

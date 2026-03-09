@@ -18,6 +18,7 @@ class Event extends Model
         'approved_request_id',
         'is_personal',
         'personal_color',
+        'event_type',
     ];
 
     protected $casts = [
