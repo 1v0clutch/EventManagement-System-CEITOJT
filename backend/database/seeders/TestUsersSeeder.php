@@ -24,11 +24,11 @@ class TestUsersSeeder extends Seeder
         $testUsers = [
             // 1 Admin
             [
-                'name' => 'Admin User',
-                'first_name' => 'Admin',
+                'name' => 'Test Admin',
+                'first_name' => 'Test',
                 'middle_name' => 'System',
-                'last_name' => 'User',
-                'email' => 'admin@cvsu.edu.ph',
+                'last_name' => 'Admin',
+                'email' => 'test.admin@cvsu.edu.ph',
                 'password' => Hash::make('11111111'),
                 'department' => 'Administration',
                 'role' => 'Admin',
@@ -184,7 +184,7 @@ class TestUsersSeeder extends Seeder
         $this->command->info("All passwords: 11111111\n");
         $this->command->info("Total users created: " . count($testUsers));
         $this->command->info("\nKey Accounts:");
-        $this->command->info("Admin:  admin@cvsu.edu.ph");
+        $this->command->info("Admin:  test.admin@cvsu.edu.ph");
         $this->command->info("Dean:   dean.rodriguez@cvsu.edu.ph");
         $this->command->info("\nChairpersons (1 per department):");
         $this->command->info("  CS:  maria.garcia@cvsu.edu.ph");
