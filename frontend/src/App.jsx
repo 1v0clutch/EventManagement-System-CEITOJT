@@ -10,7 +10,6 @@ import Dashboard from './pages/Dashboard';
 import AccountDashboard from './pages/AccountDashboard';
 import AddEvent from './pages/AddEvent';
 import PersonalEvent from './pages/PersonalEvent';
-import RequestEvent from './pages/RequestEvent';
 import EventRequests from './pages/EventRequests';
 import Admin from './pages/Admin';
 import DefaultEvents from './pages/DefaultEvents';
@@ -164,22 +163,17 @@ function App() {
             </AccountRoute>
           } />
           <Route path="/add-event" element={
-            <RoleProtectedRoute allowedRoles={['Admin', 'Dean', 'Chairperson', 'Coordinator', 'CEIT Official']}>
+            <ProtectedRoute>
               <AddEvent />
-            </RoleProtectedRoute>
+            </ProtectedRoute>
           } />
           <Route path="/personal-event" element={
             <ProtectedRoute>
               <PersonalEvent />
             </ProtectedRoute>
           } />
-          <Route path="/request-event" element={
-            <RoleProtectedRoute allowedRoles={['Faculty Member', 'Staff']}>
-              <RequestEvent />
-            </RoleProtectedRoute>
-          } />
           <Route path="/event-requests" element={
-            <RoleProtectedRoute allowedRoles={['Admin', 'Dean', 'Chairperson']}>
+            <RoleProtectedRoute allowedRoles={['Admin', 'Dean', 'Chairperson', 'Faculty Member', 'Staff']}>
               <EventRequests />
             </RoleProtectedRoute>
           } />

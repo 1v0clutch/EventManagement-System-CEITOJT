@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Event;
+use App\Models\EventRequest;
 use App\Models\User;
 use App\Services\HierarchyService;
 use App\Services\EventApprovalWorkflow;
@@ -14,7 +15,17 @@ class EventController extends Controller
     {
         $user = $request->user();
 
-        $events = Event::with(['host', 'members', 'images', 'rescheduleRequests'])
+        // Optimized query with proper eager loading and subquery for pending reschedule requests
+        $events = Event::with([
+                'host:id,name,email',
+                'members:id,name,email',
+                'images:id,event_id,image_path,original_filename,order'
+            ])
+            ->withCount([
+                'rescheduleRequests as has_pending_reschedule_requests' => function ($query) {
+                    $query->where('status', 'pending');
+                }
+            ])
             ->where(function ($query) use ($user) {
                 // User is the host
                 $query->where('host_id', $user->id)
@@ -35,11 +46,6 @@ class EventController extends Controller
             ->orderBy('time')
             ->get();
 
-        // Get default events that have dates set
-        $defaultEvents = \App\Models\DefaultEvent::whereNotNull('date')
-            ->orderBy('date')
-            ->get();
-
         // Transform regular events
         $transformedEvents = $events->map(function ($event) {
             return [
@@ -55,7 +61,7 @@ class EventController extends Controller
                 'date' => $event->date,
                 'time' => $event->time,
                 'school_year' => $event->school_year,
-                'has_pending_reschedule_requests' => $event->rescheduleRequests()->where('status', 'pending')->exists(),
+                'has_pending_reschedule_requests' => $event->has_pending_reschedule_requests > 0,
                 'host' => [
                     'id' => $event->host->id,
                     'username' => $event->host->name,
@@ -73,37 +79,8 @@ class EventController extends Controller
             ];
         });
 
-        // Transform default events
-        $transformedDefaultEvents = $defaultEvents->map(function ($event) {
-            return [
-                'id' => 'default-' . $event->id,
-                'title' => $event->name,
-                'description' => 'Academic Calendar Event',
-                'location' => 'TBD',
-                'images' => [],
-                'date' => $event->date ? $event->date->format('Y-m-d') : null,
-                'time' => '00:00',
-                'has_pending_reschedule_requests' => false,
-                'host' => [
-                    'id' => 0,
-                    'username' => 'Academic Calendar',
-                    'email' => 'calendar@system',
-                ],
-                'members' => [],
-                'is_default_event' => true,
-            ];
-        });
-
-        // Merge and sort all events by date
-        $allEvents = $transformedEvents->concat($transformedDefaultEvents)
-            ->sortBy([
-                ['date', 'asc'],
-                ['time', 'asc'],
-            ])
-            ->values();
-
         return response()->json([
-            'events' => $allEvents,
+            'events' => $transformedEvents,
         ]);
     }
 
@@ -116,20 +93,6 @@ class EventController extends Controller
     {
         $user = $request->user();
         
-        // Faculty Members and Staff CANNOT create events directly - they must use Request Event feature
-        if (in_array($user->role, ['Faculty Member', 'Staff'])) {
-            return response()->json([
-                'error' => 'Faculty Members and Staff cannot create events directly. Please use the Request Event feature.'
-            ], 403);
-        }
-        
-        // Only Admin, Dean, Chairperson, Coordinator, CEIT Official can create events directly
-        if (!in_array($user->role, ['Admin', 'Dean', 'Chairperson', 'Coordinator', 'CEIT Official'])) {
-            return response()->json([
-                'error' => 'Unauthorized. Only Admin, Dean, Chairperson, Coordinator, and CEIT Official can create events.'
-            ], 403);
-        }
-
         $request->validate([
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
@@ -167,8 +130,76 @@ class EventController extends Controller
             ->values()
             ->toArray() : [];
 
+        // Faculty Members and Staff logic:
+        // - Can create MEETINGS directly (no approval needed)
+        // - Must request approval for EVENTS (requires Dean + Chairperson approval)
+        if (in_array($user->role, ['Faculty Member', 'Staff'])) {
+            if ($request->event_type === 'meeting') {
+                // Meetings can be created directly
+                return $this->createEventDirectly($request, $user, $memberIds);
+            } else {
+                // Events require approval - create event request
+                return $this->createEventRequest($request, $user, $memberIds);
+            }
+        }
+        
+        // All other roles (Admin, Dean, Chairperson, Coordinator, CEIT Official) can create both events and meetings directly
+        if (!in_array($user->role, ['Admin', 'Dean', 'Chairperson', 'Coordinator', 'CEIT Official'])) {
+            return response()->json([
+                'error' => 'Unauthorized to create events.'
+            ], 403);
+        }
+
         // Create event directly for authorized roles
         return $this->createEventDirectly($request, $user, $memberIds);
+    }
+
+    /**
+     * Create event request for Faculty/Staff events (requires approval)
+     */
+    private function createEventRequest(Request $request, User $user, array $memberIds)
+    {
+        // Validate justification is required for Faculty/Staff events
+        $request->validate([
+            'justification' => 'required|string',
+        ], [
+            'justification.required' => 'Justification is required for event requests.',
+        ]);
+
+        // Create event request that requires Dean + Chairperson approval
+        $eventRequest = EventRequest::create([
+            'title' => $request->title,
+            'description' => $request->description,
+            'location' => $request->location,
+            'event_type' => $request->event_type,
+            'justification' => $request->justification,
+            'date' => $request->date,
+            'time' => $request->time,
+            'school_year' => $request->school_year,
+            'requested_by' => $user->id,
+            'department' => $user->department,
+            'status' => 'pending',
+            'requires_dean_approval' => true,
+            'requires_chair_approval' => true,
+        ]);
+
+        // Store member IDs as JSON for later use when event is approved
+        if (!empty($memberIds)) {
+            $eventRequest->update([
+                'member_ids' => json_encode($memberIds)
+            ]);
+        }
+
+        // Handle image uploads - store temporarily or attach to request
+        // For now, we'll note that images will need to be re-uploaded when approved
+        // Or we could store them with the request
+
+        return response()->json([
+            'message' => 'Event submitted for approval. Requires approval from Dean and Chairperson.',
+            'status' => 'pending_approval',
+            'event_request' => $eventRequest,
+            'approvers_needed' => ['Dean', 'Chairperson'],
+        ], 201);
     }
 
     /**

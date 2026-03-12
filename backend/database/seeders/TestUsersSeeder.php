@@ -134,7 +134,7 @@ class TestUsersSeeder extends Seeder
             'DCEEE' => ['first' => 'John', 'middle' => 'Paul', 'last' => 'Rivera'],
             'DCEA' => ['first' => 'Sarah', 'middle' => 'Anne', 'last' => 'Reyes'],
             'DIET' => ['first' => 'Michael', 'middle' => 'James', 'last' => 'Cruz'],
-            'DIT' => ['first' => 'Anna', 'middle' => 'Marie', 'last' => 'Dela Cruz'],
+            'DIT' => ['first' => 'Anna', 'middle' => 'Marie', 'last' => 'DelaCruz'],
         ];
 
         foreach ($chairpersons as $deptCode => $chair) {

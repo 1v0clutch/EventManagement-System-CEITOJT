@@ -41,10 +41,6 @@ export default function Dashboard() {
   const [declineReason, setDeclineReason] = useState('');
   const [decliningEventId, setDecliningEventId] = useState(null);
 
-  // Approved Requests State
-  const [hasApprovedRequests, setHasApprovedRequests] = useState(false);
-  const [approvedRequests, setApprovedRequests] = useState([]);
-
   useEffect(() => {
     // Check if user is validated
     if (user && !user.is_validated) {
@@ -53,7 +49,6 @@ export default function Dashboard() {
     }
     
     fetchData();
-    checkApprovedRequests();
     
     // Auto-select today's date
     const today = new Date();
@@ -65,7 +60,6 @@ export default function Dashboard() {
   useEffect(() => {
     if (location.state?.refresh) {
       fetchData();
-      checkApprovedRequests();
       // Clear the state to prevent re-fetching on every render
       navigate(location.pathname, { replace: true, state: {} });
     }
@@ -85,37 +79,15 @@ export default function Dashboard() {
 
   const fetchData = async () => {
     try {
-      // Get current school year
-      const now = new Date();
-      const currentYear = now.getFullYear();
-      const currentMonth = now.getMonth() + 1;
-      const schoolYear = currentMonth >= 9 
-        ? `${currentYear}-${currentYear + 1}` 
-        : `${currentYear - 1}-${currentYear}`;
-
-      // Also get next school year to cover all visible months in calendar
-      const nextSchoolYear = currentMonth >= 9
-        ? `${currentYear + 1}-${currentYear + 2}`
-        : `${currentYear}-${currentYear + 1}`;
-
-      const [eventsRes, membersRes, currentYearEventsRes, nextYearEventsRes] = await Promise.all([
-        api.get('/events'),
-        api.get('/users'),
-        api.get(`/default-events?school_year=${schoolYear}`),
-        api.get(`/default-events?school_year=${nextSchoolYear}`),
-      ]);
-      const fetchedEvents = eventsRes.data.events;
-      const currentYearDefaultEvents = currentYearEventsRes.data.events || [];
-      const nextYearDefaultEvents = nextYearEventsRes.data.events || [];
-      
-      // Combine default events from both school years
-      const fetchedDefaultEvents = [...currentYearDefaultEvents, ...nextYearDefaultEvents];
+      // Use the new optimized dashboard endpoint
+      const response = await api.get('/dashboard');
+      const { events: fetchedEvents, defaultEvents: fetchedDefaultEvents, members: fetchedMembers } = response.data;
       
       // Filter out default events from the regular events list to avoid duplicates
       const regularEventsOnly = fetchedEvents.filter(event => !event.is_default_event);
       
       setEvents(regularEventsOnly);
-      setMembers(membersRes.data.members);
+      setMembers(fetchedMembers);
       setDefaultEvents(fetchedDefaultEvents);
 
       // Auto-select today's events (including default events)
@@ -159,18 +131,6 @@ export default function Dashboard() {
       console.error('Error fetching data:', error);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const checkApprovedRequests = async () => {
-    try {
-      const response = await api.get('/event-requests/has-approved');
-      setHasApprovedRequests(response.data.has_approved_requests);
-      setApprovedRequests(response.data.approved_requests || []);
-    } catch (error) {
-      console.error('Error checking approved requests:', error);
-      setHasApprovedRequests(false);
-      setApprovedRequests([]);
     }
   };
 
@@ -393,7 +353,6 @@ export default function Dashboard() {
       <Navbar 
         showUpcomingEvents={true} 
         upcomingCount={0}
-        approvedRequests={approvedRequests}
         isLoading={loading}
       />
 
@@ -419,31 +378,27 @@ export default function Dashboard() {
               </button>
             )}
             
-            {/* Event Requests Link - Only for Dean, Chairperson, and Admin */}
-            {['Admin', 'Dean', 'Chairperson'].includes(user?.role) && (
-              <button
-                onClick={() => navigate('/event-requests')}
-                className="inline-flex items-center px-4 py-2 text-sm font-semibold rounded-lg shadow hover:shadow-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 group bg-white text-green-700 border-2 border-green-700 hover:bg-green-50 focus:ring-green-600"
-              >
-                <svg className="w-4 h-4 mr-1.5 group-hover:scale-110 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-                Requests
-              </button>
-            )}
-            
             {/* Role-based Event Creation Buttons */}
             {user?.role === 'Faculty Member' || user?.role === 'Staff' ? (
-              // Faculty Members and Staff can only request events
+              // Faculty Members and Staff can now use Add Event (with restrictions)
               <>
                 <button
-                  onClick={() => navigate('/request-event', { state: { selectedDate } })}
-                  className="inline-flex items-center px-4 py-2 text-sm font-semibold rounded-lg shadow hover:shadow-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 group bg-gradient-to-r from-green-700 to-green-800 text-white hover:from-green-800 hover:to-green-900 focus:ring-green-600"
+                  onClick={() => navigate('/event-requests')}
+                  className="inline-flex items-center px-4 py-2 text-sm font-semibold rounded-lg shadow hover:shadow-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 group bg-white text-green-700 border-2 border-green-700 hover:bg-green-50 focus:ring-green-600"
                 >
                   <svg className="w-4 h-4 mr-1.5 group-hover:scale-110 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                   </svg>
-                  Request
+                  Event Requests
+                </button>
+                <button
+                  onClick={() => navigate('/add-event', { state: { selectedDate } })}
+                  className="inline-flex items-center px-4 py-2 text-sm font-semibold rounded-lg shadow hover:shadow-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 group bg-gradient-to-r from-green-700 to-green-800 text-white hover:from-green-800 hover:to-green-900 focus:ring-green-600"
+                >
+                  <svg className="w-4 h-4 mr-1.5 group-hover:scale-110 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
+                  </svg>
+                  Add Event
                 </button>
                 <button
                   onClick={() => navigate('/personal-event', { state: { selectedDate } })}
@@ -458,6 +413,17 @@ export default function Dashboard() {
             ) : user?.role === 'Coordinator' || user?.role === 'Chairperson' || user?.role === 'Dean' || user?.role === 'Admin' || user?.role === 'CEIT Official' ? (
               // Coordinators, Chairpersons, Deans, CEIT Officials, and Admins can create events directly
               <>
+                {(user?.role === 'Dean' || user?.role === 'Chairperson') && (
+                  <button
+                    onClick={() => navigate('/event-requests')}
+                    className="inline-flex items-center px-4 py-2 text-sm font-semibold rounded-lg shadow hover:shadow-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 group bg-white text-green-700 border-2 border-green-700 hover:bg-green-50 focus:ring-green-600"
+                  >
+                    <svg className="w-4 h-4 mr-1.5 group-hover:scale-110 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    Event Requests
+                  </button>
+                )}
                 <button
                   onClick={() => navigate('/add-event', { state: { selectedDate } })}
                   className="inline-flex items-center px-4 py-2 text-sm font-semibold rounded-lg shadow hover:shadow-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 group bg-gradient-to-r from-green-700 to-green-800 text-white hover:from-green-800 hover:to-green-900 focus:ring-green-600"

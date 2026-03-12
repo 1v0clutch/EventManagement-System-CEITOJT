@@ -8,9 +8,11 @@ export default function EventForm({ members, onEventCreated, editingEvent, onCan
   const [description, setDescription] = useState('');
   const [location, setLocation] = useState('');
   const [eventType, setEventType] = useState(
-    // Faculty and Staff can only create meetings
+    // Faculty and Staff default to 'meeting' but can choose 'event'
+    // Other roles default to 'event'
     currentUser?.role === 'Faculty Member' || currentUser?.role === 'Staff' ? 'meeting' : 'event'
   );
+  const [justification, setJustification] = useState(''); // For Faculty/Staff events only
   const [images, setImages] = useState([]);
   const [imagePreviews, setImagePreviews] = useState([]);
   const [date, setDate] = useState('');
@@ -123,6 +125,7 @@ export default function EventForm({ members, onEventCreated, editingEvent, onCan
     setTitle(request.title);
     setDescription(request.description || '');
     setLocation(request.location || '');
+    setEventType(request.event_type || 'event');
     
     // Parse date properly - handle both date strings and timestamps
     const requestDate = request.date.includes('T') 
@@ -131,12 +134,18 @@ export default function EventForm({ members, onEventCreated, editingEvent, onCan
     setDate(requestDate);
     setTime(request.time);
     
-    // Auto-invite the approvers (Dean/Chairperson who approved)
+    // Auto-invite the approvers (Dean/Chairperson who approved) AND any originally invited members
     const approverIds = [];
-    if (request.dean_approved_by) approverIds.push(request.dean_approved_by);
-    if (request.chair_approved_by) approverIds.push(request.chair_approved_by);
-    console.log('Auto-inviting approvers:', approverIds);
-    setSelectedMembers(approverIds);
+    if (request.dean_approver?.id) approverIds.push(request.dean_approver.id);
+    if (request.chair_approver?.id) approverIds.push(request.chair_approver.id);
+    
+    // Add originally invited members from the request
+    if (request.member_ids && Array.isArray(request.member_ids)) {
+      approverIds.push(...request.member_ids);
+    }
+    
+    console.log('Auto-inviting approvers and original members:', approverIds);
+    setSelectedMembers([...new Set(approverIds)]); // Remove duplicates
   };
 
   // Validate hierarchy when selected members change (skip if using approved request)
@@ -181,6 +190,14 @@ export default function EventForm({ members, onEventCreated, editingEvent, onCan
     setError('');
     setSuccess('');
 
+    // Validate justification for Faculty/Staff creating events
+    if ((currentUser?.role === 'Faculty Member' || currentUser?.role === 'Staff') && 
+        eventType === 'event' && 
+        !justification.trim()) {
+      setError('Justification is required for event requests');
+      return;
+    }
+
     // Validate date/time before submission
     if (!validateDateTime()) {
       return;
@@ -196,6 +213,12 @@ export default function EventForm({ members, onEventCreated, editingEvent, onCan
       formData.append('event_type', eventType);
       formData.append('date', date);
       formData.append('time', time);
+      
+      // Add justification for Faculty/Staff events
+      if ((currentUser?.role === 'Faculty Member' || currentUser?.role === 'Staff') && 
+          eventType === 'event') {
+        formData.append('justification', justification);
+      }
       
       // Always append school_year (it should always have a value)
       console.log('Submitting with school_year:', schoolYear);
@@ -252,6 +275,7 @@ export default function EventForm({ members, onEventCreated, editingEvent, onCan
     setDescription('');
     setLocation('');
     setEventType('event');
+    setJustification('');
     setImages([]);
     setImagePreviews([]);
     const now = new Date();
@@ -421,17 +445,7 @@ export default function EventForm({ members, onEventCreated, editingEvent, onCan
     });
 
   const availableDepartments = [...new Set(members.map(m => m.department).filter(Boolean))];
-  const availableRoles = [...new Set(members.map(m => m.role).filter(Boolean))]
-    .filter(role => {
-      // Only Faculty Members and Staff have invitation restrictions
-      // Coordinator, Dean, Chairperson, and CEIT Official can invite anyone
-      if (currentUser?.role === 'Faculty Member' || currentUser?.role === 'Staff') {
-        // Faculty and Staff can only invite other Faculty Members and Staff
-        return role === 'Faculty Member' || role === 'Staff';
-      }
-      // All other roles (Coordinator, Dean, Chairperson, CEIT Official, Admin) have no restrictions
-      return true;
-    });
+  const availableRoles = [...new Set(members.map(m => m.role).filter(Boolean))];
 
   return (
     <div className="animate-fade-in">
@@ -471,7 +485,7 @@ export default function EventForm({ members, onEventCreated, editingEvent, onCan
       />
 
       <form onSubmit={handleSubmit}>
-        {/* Faculty/Staff Meeting Approval Notice */}
+        {/* Faculty/Staff Event Type Notice */}
         {(currentUser?.role === 'Faculty Member' || currentUser?.role === 'Staff') && !editingEvent && (
           <div className="mb-6 bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-xl p-5 shadow-sm">
             <div className="flex items-start space-x-3">
@@ -481,10 +495,11 @@ export default function EventForm({ members, onEventCreated, editingEvent, onCan
                 </svg>
               </div>
               <div className="flex-1">
-                <h3 className="text-sm font-bold text-blue-900 mb-2">Meeting Approval Required</h3>
-                <p className="text-sm text-blue-700">
-                  As a {currentUser?.role}, your meeting will be submitted for approval by the Dean and Chairperson before it is created.
-                </p>
+                <h3 className="text-sm font-bold text-blue-900 mb-2">Event Type Information</h3>
+                <div className="space-y-2 text-sm text-blue-700">
+                  <p><span className="font-semibold">Meetings:</span> Can be created freely without approval</p>
+                  <p><span className="font-semibold">Events:</span> Require approval from Dean and Chairperson before being posted to calendar</p>
+                </div>
               </div>
             </div>
           </div>
@@ -603,18 +618,51 @@ export default function EventForm({ members, onEventCreated, editingEvent, onCan
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-3">Type</label>
                 {currentUser?.role === 'Faculty Member' || currentUser?.role === 'Staff' ? (
-                  // Faculty and Staff can only create meetings
-                  <div className="flex items-center space-x-2 bg-amber-50 border border-amber-200 rounded-lg p-3">
-                    <svg className="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <div>
-                      <p className="text-sm font-medium text-amber-800">Meeting Only</p>
-                      <p className="text-xs text-amber-600">Faculty and Staff can only create meetings (requires approval)</p>
+                  // Faculty and Staff can choose between event and meeting
+                  <div className="space-y-3">
+                    <div className="flex space-x-4">
+                      <label className="flex items-center cursor-pointer">
+                        <input
+                          type="radio"
+                          name="eventType"
+                          value="event"
+                          checked={eventType === 'event'}
+                          onChange={(e) => setEventType(e.target.value)}
+                          className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
+                        />
+                        <span className="ml-2 text-sm text-gray-700 font-medium">Event</span>
+                      </label>
+                      <label className="flex items-center cursor-pointer">
+                        <input
+                          type="radio"
+                          name="eventType"
+                          value="meeting"
+                          checked={eventType === 'meeting'}
+                          onChange={(e) => setEventType(e.target.value)}
+                          className="h-4 w-4 text-orange-600 focus:ring-orange-500 border-gray-300"
+                        />
+                        <span className="ml-2 text-sm text-gray-700 font-medium">Meeting</span>
+                      </label>
                     </div>
+                    {eventType === 'event' && (
+                      <div className="flex items-start space-x-2 bg-amber-50 border border-amber-200 rounded-lg p-2">
+                        <svg className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                        <p className="text-xs text-amber-700">Requires Dean + Chairperson approval</p>
+                      </div>
+                    )}
+                    {eventType === 'meeting' && (
+                      <div className="flex items-start space-x-2 bg-green-50 border border-green-200 rounded-lg p-2">
+                        <svg className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <p className="text-xs text-green-700">No approval needed - created immediately</p>
+                      </div>
+                    )}
                   </div>
                 ) : (
-                  // Dean, CEIT Official, Chairperson can choose
+                  // Dean, CEIT Official, Chairperson, Coordinator can choose
                   <div className="flex space-x-4">
                     <label className="flex items-center cursor-pointer">
                       <input
@@ -641,6 +689,26 @@ export default function EventForm({ members, onEventCreated, editingEvent, onCan
                   </div>
                 )}
               </div>
+
+              {/* Justification Textbox - Only for Faculty/Staff when Event is selected */}
+              {(currentUser?.role === 'Faculty Member' || currentUser?.role === 'Staff') && eventType === 'event' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Justification <span className="text-red-500">*</span>
+                  </label>
+                  <textarea
+                    rows="3"
+                    required
+                    value={justification}
+                    onChange={(e) => setJustification(e.target.value)}
+                    placeholder="Explain why this event is necessary and its expected benefits..."
+                    className="block w-full px-3 py-2.5 border border-gray-300 rounded-lg shadow-sm text-sm focus:outline-none focus:ring-2 focus:ring-amber-600/20 focus:border-amber-600 transition-colors resize-none"
+                  />
+                  <p className="mt-1 text-xs text-gray-500">
+                    This justification will be reviewed by the Dean and Chairperson during the approval process.
+                  </p>
+                </div>
+              )}
 
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-3">

@@ -87,39 +87,78 @@ class EventRequestController extends Controller
     }
 
     /**
-     * Get all event requests (for Dean and Chairperson) - ONLY coordinator/chairperson requests, NOT hierarchy approvals
+     * Get all event requests
+     * - For Faculty/Staff: Show their own requests
+     * - For Dean: Show ALL requests (approves all departments)
+     * - For Chairperson: Show only requests from THEIR department
      */
     public function index()
     {
         $user = Auth::user();
         
-        // Only Dean, Chairperson, and Admin can view event requests
+        // Faculty/Staff see their own requests
+        if (in_array($user->role, ['Faculty Member', 'Staff'])) {
+            $requests = EventRequest::where('requested_by', $user->id)
+                ->with([
+                    'requester:id,name,email,role,department',
+                    'deanApprover:id,name,email,role',
+                    'chairApprover:id,name,email,role'
+                ])
+                ->orderBy('created_at', 'desc')
+                ->get()
+                ->map(function ($request) {
+                    return [
+                        'id' => $request->id,
+                        'title' => $request->title,
+                        'description' => $request->description,
+                        'date' => $request->date,
+                        'time' => $request->time,
+                        'location' => $request->location,
+                        'event_type' => $request->event_type,
+                        'department' => $request->department,
+                        'status' => $request->status,
+                        'created_at' => $request->created_at,
+                        'requester' => $request->requester,
+                        'justification' => $request->justification,
+                        'decline_reason' => $request->decline_reason,
+                        'dean_decline_reason' => $request->dean_decline_reason,
+                        'chair_decline_reason' => $request->chair_decline_reason,
+                        'dean_approver' => $request->deanApprover,
+                        'dean_approved_at' => $request->dean_approved_at,
+                        'chair_approver' => $request->chairApprover,
+                        'chair_approved_at' => $request->chair_approved_at,
+                        'all_approvals_received' => $request->all_approvals_received,
+                    ];
+                });
+
+            return response()->json(['requests' => $requests]);
+        }
+        
+        // Check authorization
         if (!in_array($user->role, ['Dean', 'Chairperson', 'Admin'])) {
             return response()->json([
-                'message' => 'Unauthorized. Only Dean, Chairperson, and Admin can view event requests.'
+                'message' => 'Unauthorized.'
             ], 403);
         }
 
-        // Get coordinator/chairperson requests only
-        $requests = EventRequest::with(['requester', 'reviewer', 'deanApprover', 'chairApprover'])
-            ->orderBy('created_at', 'desc')
+        // Build query based on role with optimized eager loading
+        $query = EventRequest::with([
+                'requester:id,name,email,role,department',
+                'reviewer:id,name,email,role',
+                'deanApprover:id,name,email,role',
+                'chairApprover:id,name,email,role'
+            ]);
+        
+        // Chairperson only sees requests from their department
+        if ($user->role === 'Chairperson') {
+            $query->where('department', $user->department);
+        }
+        // Dean sees ALL requests (no filter)
+        // Admin sees ALL requests (no filter)
+        
+        $requests = $query->orderBy('created_at', 'desc')
             ->get()
             ->map(function ($request) use ($user) {
-                // Check if current user can approve this request
-                $canApprove = false;
-                $hasApproved = false;
-                
-                if ($request->required_approvers && in_array($user->id, $request->required_approvers)) {
-                    $canApprove = true;
-                    
-                    // Check if user has already approved
-                    if ($user->role === 'Dean' && $request->dean_approved_by === $user->id) {
-                        $hasApproved = true;
-                    } elseif ($user->role === 'Chairperson' && $request->chair_approved_by === $user->id) {
-                        $hasApproved = true;
-                    }
-                }
-                
                 return [
                     'id' => $request->id,
                     'type' => 'event_request',
@@ -128,6 +167,8 @@ class EventRequestController extends Controller
                     'date' => $request->date,
                     'time' => $request->time,
                     'location' => $request->location,
+                    'event_type' => $request->event_type,
+                    'department' => $request->department,
                     'status' => $request->status,
                     'created_at' => $request->created_at,
                     'requester' => $request->requester,
@@ -135,15 +176,15 @@ class EventRequestController extends Controller
                     'justification' => $request->justification,
                     'expected_attendees' => $request->expected_attendees,
                     'rejection_reason' => $request->rejection_reason,
+                    'decline_reason' => $request->decline_reason,
+                    'dean_decline_reason' => $request->dean_decline_reason,
+                    'chair_decline_reason' => $request->chair_decline_reason,
                     'reviewed_at' => $request->reviewed_at,
                     'dean_approver' => $request->deanApprover,
                     'dean_approved_at' => $request->dean_approved_at,
                     'chair_approver' => $request->chairApprover,
                     'chair_approved_at' => $request->chair_approved_at,
                     'all_approvals_received' => $request->all_approvals_received,
-                    'can_approve' => $canApprove,
-                    'has_approved' => $hasApproved,
-                    'required_approvers' => $request->required_approvers,
                 ];
             });
 
@@ -162,13 +203,23 @@ class EventRequestController extends Controller
         // For Faculty/Staff: Show their own submitted requests (all statuses)
         if (in_array($user->role, ['Faculty Member', 'Staff'])) {
             $requests = EventRequest::where('requested_by', $user->id)
-                ->with(['requester', 'reviewer', 'deanApprover', 'chairApprover'])
+                ->with([
+                    'requester:id,name,email,role,department',
+                    'reviewer:id,name,email,role',
+                    'deanApprover:id,name,email,role',
+                    'chairApprover:id,name,email,role'
+                ])
                 ->orderBy('created_at', 'desc')
                 ->get();
         }
         // For Dean/Chairperson: Show requests they've approved or declined (not pending)
         else if (in_array($user->role, ['Dean', 'Chairperson'])) {
-            $requests = EventRequest::with(['requester', 'reviewer', 'deanApprover', 'chairApprover'])
+            $requests = EventRequest::with([
+                    'requester:id,name,email,role,department',
+                    'reviewer:id,name,email,role',
+                    'deanApprover:id,name,email,role',
+                    'chairApprover:id,name,email,role'
+                ])
                 ->where(function ($query) use ($user) {
                     if ($user->role === 'Dean') {
                         $query->where('dean_approved_by', $user->id);
@@ -197,11 +248,17 @@ class EventRequestController extends Controller
         $user = Auth::user();
         
         // Get approved requests that haven't been used to create an event yet
+        // Must have both approvals and no decline reasons
         $approvedRequests = EventRequest::where('requested_by', $user->id)
             ->where('status', 'approved')
             ->where('all_approvals_received', true)
+            ->whereNull('dean_decline_reason')
+            ->whereNull('chair_decline_reason')
             ->whereDoesntHave('event') // Requests that don't have an event created yet
-            ->with(['deanApprover', 'chairApprover'])
+            ->with([
+                'deanApprover:id,name,email,role',
+                'chairApprover:id,name,email,role'
+            ])
             ->get();
 
         return response()->json([
@@ -430,6 +487,268 @@ class EventRequestController extends Controller
 
         return response()->json([
             'message' => 'Event request deleted successfully'
+        ]);
+    }
+
+    /**
+     * Approve an event request (Dean/Chairperson individual approval)
+     */
+    public function approve(EventRequest $eventRequest)
+    {
+        $user = Auth::user();
+        
+        // Only Dean and Chairperson can approve
+        if (!in_array($user->role, ['Dean', 'Chairperson'])) {
+            return response()->json([
+                'message' => 'Unauthorized. Only Dean and Chairperson can approve requests.'
+            ], 403);
+        }
+
+        // Chairperson can only approve requests from their department
+        if ($user->role === 'Chairperson' && $eventRequest->department !== $user->department) {
+            return response()->json([
+                'message' => 'Unauthorized. You can only approve requests from your department (' . $user->department . ').'
+            ], 403);
+        }
+
+        // Check if already approved by this user
+        if ($user->role === 'Dean' && $eventRequest->dean_approved_by && !$eventRequest->dean_decline_reason) {
+            return response()->json([
+                'message' => 'You have already approved this request.'
+            ], 400);
+        }
+        if ($user->role === 'Chairperson' && $eventRequest->chair_approved_by && !$eventRequest->chair_decline_reason) {
+            return response()->json([
+                'message' => 'You have already approved this request.'
+            ], 400);
+        }
+
+        // Record approval and clear any previous decline reason
+        if ($user->role === 'Dean') {
+            $eventRequest->dean_approved_by = $user->id;
+            $eventRequest->dean_approved_at = now();
+            $eventRequest->dean_decline_reason = null; // Clear decline reason if approving
+        } elseif ($user->role === 'Chairperson') {
+            $eventRequest->chair_approved_by = $user->id;
+            $eventRequest->chair_approved_at = now();
+            $eventRequest->chair_decline_reason = null; // Clear decline reason if approving
+        }
+
+        // Check if both have approved (no decline reasons)
+        $deanApproved = $eventRequest->dean_approved_by && !$eventRequest->dean_decline_reason;
+        $chairApproved = $eventRequest->chair_approved_by && !$eventRequest->chair_decline_reason;
+        $allApproved = $deanApproved && $chairApproved;
+        
+        // Check if either has declined
+        $anyDeclined = $eventRequest->dean_decline_reason || $eventRequest->chair_decline_reason;
+        
+        if ($allApproved) {
+            $eventRequest->status = 'approved';
+            $eventRequest->all_approvals_received = true;
+            $eventRequest->decline_reason = null; // Clear general decline reason
+            
+            // Automatically create the event
+            $this->createEventFromRequest($eventRequest);
+        } elseif ($anyDeclined) {
+            $eventRequest->status = 'declined';
+            $eventRequest->all_approvals_received = false;
+        } else {
+            // Still pending - waiting for other approver
+            $eventRequest->status = 'pending';
+            $eventRequest->all_approvals_received = false;
+        }
+
+        $eventRequest->save();
+
+        $message = $allApproved 
+            ? 'Event request fully approved! The event has been automatically created and posted to the calendar.'
+            : ($anyDeclined 
+                ? 'Your approval has been recorded, but the request is declined by another approver.'
+                : 'Your approval has been recorded. Waiting for other approver.');
+
+        return response()->json([
+            'message' => $message,
+            'request' => $eventRequest->load(['requester', 'deanApprover', 'chairApprover', 'event']),
+            'all_approvals_received' => $allApproved,
+            'event_created' => $allApproved
+        ]);
+    }
+
+    /**
+     * Automatically create event from approved request
+     */
+    private function createEventFromRequest(EventRequest $eventRequest)
+    {
+        // Get the requester
+        $requester = $eventRequest->requester;
+        
+        // Format time properly - ensure it's in H:i format
+        $time = $eventRequest->time;
+        if ($time instanceof \DateTime) {
+            $time = $time->format('H:i');
+        } elseif (is_string($time) && strlen($time) > 5) {
+            // If it's a full datetime string, extract just the time part
+            $time = date('H:i', strtotime($time));
+        }
+        
+        // Create the event
+        $event = \App\Models\Event::create([
+            'title' => $eventRequest->title,
+            'description' => $eventRequest->description,
+            'location' => $eventRequest->location,
+            'event_type' => $eventRequest->event_type,
+            'date' => $eventRequest->date,
+            'time' => $time,
+            'school_year' => $eventRequest->school_year,
+            'host_id' => $requester->id,
+            'approved_request_id' => $eventRequest->id,
+        ]);
+
+        // Add invited members (Dean, Chairperson, and any originally invited members)
+        $memberIds = [];
+        
+        // Add Dean and Chairperson as invited members
+        if ($eventRequest->dean_approved_by) {
+            $memberIds[] = $eventRequest->dean_approved_by;
+        }
+        if ($eventRequest->chair_approved_by) {
+            $memberIds[] = $eventRequest->chair_approved_by;
+        }
+        
+        // Add originally invited members from the request
+        if ($eventRequest->member_ids && is_array($eventRequest->member_ids)) {
+            $memberIds = array_merge($memberIds, $eventRequest->member_ids);
+        }
+        
+        // Remove duplicates and the host
+        $memberIds = array_unique($memberIds);
+        $memberIds = array_filter($memberIds, fn($id) => $id != $requester->id);
+        
+        // Attach members with pending status
+        if (!empty($memberIds)) {
+            $memberData = collect($memberIds)->mapWithKeys(fn($id) => [$id => ['status' => 'pending']])->all();
+            $event->members()->attach($memberData);
+        }
+        
+        return $event;
+    }
+
+    /**
+     * Decline an event request
+     */
+    public function decline(Request $request, EventRequest $eventRequest)
+    {
+        $user = Auth::user();
+        
+        // Only Dean and Chairperson can decline
+        if (!in_array($user->role, ['Dean', 'Chairperson'])) {
+            return response()->json([
+                'message' => 'Unauthorized. Only Dean and Chairperson can decline requests.'
+            ], 403);
+        }
+
+        // Chairperson can only decline requests from their department
+        if ($user->role === 'Chairperson' && $eventRequest->department !== $user->department) {
+            return response()->json([
+                'message' => 'Unauthorized. You can only decline requests from your department (' . $user->department . ').'
+            ], 403);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'reason' => 'required|string'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'message' => 'Decline reason is required',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        // Record decline with separate reason fields
+        // Set who declined it and their specific reason
+        if ($user->role === 'Dean') {
+            $eventRequest->dean_approved_by = $user->id;
+            $eventRequest->dean_approved_at = now();
+            $eventRequest->dean_decline_reason = $request->reason;
+        } elseif ($user->role === 'Chairperson') {
+            $eventRequest->chair_approved_by = $user->id;
+            $eventRequest->chair_approved_at = now();
+            $eventRequest->chair_decline_reason = $request->reason;
+        }
+        
+        // Keep the old decline_reason field for backward compatibility (use the most recent one)
+        $eventRequest->decline_reason = $request->reason;
+        
+        // Only set status to declined if at least one person has declined
+        // This allows the other approver to still take action
+        $eventRequest->status = 'declined';
+        $eventRequest->all_approvals_received = false;
+
+        $eventRequest->save();
+
+        return response()->json([
+            'message' => 'Event request declined',
+            'request' => $eventRequest->load(['requester', 'deanApprover', 'chairApprover'])
+        ]);
+    }
+
+    /**
+     * Revert approval/decline action
+     */
+    public function revert(EventRequest $eventRequest)
+    {
+        $user = Auth::user();
+        
+        // Only Dean and Chairperson can revert
+        if (!in_array($user->role, ['Dean', 'Chairperson'])) {
+            return response()->json([
+                'message' => 'Unauthorized. Only Dean and Chairperson can revert actions.'
+            ], 403);
+        }
+
+        // Chairperson can only revert requests from their department
+        if ($user->role === 'Chairperson' && $eventRequest->department !== $user->department) {
+            return response()->json([
+                'message' => 'Unauthorized. You can only revert requests from your department (' . $user->department . ').'
+            ], 403);
+        }
+
+        // Check if user has approved/declined this request
+        $hasActioned = false;
+        if ($user->role === 'Dean' && $eventRequest->dean_approved_by === $user->id) {
+            $hasActioned = true;
+            $eventRequest->dean_approved_by = null;
+            $eventRequest->dean_approved_at = null;
+        } elseif ($user->role === 'Chairperson' && $eventRequest->chair_approved_by === $user->id) {
+            $hasActioned = true;
+            $eventRequest->chair_approved_by = null;
+            $eventRequest->chair_approved_at = null;
+        }
+
+        if (!$hasActioned) {
+            return response()->json([
+                'message' => 'You have not approved or declined this request yet.'
+            ], 400);
+        }
+
+        // Reset status to pending
+        $eventRequest->status = 'pending';
+        $eventRequest->all_approvals_received = false;
+        $eventRequest->decline_reason = null;
+        
+        // Clear the specific decline reason for this user
+        if ($user->role === 'Dean') {
+            $eventRequest->dean_decline_reason = null;
+        } elseif ($user->role === 'Chairperson') {
+            $eventRequest->chair_decline_reason = null;
+        }
+
+        $eventRequest->save();
+
+        return response()->json([
+            'message' => 'Your action has been reverted. Request is now pending.',
+            'request' => $eventRequest->load(['requester', 'deanApprover', 'chairApprover'])
         ]);
     }
 }
