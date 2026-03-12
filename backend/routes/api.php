@@ -35,6 +35,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/setup/create-admin', [SetupAdminController::class, 'createPermanentAdmin']);
     
     // Events
+    Route::get('/dashboard', [App\Http\Controllers\DashboardController::class, 'index']);
     Route::get('/events', [EventController::class, 'index']);
     Route::post('/events', [EventController::class, 'store']);
     Route::post('/events/validate-hierarchy', [EventController::class, 'validateHierarchy']);
@@ -53,7 +54,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/event-requests/my-requests', [EventRequestController::class, 'myRequests']);
     Route::get('/event-requests/has-approved', [EventRequestController::class, 'hasApprovedRequests']);
     Route::post('/event-requests/{eventRequest}/review', [EventRequestController::class, 'review']);
+    Route::post('/event-requests/{eventRequest}/approve', [EventRequestController::class, 'approve']);
+    Route::post('/event-requests/{eventRequest}/decline', [EventRequestController::class, 'decline']);
+    Route::post('/event-requests/{eventRequest}/revert', [EventRequestController::class, 'revert']);
     Route::delete('/event-requests/{eventRequest}', [EventRequestController::class, 'destroy']);
+
     
     // Hierarchy Approvals
     Route::post('/hierarchy-approvals/{approval}/review', [EventRequestController::class, 'reviewHierarchyApproval']);

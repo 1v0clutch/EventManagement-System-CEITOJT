@@ -26,11 +26,9 @@ export default function AddEvent() {
       return;
     }
     
-    // Faculty Members and Staff cannot access /add-event - redirect to Request Event
-    if (user && (user.role === 'Faculty Member' || user.role === 'Staff')) {
-      navigate('/request-event');
-      return;
-    }
+    // Faculty Members and Staff CAN now access /add-event
+    // They can create meetings directly or events that require approval
+    // No redirect needed anymore
     
     // Redirect personal events to personal event page
     if (editingEvent && editingEvent.is_personal) {

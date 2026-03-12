@@ -15,13 +15,20 @@ class EventRequest extends Model
         'date',
         'time',
         'location',
+        'event_type',
+        'school_year',
+        'member_ids',
         'justification',
         'expected_attendees',
         'budget',
         'resources',
         'requested_by',
+        'department',
         'status',
         'rejection_reason',
+        'decline_reason',
+        'dean_decline_reason',
+        'chair_decline_reason',
         'reviewed_by',
         'reviewed_at',
         'dean_approved_by',
@@ -29,17 +36,21 @@ class EventRequest extends Model
         'chair_approved_by',
         'chair_approved_at',
         'required_approvers',
-        'all_approvals_received'
+        'all_approvals_received',
+        'requires_dean_approval',
+        'requires_chair_approval',
     ];
 
     protected $casts = [
         'date' => 'date',
-        'time' => 'datetime:H:i',
         'reviewed_at' => 'datetime',
         'dean_approved_at' => 'datetime',
         'chair_approved_at' => 'datetime',
         'required_approvers' => 'array',
-        'all_approvals_received' => 'boolean'
+        'member_ids' => 'array',
+        'all_approvals_received' => 'boolean',
+        'requires_dean_approval' => 'boolean',
+        'requires_chair_approval' => 'boolean',
     ];
 
     public function requester()
