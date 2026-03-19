@@ -1,0 +1,4 @@
+create the change password for all users
+create the change email for all users
+fix the bug in one time change of admin password
+add view password function
