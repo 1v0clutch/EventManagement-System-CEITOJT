@@ -1,0 +1,39 @@
+services:
+  # Laravel API Web Service
+  - type: web
+    name: event-management-api
+    runtime: php
+    rootDir: .
+    buildCommand: chmod +x ./build.sh && ./build.sh
+    startCommand: php artisan serve --host=0.0.0.0 --port=$PORT
+    healthCheckPath: /api/ping
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: APP_DEBUG
+        value: false
+      - key: LOG_LEVEL
+        value: error
+      - key: SESSION_DRIVER
+        value: database
+      - key: QUEUE_CONNECTION
+        value: database
+      - key: CACHE_STORE
+        value: database
+      - key: FILESYSTEM_DISK
+        value: local
+      - key: BROADCAST_CONNECTION
+        value: log
+
+  # Queue Worker (handles emails, OTP, notifications)
+  - type: worker
+    name: event-management-queue
+    runtime: php
+    rootDir: .
+    buildCommand: composer install --no-dev --optimize-autoloader
+    startCommand: php artisan queue:work --tries=3 --timeout=90 --sleep=3 --max-time=3600
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: APP_DEBUG
+        value: false

@@ -11,3 +11,6 @@ Or refresh the entire database with all seeders:
 
 php artisan migrate:fresh --seed
 All test accounts use password: 11111111
+
+for events seeder
+php artisan db:seed --class=TestEventsSeeder

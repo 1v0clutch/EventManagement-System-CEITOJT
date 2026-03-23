@@ -68,16 +68,9 @@ class UserController extends Controller
             'email' => 'required|email|unique:users,email',
             'password' => 'required|string|min:8',
             'department' => 'required|string|max:255',
-            'role' => 'required|in:Admin,Dean,Chairperson,Coordinator,Research Coordinator,Extension Coordinator,GAD Coordinator,Faculty Member,CEIT Official',
+            'role' => 'required|in:Admin,Chairperson,Coordinator,Research Coordinator,Extension Coordinator,GAD Coordinator,Faculty Member,CEIT Official',
             'name' => 'required|string|max:255',
         ]);
-
-        // Enforce single Dean rule
-        if ($validated['role'] === 'Dean' && User::where('role', 'Dean')->exists()) {
-            return response()->json([
-                'error' => 'A Dean already exists. Only one Dean is allowed.'
-            ], 422);
-        }
 
         // Create the user
         $user = User::create([
@@ -186,7 +179,7 @@ class UserController extends Controller
     public function updateRole(Request $request, $id)
     {
         $validated = $request->validate([
-            'role' => 'required|in:Admin,Dean,Chairperson,Coordinator,Research Coordinator,Extension Coordinator,GAD Coordinator,Faculty Member,CEIT Official',
+            'role' => 'required|in:Admin,Chairperson,Coordinator,Research Coordinator,Extension Coordinator,GAD Coordinator,Faculty Member,CEIT Official',
             'department' => 'sometimes|string|max:255',
         ]);
 
@@ -197,13 +190,6 @@ class UserController extends Controller
             return response()->json([
                 'error' => 'You cannot change your own role.'
             ], 403);
-        }
-
-        // Enforce single Dean rule (allow if this user is already the Dean)
-        if ($validated['role'] === 'Dean' && $user->role !== 'Dean' && User::where('role', 'Dean')->exists()) {
-            return response()->json([
-                'error' => 'A Dean already exists. Only one Dean is allowed.'
-            ], 422);
         }
 
         $updateData = ['role' => $validated['role']];
@@ -226,6 +212,49 @@ class UserController extends Controller
         ]);
     }
 
+    public function createDean(Request $request)
+    {
+        if (!$request->user()->isAdmin()) {
+            return response()->json(['error' => 'Only admins can create a Dean.'], 403);
+        }
+
+        // Enforce single Dean rule
+        if (User::where('role', 'Dean')->exists()) {
+            return response()->json(['error' => 'A Dean already exists. Only one Dean is allowed.'], 422);
+        }
+
+        $validated = $request->validate([
+            'first_name' => 'required|string|max:255',
+            'last_name'  => 'required|string|max:255',
+            'middle_name' => 'nullable|string|max:255',
+            'email'      => 'required|email|unique:users,email',
+            'password'   => 'required|string|min:8',
+            'name'       => 'required|string|max:255',
+        ]);
+
+        $user = User::create([
+            'name'             => $validated['name'],
+            'email'            => $validated['email'],
+            'password'         => bcrypt($validated['password']),
+            'department'       => 'College of Engineering and Information Technology',
+            'role'             => 'Dean',
+            'is_validated'     => true,
+            'email_verified_at' => now(),
+        ]);
+
+        return response()->json([
+            'message' => 'Dean created successfully',
+            'user' => [
+                'id'           => $user->id,
+                'username'     => $user->name,
+                'email'        => $user->email,
+                'department'   => $user->department,
+                'role'         => $user->role,
+                'is_validated' => $user->is_validated,
+            ],
+        ], 201);
+    }
+
     public function update()
     {
         $user = auth()->user();
@@ -233,6 +262,10 @@ class UserController extends Controller
         $validated = request()->validate([
             'username' => 'sometimes|string|max:255',
             'profile_picture' => 'sometimes|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'current_password' => 'sometimes|string',
+            'new_password' => 'sometimes|string|min:8',
+            'new_password_confirmation' => 'sometimes|string',
+            'email' => 'sometimes|email|unique:users,email,' . $user->id,
         ]);
 
         // Map 'username' to 'name' in the database and capitalize each word
@@ -254,12 +287,34 @@ class UserController extends Controller
             $validated['profile_picture'] = 'uploads/profiles/' . $filename;
         }
 
-        // Email and department cannot be changed by users
-        // Remove them from validated data if they were somehow included
-        unset($validated['email']);
+        // One-time credential change for Admin (email + password)
+        if (!$user->has_changed_credentials && $user->role === 'Admin') {
+            // Handle email change
+            if (isset($validated['email']) && $validated['email'] !== $user->email) {
+                $validated['has_changed_credentials'] = true;
+            }
+
+            // Handle password change
+            if (isset($validated['current_password']) && isset($validated['new_password'])) {
+                if (!\Hash::check($validated['current_password'], $user->password)) {
+                    return response()->json(['message' => 'Current password is incorrect.'], 422);
+                }
+                if (($validated['new_password_confirmation'] ?? '') !== $validated['new_password']) {
+                    return response()->json(['message' => 'New passwords do not match.'], 422);
+                }
+                $validated['password'] = \Hash::make($validated['new_password']);
+                $validated['has_changed_credentials'] = true;
+            }
+        } else {
+            // Not allowed to change email/password after first time
+            unset($validated['email']);
+        }
+
+        unset($validated['current_password'], $validated['new_password'], $validated['new_password_confirmation']);
         unset($validated['department']);
 
         $user->update($validated);
+        $user->refresh();
 
         return response()->json([
             'message' => 'Profile updated successfully',
@@ -272,6 +327,7 @@ class UserController extends Controller
                 'role' => $user->role,
                 'is_validated' => $user->is_validated,
                 'schedule_initialized' => $user->schedule_initialized ?? false,
+                'has_changed_credentials' => $user->has_changed_credentials ?? false,
             ],
         ]);
     }

@@ -1,0 +1,2 @@
+create the change password for all users
+create the change email for all users

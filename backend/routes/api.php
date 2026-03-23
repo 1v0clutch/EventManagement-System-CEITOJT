@@ -6,7 +6,6 @@ use App\Http\Controllers\DefaultEventControllerV2;
 use App\Http\Controllers\EventController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\ScheduleController;
-use App\Http\Controllers\SetupAdminController;
 use App\Http\Controllers\ArchiveController;
 use Illuminate\Support\Facades\Route;
 
@@ -30,10 +29,6 @@ Route::middleware('auth:sanctum')->group(function () {
     // Auth
     Route::post('/logout', [AuthController::class , 'logout']);
     Route::get('/user', [AuthController::class , 'user']);
-
-    // Bootstrap Admin Setup
-    Route::get('/setup/check-bootstrap', [SetupAdminController::class , 'checkBootstrapStatus']);
-    Route::post('/setup/create-admin', [SetupAdminController::class , 'createPermanentAdmin']);
 
     // Events
     Route::get('/dashboard', [App\Http\Controllers\DashboardController::class , 'index']);
@@ -89,8 +84,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/users/all', [UserController::class , 'all']);
         Route::get('/users/pending-validation', [UserController::class , 'pendingValidation']);
         Route::post('/users', [UserController::class , 'store']);
+        Route::post('/users/dean', [UserController::class , 'createDean']);
         Route::put('/users/{id}/role', [UserController::class , 'updateRole']);
-        Route::put('/user/profile', [UserController::class , 'update']);
+        Route::post('/user/profile', [UserController::class , 'update']);
         Route::post('/users/{id}/validate', [UserController::class , 'validateUser']);
         Route::post('/users/{id}/revoke-validation', [UserController::class , 'revokeValidation']);
 

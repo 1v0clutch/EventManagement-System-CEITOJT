@@ -4,16 +4,20 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration
+return new class extends Migration 
 {
     public function up(): void
     {
         // Drop approved_request_id from events table if it exists
         if (Schema::hasColumn('events', 'approved_request_id')) {
             Schema::table('events', function (Blueprint $table) {
-                // Drop foreign key constraint first
-                $table->dropForeign(['approved_request_id']);
-                // Then drop the column
+                // Drop foreign key first if it exists
+                try {
+                    $table->dropForeign(['approved_request_id']);
+                }
+                catch (\Exception $e) {
+                // Foreign key may not exist, continue
+                }
                 $table->dropColumn('approved_request_id');
             });
         }
