@@ -16,6 +16,10 @@ export default function Calendar({ events, defaultEvents = [], userSchedules = [
   // File viewer state
   const [currentFileIndex, setCurrentFileIndex] = useState(0);
 
+  // Members pagination state
+  const [membersPage, setMembersPage] = useState(1);
+  const MEMBERS_PER_PAGE = 8;
+
   const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
     'July', 'August', 'September', 'October', 'November', 'December'];
 
@@ -93,44 +97,40 @@ export default function Calendar({ events, defaultEvents = [], userSchedules = [
 
   const getScheduleEventsForDate = (dateStr) => {
     const checkDate = new Date(dateStr);
-    const dayOfWeek = checkDate.getDay(); // 0 = Sunday, 1 = Monday, etc.
+    const dayOfWeek = checkDate.getDay();
     const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
     const dayName = dayNames[dayOfWeek];
 
-    // Get current semester (based on today's date)
-    const currentDate = new Date();
-    const currentMonth = currentDate.getMonth() + 1;
-    let currentSemester;
+    // Derive semester and school year from the date being checked
+    const dateMonth = checkDate.getMonth() + 1; // 1-12
+    const dateYear  = checkDate.getFullYear();
 
-    if (currentMonth >= 9 || currentMonth <= 1) {
-      currentSemester = 'first';
-    } else if (currentMonth >= 2 && currentMonth <= 6) {
-      currentSemester = 'second';
-    } else if (currentMonth >= 7 && currentMonth <= 8) {
-      currentSemester = 'midyear';
+    let dateSemester;
+    let dateSchoolYear;
+
+    if (dateMonth >= 9 || dateMonth <= 1) {
+      dateSemester  = 'first';
+      dateSchoolYear = dateMonth >= 9
+        ? `${dateYear}-${dateYear + 1}`
+        : `${dateYear - 1}-${dateYear}`;
+    } else if (dateMonth >= 2 && dateMonth <= 6) {
+      dateSemester  = 'second';
+      dateSchoolYear = `${dateYear - 1}-${dateYear}`;
+    } else {
+      dateSemester  = 'midyear';
+      dateSchoolYear = `${dateYear}-${dateYear + 1}`;
     }
 
-    // Check if the specific date falls within the current semester
-    const dateMonth = checkDate.getMonth() + 1;
-    let dateInCurrentSemester = false;
-
-    if (currentSemester === 'first' && (dateMonth >= 9 || dateMonth <= 1)) {
-      dateInCurrentSemester = true;
-    } else if (currentSemester === 'second' && (dateMonth >= 2 && dateMonth <= 6)) {
-      dateInCurrentSemester = true;
-    } else if (currentSemester === 'midyear' && (dateMonth >= 7 && dateMonth <= 8)) {
-      dateInCurrentSemester = true;
-    }
-
-    // Filter schedules by day and only show during current semester
     return userSchedules.filter(schedule => {
-      if (schedule.day !== dayName) {
-        return false;
+      if (schedule.day !== dayName) return false;
+
+      // If the schedule has semester/school_year metadata, match exactly
+      if (schedule.semester && schedule.school_year) {
+        return schedule.semester === dateSemester && schedule.school_year === dateSchoolYear;
       }
 
-      // Only show schedules during the current semester period
-      // This ensures Tuesday classes only show on Tuesdays within the current semester
-      return dateInCurrentSemester;
+      // Legacy schedules without metadata: fall back to semester-period check
+      return dateSemester !== undefined;
     });
   };
 
@@ -211,6 +211,31 @@ export default function Calendar({ events, defaultEvents = [], userSchedules = [
     return false;
   };
 
+  // Returns the schedule(s) that conflict with a given event on its date
+  const getConflictingSchedulesForEvent = (event) => {
+    if (!event || !event.date || !event.time || event.time === 'All Day') return [];
+    const scheduleEvents = getScheduleEventsForDate(event.date);
+    if (!scheduleEvents.length) return [];
+
+    const parseTimeToMinutes = (timeStr) => {
+      if (!timeStr) return null;
+      const parts = timeStr.split(':');
+      return parseInt(parts[0]) * 60 + parseInt(parts[1] || 0);
+    };
+
+    const evtStart = parseTimeToMinutes(event.time);
+    if (evtStart === null) return [];
+    const evtEnd = evtStart + 60; // assume 1-hour duration
+
+    return scheduleEvents.filter(schedule => {
+      if (!schedule.start_time || !schedule.end_time) return false;
+      const schStart = parseTimeToMinutes(schedule.start_time);
+      const schEnd = parseTimeToMinutes(schedule.end_time);
+      if (schStart === null || schEnd === null) return false;
+      return evtStart < schEnd && schStart < evtEnd;
+    });
+  };
+
   const handleDateClick = (dateStr) => {
     setSelectedDate(dateStr);
     const regularEvents = getEventsForDate(dateStr);
@@ -227,20 +252,9 @@ export default function Calendar({ events, defaultEvents = [], userSchedules = [
       ...event,
       is_default_event: true
     }));
-    const scheduleEvents = getScheduleEventsForDate(dateStr);
 
-    // Group all schedules into a single entry
-    const groupedSchedules = scheduleEvents.length > 0 ? [{
-      is_schedule: true,
-      type: 'schedule',
-      day: scheduleEvents[0].day,
-      allSchedules: scheduleEvents,
-      isScheduleGroup: true,
-      clickedDate: dateStr
-    }] : [];
-
-    // Combine all events and sort by priority
-    const allEvents = [...regularEvents, ...academicEvents, ...groupedSchedules];
+    // Combine only non-schedule events and sort by priority (schedules are shown via cell tint)
+    const allEvents = [...regularEvents, ...academicEvents];
     allEvents.sort((a, b) => getEventPriority(a) - getEventPriority(b));
 
     setMoreModalDate(dateStr);
@@ -305,7 +319,8 @@ export default function Calendar({ events, defaultEvents = [], userSchedules = [
 
     setShowEventDetailModal(true);
     setShowMoreModal(false);
-    setCurrentFileIndex(0); // Reset file index when opening new event
+    setCurrentFileIndex(0);
+    setMembersPage(1); // Reset members page when opening new event
   };
 
   // File navigation functions
@@ -421,48 +436,41 @@ export default function Calendar({ events, defaultEvents = [], userSchedules = [
       const nonScheduleEvents = [...regularEvents, ...academicEvents];
       nonScheduleEvents.sort((a, b) => getEventPriority(a) - getEventPriority(b));
 
-      // Display limit: show first 1 non-schedule event to prevent text cutoff
-      const displayLimit = 1;
+      // Display limit: show first 2 non-schedule events before "View All"
+      const displayLimit = 2;
       const eventsToDisplay = nonScheduleEvents.slice(0, displayLimit);
 
-      // Check if this cell will show "View More" button
-      const hasViewMore = allEvents.length > displayLimit;
+      // Check if this cell will show "View More" button (schedules don't count toward the threshold)
+      const hasViewMore = nonScheduleEvents.length > displayLimit;
 
       // Check for conflicts on this date
       const dateHasConflicts = isCurrentMonth && !isPastDate && hasConflicts(dateStr);
 
-      // Check if this day has a weekly schedule AND falls within the current semester
+      // Check if this day has a weekly schedule AND falls within the correct semester
       const dayOfWeek = cellDate.getDay();
       const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
       const cellDayName = dayNames[dayOfWeek];
-      
-      // Get current semester (based on today's date)
-      const currentDate = new Date();
-      const currentMonth = currentDate.getMonth() + 1;
-      let currentSemester;
-      
-      if (currentMonth >= 9 || currentMonth <= 1) {
-        currentSemester = 'first';
-      } else if (currentMonth >= 2 && currentMonth <= 6) {
-        currentSemester = 'second';
-      } else if (currentMonth >= 7 && currentMonth <= 8) {
-        currentSemester = 'midyear';
-      }
-      
-      // Check if the cell date falls within the current semester
+
+      // Derive semester + school year from the cell date (same logic as getScheduleEventsForDate)
       const cellDateMonth = cellDate.getMonth() + 1;
-      let cellDateInCurrentSemester = false;
-      
-      if (currentSemester === 'first' && (cellDateMonth >= 9 || cellDateMonth <= 1)) {
-        cellDateInCurrentSemester = true;
-      } else if (currentSemester === 'second' && (cellDateMonth >= 2 && cellDateMonth <= 6)) {
-        cellDateInCurrentSemester = true;
-      } else if (currentSemester === 'midyear' && (cellDateMonth >= 7 && cellDateMonth <= 8)) {
-        cellDateInCurrentSemester = true;
+      const cellDateYear  = cellDate.getFullYear();
+      let cellSemester, cellSchoolYear;
+      if (cellDateMonth >= 9 || cellDateMonth <= 1) {
+        cellSemester   = 'first';
+        cellSchoolYear = cellDateMonth >= 9 ? `${cellDateYear}-${cellDateYear + 1}` : `${cellDateYear - 1}-${cellDateYear}`;
+      } else if (cellDateMonth >= 2 && cellDateMonth <= 6) {
+        cellSemester   = 'second';
+        cellSchoolYear = `${cellDateYear - 1}-${cellDateYear}`;
+      } else {
+        cellSemester   = 'midyear';
+        cellSchoolYear = `${cellDateYear}-${cellDateYear + 1}`;
       }
-      
-      // Only show class day tint if the day has a schedule AND the date is in the current semester
-      const hasWeeklySchedule = cellDateInCurrentSemester && userSchedules.some(s => s.day === cellDayName);
+
+      const hasWeeklySchedule = userSchedules.some(s => {
+        if (s.day !== cellDayName) return false;
+        if (s.semester && s.school_year) return s.semester === cellSemester && s.school_year === cellSchoolYear;
+        return true; // legacy rows without metadata
+      });
 
       days.push(
         <div
@@ -490,22 +498,6 @@ export default function Calendar({ events, defaultEvents = [], userSchedules = [
               >
                 {cellDay}
               </span>
-
-              {dateHasConflicts && (
-                <>
-                  <div className="relative group/conflict flex-shrink-0">
-                    <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-red-600 cursor-help drop-shadow-sm" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                    </svg>
-                    {/* Tooltip */}
-                    <div className="absolute left-0 top-full mt-1.5 hidden group-hover/conflict:block z-50">
-                      <div className="bg-gray-900 text-white text-xs px-2.5 py-1.5 rounded-md shadow-lg whitespace-nowrap">
-                        <span className="font-medium">Schedule Conflict</span>
-                      </div>
-                    </div>
-                  </div>
-                </>
-              )}
             </div>
           </div>
 
@@ -535,10 +527,12 @@ export default function Calendar({ events, defaultEvents = [], userSchedules = [
                     </div>
                   );
                 } else {
+                  const pillConflicts = getConflictingSchedulesForEvent(event);
+                  const hasConflict = pillConflicts.length > 0;
                   return (
                     <div
                       key={`regular-${idx}`}
-                      className={`text-[8px] sm:text-xs px-1 py-0.5 text-white rounded-sm truncate font-normal shadow-sm transition-all ${
+                      className={`flex items-center gap-0.5 text-[8px] sm:text-xs text-white rounded-sm font-normal shadow-sm transition-all overflow-hidden ${
                         isPastDate
                           ? 'bg-gray-400 opacity-75'
                           : isPersonal
@@ -550,23 +544,31 @@ export default function Calendar({ events, defaultEvents = [], userSchedules = [
                       title={`${event.title} ${isPastDate ? '(Past Event)' :
                         isPersonal ? '(Personal)' : 
                         isMeeting ? (isHosted ? '(Hosting Meeting)' : '(Invited to Meeting)') : 
-                        (isHosted ? '(Hosting Event)' : '(Invited to Event)')}`}
+                        (isHosted ? '(Hosting Event)' : '(Invited to Event)')
+                      }${hasConflict ? ' ⚠ Schedule Conflict' : ''}`}
                       onClick={(e) => !isPastDate && handleEventClick(event, e)}
                     >
-                      {event.title}
+                      <span className="truncate px-1 py-0.5 flex-1 min-w-0">{event.title}</span>
+                      {hasConflict && !isPastDate && (
+                        <span className="flex-shrink-0 pr-0.5">
+                          <svg className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-white drop-shadow" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                          </svg>
+                        </span>
+                      )}
                     </div>
                   );
                 }
               })}
 
-              {/* "View All" button - only show when total events > 1 and not past */}
-              {!isPastDate && allEvents.length > displayLimit && (
+              {/* "View All" button - only show when non-schedule events > displayLimit */}
+              {!isPastDate && nonScheduleEvents.length > displayLimit && (
                 <button
                   onClick={(e) => handleMoreClick(e, dateStr)}
                   className="text-[8px] sm:text-xs text-green-600 hover:text-green-800 font-semibold px-0.5 hover:underline transition-colors mt-auto"
                 >
-                  <span className="hidden sm:inline">View All ({allEvents.length})</span>
-                  <span className="sm:hidden">+{allEvents.length - displayLimit}</span>
+                  <span className="hidden sm:inline">View All ({nonScheduleEvents.length})</span>
+                  <span className="sm:hidden">+{nonScheduleEvents.length - displayLimit}</span>
                 </button>
               )}
             </div>
@@ -853,6 +855,34 @@ export default function Calendar({ events, defaultEvents = [], userSchedules = [
                     </div>
                   )}
 
+                  {/* Schedule Conflict Warning */}
+                  {!selectedEvent.is_default_event && !selectedEvent.isScheduleGroup && !selectedEvent.is_schedule && (() => {
+                    const conflicts = getConflictingSchedulesForEvent(selectedEvent);
+                    if (!conflicts.length) return null;
+                    return (
+                      <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                        <div className="flex items-center gap-2 mb-2">
+                          <svg className="w-4 h-4 text-red-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                          </svg>
+                          <p className="text-xs font-semibold text-red-700 uppercase tracking-wide">Schedule Conflict</p>
+                        </div>
+                        <p className="text-xs text-red-600 mb-2">This event overlaps with your class schedule:</p>
+                        <div className="space-y-1.5">
+                          {conflicts.map((schedule, i) => (
+                            <div key={i} className="flex items-start gap-2">
+                              <div className="w-2 h-2 rounded-full bg-red-400 flex-shrink-0 mt-1" style={schedule.color ? { backgroundColor: schedule.color } : {}}></div>
+                              <div>
+                                <p className="text-xs font-medium text-red-800">{schedule.description || schedule.title || 'Class'}</p>
+                                <p className="text-xs text-red-600">{formatTimeRange(schedule.start_time, schedule.end_time)}</p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })()}
+
                   {/* Class Schedule Details - Show all schedules for the day */}
                   {selectedEvent.isScheduleGroup && selectedEvent.allSchedules && (
                     <div>
@@ -930,30 +960,58 @@ export default function Calendar({ events, defaultEvents = [], userSchedules = [
 
                   {/* Participants */}
                   {!(selectedEvent.is_default_event || !selectedEvent.time) && !selectedEvent.isScheduleGroup && selectedEvent.members && selectedEvent.members.length > 0 && (
-                    <div className="mt-6 pt-5 border-t border-gray-200 flex-1 flex flex-col min-h-0">
-                      <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-3 flex-shrink-0">
-                        Participants ({selectedEvent.members.length})
-                      </p>
-                      <div className="space-y-2 overflow-y-auto flex-1">
-                        {selectedEvent.members.map((member, index) => (
-                          <div key={member.id || index} className="flex items-center gap-3 p-2.5 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-                            <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0">
-                              <span className="text-white text-xs font-semibold">
-                                {member.name ? member.name.charAt(0).toUpperCase() : 'M'}
-                              </span>
+                    <div className="mt-6 pt-5 border-t border-gray-200 flex-shrink-0">
+                      <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-3">Participants ({selectedEvent.members.length})</p>
+                      <div className="space-y-2">
+                        {selectedEvent.members
+                          .slice((membersPage - 1) * MEMBERS_PER_PAGE, membersPage * MEMBERS_PER_PAGE)
+                          .map((member, index) => (
+                            <div key={member.id || index} className="flex items-center gap-3 p-2.5 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                              <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0">
+                                <span className="text-white text-xs font-semibold">
+                                  {member.name ? member.name.charAt(0).toUpperCase() : 'M'}
+                                </span>
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium text-gray-900 truncate">
+                                  {member.name || 'Member'}
+                                  {currentUser && member.id === currentUser.id && (
+                                    <span className="ml-2 text-xs text-green-600 font-normal">(You)</span>
+                                  )}
+                                </p>
+                                <p className="text-xs text-gray-500 truncate">{member.email}</p>
+                              </div>
                             </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium text-gray-900 truncate">
-                                {member.name || 'Member'}
-                                {currentUser && member.id === currentUser.id && (
-                                  <span className="ml-2 text-xs text-green-600 font-normal">(You)</span>
-                                )}
-                              </p>
-                              <p className="text-xs text-gray-500 truncate">{member.email}</p>
-                            </div>
-                          </div>
-                        ))}
+                          ))}
                       </div>
+                      {selectedEvent.members.length > MEMBERS_PER_PAGE && (
+                        <div className="flex items-center justify-between mt-3 pt-2 border-t border-gray-100">
+                          <span className="text-xs text-gray-400">
+                            {(membersPage - 1) * MEMBERS_PER_PAGE + 1}–{Math.min(membersPage * MEMBERS_PER_PAGE, selectedEvent.members.length)} of {selectedEvent.members.length}
+                          </span>
+                          <div className="flex items-center gap-1">
+                            <button
+                              onClick={() => setMembersPage(p => Math.max(1, p - 1))}
+                              disabled={membersPage === 1}
+                              className="p-1 rounded text-gray-400 hover:text-gray-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
+                              </svg>
+                            </button>
+                            <span className="text-xs text-gray-600 px-1">{membersPage} / {Math.ceil(selectedEvent.members.length / MEMBERS_PER_PAGE)}</span>
+                            <button
+                              onClick={() => setMembersPage(p => Math.min(Math.ceil(selectedEvent.members.length / MEMBERS_PER_PAGE), p + 1))}
+                              disabled={membersPage === Math.ceil(selectedEvent.members.length / MEMBERS_PER_PAGE)}
+                              className="p-1 rounded text-gray-400 hover:text-gray-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
+                              </svg>
+                            </button>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>

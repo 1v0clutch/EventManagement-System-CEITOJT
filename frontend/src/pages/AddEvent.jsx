@@ -5,7 +5,7 @@ import api from '../services/api';
 import { invalidateCache } from '../services/cache';
 import EventForm from '../components/EventForm';
 import Navbar from '../components/Navbar';
-import logo from '../assets/CvSU Logo.png';
+import logo from '../assets/CVSU LOGO.png';
 
 export default function AddEvent() {
   const navigate = useNavigate();

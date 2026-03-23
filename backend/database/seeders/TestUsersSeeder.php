@@ -17,6 +17,90 @@ class TestUsersSeeder extends Seeder
      *
      * Email format: firstname.lastname.role[n].dept@cvsu.edu.ph (no spaces anywhere)
      */
+
+    /**
+     * Generate a unique schedule for a user based on their pattern type and a seed index.
+     * The seed index shifts start times and rotates subject labels so every user differs.
+     */
+    private function generateSchedule(string $pattern, int $seed): array
+    {
+        // Time offset pool: 0, 30, 60 minutes — cycles through based on seed
+        $offsets = [0, 30, 60]; // minutes
+        $offset  = $offsets[$seed % count($offsets)];
+
+        $addMinutes = function (string $time, int $mins): string {
+            [$h, $m] = explode(':', $time);
+            $total = (int)$h * 60 + (int)$m + $mins;
+            return sprintf('%02d:%02d', intdiv($total, 60), $total % 60);
+        };
+
+        // Rotate label variants so descriptions differ per user
+        $lectureLabels = ['Class - Lecture', 'Class - Discussion', 'Class - Recitation', 'Class - Review', 'Class - Seminar'];
+        $labLabels     = ['Class - Lab', 'Class - Workshop', 'Class - Practicum', 'Class - Studio', 'Class - Simulation'];
+        $consultLabels = ['Consultation Hours', 'Student Advising', 'Office Consultation', 'Academic Advising', 'Student Mentoring'];
+        $researchLabels= ['Research / Prep', 'Research Work', 'Module Preparation', 'Curriculum Dev', 'Academic Research'];
+        $adminLabels   = ['Administrative Meeting', 'Admin Coordination', 'Staff Meeting', 'Admin Review', 'Planning Session'];
+        $officeLabels  = ['Office Hours', 'Open Office Hours', 'Faculty Office Hours', 'Student Drop-in', 'Office Consultation'];
+        $deptLabels    = ['Department Meeting', 'Dept. Coordination', 'Dept. Review', 'Dept. Planning', 'Dept. Assembly'];
+        $coordLabels   = ['Program Coordination', 'Program Review', 'Coordination Meeting', 'Program Planning', 'Coord. Session'];
+        $currLabels    = ['Curriculum Review', 'Curriculum Planning', 'Accreditation Tasks', 'Program Assessment', 'Curriculum Dev'];
+        $weeklyLabels  = ['Weekly Review', 'Weekly Wrap-up', 'End-of-Week Meeting', 'Weekly Summary', 'Weekly Planning'];
+
+        $pick = fn(array $arr) => $arr[$seed % count($arr)];
+
+        // Day rotation: shift the day set by (seed % 2) to vary Mon/Tue/Wed/Thu/Fri combos
+        // We keep the same 5 working days but vary which slots land on which days
+        $dayRotations = [
+            [0 => 'Monday', 1 => 'Tuesday', 2 => 'Wednesday', 3 => 'Thursday', 4 => 'Friday'],
+            [0 => 'Monday', 1 => 'Wednesday', 2 => 'Tuesday', 3 => 'Friday', 4 => 'Thursday'],
+            [0 => 'Tuesday', 1 => 'Monday', 2 => 'Thursday', 3 => 'Wednesday', 4 => 'Friday'],
+            [0 => 'Wednesday', 1 => 'Monday', 2 => 'Friday', 3 => 'Tuesday', 4 => 'Thursday'],
+            [0 => 'Thursday', 1 => 'Tuesday', 2 => 'Monday', 3 => 'Friday', 4 => 'Wednesday'],
+        ];
+        $days = $dayRotations[$seed % count($dayRotations)];
+
+        if ($pattern === 'heavy') {
+            return [
+                ['day' => $days[0], 'start' => $addMinutes('07:30', $offset),      'end' => $addMinutes('09:00', $offset),  'desc' => $pick($adminLabels)],
+                ['day' => $days[0], 'start' => $addMinutes('10:00', $offset),      'end' => $addMinutes('12:00', $offset),  'desc' => $pick($officeLabels)],
+                ['day' => $days[1], 'start' => $addMinutes('08:00', $offset),      'end' => $addMinutes('10:00', $offset),  'desc' => $pick($deptLabels)],
+                ['day' => $days[1], 'start' => $addMinutes('13:00', $offset),      'end' => $addMinutes('15:00', $offset),  'desc' => $pick($consultLabels)],
+                ['day' => $days[2], 'start' => $addMinutes('07:30', $offset),      'end' => $addMinutes('09:30', $offset),  'desc' => 'Faculty Meeting'],
+                ['day' => $days[2], 'start' => $addMinutes('10:00', $offset),      'end' => $addMinutes('12:00', $offset),  'desc' => $pick($officeLabels)],
+                ['day' => $days[3], 'start' => $addMinutes('08:00', $offset),      'end' => $addMinutes('10:00', $offset),  'desc' => 'Administrative Tasks'],
+                ['day' => $days[3], 'start' => $addMinutes('13:00', $offset),      'end' => $addMinutes('15:00', $offset),  'desc' => $pick($consultLabels)],
+                ['day' => $days[4], 'start' => $addMinutes('07:30', $offset),      'end' => $addMinutes('09:00', $offset),  'desc' => $pick($weeklyLabels)],
+                ['day' => $days[4], 'start' => $addMinutes('10:00', $offset),      'end' => $addMinutes('12:00', $offset),  'desc' => $pick($officeLabels)],
+            ];
+        }
+
+        if ($pattern === 'faculty') {
+            return [
+                ['day' => $days[0], 'start' => $addMinutes('07:30', $offset),  'end' => $addMinutes('09:00', $offset),  'desc' => $pick($lectureLabels)],
+                ['day' => $days[0], 'start' => $addMinutes('10:30', $offset),  'end' => $addMinutes('12:00', $offset),  'desc' => $pick($labLabels)],
+                ['day' => $days[1], 'start' => $addMinutes('08:00', $offset),  'end' => $addMinutes('09:30', $offset),  'desc' => $pick($lectureLabels)],
+                ['day' => $days[1], 'start' => $addMinutes('13:00', $offset),  'end' => $addMinutes('14:30', $offset),  'desc' => $pick($lectureLabels)],
+                ['day' => $days[2], 'start' => $addMinutes('07:30', $offset),  'end' => $addMinutes('09:00', $offset),  'desc' => $pick($lectureLabels)],
+                ['day' => $days[2], 'start' => $addMinutes('10:30', $offset),  'end' => $addMinutes('12:00', $offset),  'desc' => $pick($labLabels)],
+                ['day' => $days[3], 'start' => $addMinutes('08:00', $offset),  'end' => $addMinutes('09:30', $offset),  'desc' => $pick($lectureLabels)],
+                ['day' => $days[3], 'start' => $addMinutes('13:00', $offset),  'end' => $addMinutes('14:30', $offset),  'desc' => $pick($consultLabels)],
+                ['day' => $days[4], 'start' => $addMinutes('07:30', $offset),  'end' => $addMinutes('09:00', $offset),  'desc' => $pick($lectureLabels)],
+                ['day' => $days[4], 'start' => $addMinutes('10:00', $offset),  'end' => $addMinutes('11:30', $offset),  'desc' => $pick($researchLabels)],
+            ];
+        }
+
+        // coordinator
+        return [
+            ['day' => $days[0], 'start' => $addMinutes('08:00', $offset),  'end' => $addMinutes('10:00', $offset),  'desc' => $pick($coordLabels)],
+            ['day' => $days[0], 'start' => $addMinutes('13:00', $offset),  'end' => $addMinutes('15:00', $offset),  'desc' => $pick($officeLabels)],
+            ['day' => $days[1], 'start' => $addMinutes('09:00', $offset),  'end' => $addMinutes('11:00', $offset),  'desc' => $pick($currLabels)],
+            ['day' => $days[2], 'start' => $addMinutes('08:00', $offset),  'end' => $addMinutes('10:00', $offset),  'desc' => $pick($coordLabels)],
+            ['day' => $days[2], 'start' => $addMinutes('13:00', $offset),  'end' => $addMinutes('15:00', $offset),  'desc' => $pick($officeLabels)],
+            ['day' => $days[3], 'start' => $addMinutes('09:00', $offset),  'end' => $addMinutes('11:00', $offset),  'desc' => $pick($currLabels)],
+            ['day' => $days[4], 'start' => $addMinutes('08:00', $offset),  'end' => $addMinutes('10:00', $offset),  'desc' => $pick($weeklyLabels)],
+        ];
+    }
+
     public function run(): void
     {
         $departments = [
@@ -25,44 +109,6 @@ class TestUsersSeeder extends Seeder
             'DCEA'  => 'Department of Computer Engineering and Architecture',
             'DIET'  => 'Department of Industrial and Electrical Technology',
             'DIT'   => 'Department of Information Technology',
-        ];
-
-        // Typical weekly schedule blocks used for seeding
-        // Each role gets a realistic schedule pattern
-        $schedulePatterns = [
-            'heavy' => [ // Dean, Chairpersons
-                ['day' => 'Monday',    'start' => '07:30', 'end' => '09:00', 'desc' => 'Administrative Meeting'],
-                ['day' => 'Monday',    'start' => '10:00', 'end' => '12:00', 'desc' => 'Office Hours'],
-                ['day' => 'Tuesday',   'start' => '08:00', 'end' => '10:00', 'desc' => 'Department Meeting'],
-                ['day' => 'Tuesday',   'start' => '13:00', 'end' => '15:00', 'desc' => 'Consultation'],
-                ['day' => 'Wednesday', 'start' => '07:30', 'end' => '09:30', 'desc' => 'Faculty Meeting'],
-                ['day' => 'Wednesday', 'start' => '10:00', 'end' => '12:00', 'desc' => 'Office Hours'],
-                ['day' => 'Thursday',  'start' => '08:00', 'end' => '10:00', 'desc' => 'Administrative Tasks'],
-                ['day' => 'Thursday',  'start' => '13:00', 'end' => '15:00', 'desc' => 'Consultation'],
-                ['day' => 'Friday',    'start' => '07:30', 'end' => '09:00', 'desc' => 'Weekly Review'],
-                ['day' => 'Friday',    'start' => '10:00', 'end' => '12:00', 'desc' => 'Office Hours'],
-            ],
-            'faculty' => [ // Faculty Members
-                ['day' => 'Monday',    'start' => '07:30', 'end' => '09:00', 'desc' => 'Class - Lecture'],
-                ['day' => 'Monday',    'start' => '10:30', 'end' => '12:00', 'desc' => 'Class - Lab'],
-                ['day' => 'Tuesday',   'start' => '08:00', 'end' => '09:30', 'desc' => 'Class - Lecture'],
-                ['day' => 'Tuesday',   'start' => '13:00', 'end' => '14:30', 'desc' => 'Class - Lecture'],
-                ['day' => 'Wednesday', 'start' => '07:30', 'end' => '09:00', 'desc' => 'Class - Lecture'],
-                ['day' => 'Wednesday', 'start' => '10:30', 'end' => '12:00', 'desc' => 'Class - Lab'],
-                ['day' => 'Thursday',  'start' => '08:00', 'end' => '09:30', 'desc' => 'Class - Lecture'],
-                ['day' => 'Thursday',  'start' => '13:00', 'end' => '14:30', 'desc' => 'Consultation Hours'],
-                ['day' => 'Friday',    'start' => '07:30', 'end' => '09:00', 'desc' => 'Class - Lecture'],
-                ['day' => 'Friday',    'start' => '10:00', 'end' => '11:30', 'desc' => 'Research / Prep'],
-            ],
-            'coordinator' => [ // Coordinators, CEIT Officials
-                ['day' => 'Monday',    'start' => '08:00', 'end' => '10:00', 'desc' => 'Program Coordination'],
-                ['day' => 'Monday',    'start' => '13:00', 'end' => '15:00', 'desc' => 'Office Hours'],
-                ['day' => 'Tuesday',   'start' => '09:00', 'end' => '11:00', 'desc' => 'Curriculum Review'],
-                ['day' => 'Wednesday', 'start' => '08:00', 'end' => '10:00', 'desc' => 'Program Coordination'],
-                ['day' => 'Wednesday', 'start' => '13:00', 'end' => '15:00', 'desc' => 'Office Hours'],
-                ['day' => 'Thursday',  'start' => '09:00', 'end' => '11:00', 'desc' => 'Accreditation Tasks'],
-                ['day' => 'Friday',    'start' => '08:00', 'end' => '10:00', 'desc' => 'Weekly Coordination'],
-            ],
         ];
 
         $testUsers = [];
@@ -336,10 +382,10 @@ class TestUsersSeeder extends Seeder
         $now = now();
 
         DB::transaction(function () use (
-            $testUsers, $schedulePatterns,
+            $testUsers,
             &$created, &$existing, &$schedulesCreated, $now
         ) {
-            foreach ($testUsers as $userData) {
+            foreach ($testUsers as $userIndex => $userData) {
                 $pattern = $userData['schedule_pattern'];
                 unset($userData['schedule_pattern']);
 
@@ -353,17 +399,26 @@ class TestUsersSeeder extends Seeder
                 }
 
                 // Seed schedules if a pattern is defined and user has none yet
+                // Each user gets a unique schedule via their index as the seed
                 if ($pattern && UserSchedule::where('user_id', $user->id)->doesntExist()) {
+                    $slots = $this->generateSchedule($pattern, $userIndex);
+                    // Determine current semester and school year for seeded schedules
+                    $seedMonth = (int)$now->format('m');
+                    $seedYear  = (int)$now->format('Y');
+                    $seedSchoolYear = $seedMonth >= 9 ? "{$seedYear}-" . ($seedYear + 1) : ($seedYear - 1) . "-{$seedYear}";
+                    $seedSemester   = ($seedMonth >= 9 || $seedMonth <= 1) ? 'first' : (($seedMonth >= 2 && $seedMonth <= 6) ? 'second' : 'midyear');
                     $rows = [];
-                    foreach ($schedulePatterns[$pattern] as $slot) {
+                    foreach ($slots as $slot) {
                         $rows[] = [
-                            'user_id'    => $user->id,
-                            'day'        => $slot['day'],
-                            'start_time' => $slot['start'],
-                            'end_time'   => $slot['end'],
+                            'user_id'     => $user->id,
+                            'day'         => $slot['day'],
+                            'start_time'  => $slot['start'],
+                            'end_time'    => $slot['end'],
                             'description' => $slot['desc'],
-                            'created_at' => $now,
-                            'updated_at' => $now,
+                            'semester'    => $seedSemester,
+                            'school_year' => $seedSchoolYear,
+                            'created_at'  => $now,
+                            'updated_at'  => $now,
                         ];
                     }
                     UserSchedule::insert($rows);
@@ -415,9 +470,9 @@ class TestUsersSeeder extends Seeder
         $this->command->info("   CEIT Faculty:     bernard.castillo.fac1.CEIT@cvsu.edu.ph");
 
         $this->command->info("\n📅 SCHEDULE PATTERNS:");
-        $this->command->info("   • Dean / Chairpersons: 10 slots/week (admin-heavy)");
-        $this->command->info("   • CEIT Officials / All Coordinators: 7 slots/week");
-        $this->command->info("   • Faculty Members: 10 slots/week (class schedule)");
+        $this->command->info("   • Dean / Chairpersons: 10 slots/week (admin-heavy, unique per user)");
+        $this->command->info("   • CEIT Officials / All Coordinators: 7 slots/week (unique per user)");
+        $this->command->info("   • Faculty Members: 10 slots/week (class schedule, unique per user)");
 
         $this->command->info("\n✅ Seeding completed successfully!\n");
     }

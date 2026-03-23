@@ -23,7 +23,9 @@ export default function Dashboard() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const [isMembersDropdownOpen, setIsMembersDropdownOpen] = useState(false);
+  const [isScheduleRequiredModalOpen, setIsScheduleRequiredModalOpen] = useState(false);
+  const [hasSchedule, setHasSchedule] = useState(true);
+
 
   useEffect(() => {
     // Check if user is validated - redirect if not
@@ -197,7 +199,6 @@ export default function Dashboard() {
   const handleCloseModal = () => {
     setIsModalOpen(false);
     setSelectedEvent(null);
-    setIsMembersDropdownOpen(false);
     setCurrentImageIndex(0);
   };
 
@@ -540,85 +541,6 @@ export default function Dashboard() {
                 </div>
               </div>
             </div>
-
-            {/* Members Dropdown */}
-            {selectedEvent.members && selectedEvent.members.length > 0 && (
-              <div>
-                <button
-                  onClick={() => setIsMembersDropdownOpen(!isMembersDropdownOpen)}
-                  className="w-full flex items-center justify-between bg-gray-50 hover:bg-gray-100 rounded-xl p-3 sm:p-4 transition-colors touch-manipulation"
-                >
-                  <div className="flex items-center space-x-2 sm:space-x-3 min-w-0 flex-1">
-                    <div className="bg-green-100 rounded-lg p-1.5 sm:p-2 flex-shrink-0">
-                      <svg className="w-4 h-4 sm:w-5 sm:h-5 text-green-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
-                      </svg>
-                    </div>
-                    <div className="text-left min-w-0 flex-1">
-                      <h4 className="font-semibold text-gray-900 text-sm sm:text-base">Invited Members</h4>
-                      <p className="text-xs sm:text-sm text-gray-500">{selectedEvent.members.length} member{selectedEvent.members.length !== 1 ? 's' : ''} invited</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-2 flex-shrink-0">
-                    {/* Member avatars preview */}
-                    <div className="flex -space-x-1 sm:-space-x-2">
-                      {selectedEvent.members.slice(0, 3).map((member, index) => (
-                        <div
-                          key={member.id}
-                          className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-green-100 border-2 border-white flex items-center justify-center text-green-700 font-bold text-xs"
-                          style={{ zIndex: 10 - index }}
-                        >
-                          {member.username.charAt(0).toUpperCase()}
-                        </div>
-                      ))}
-                      {selectedEvent.members.length > 3 && (
-                        <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-gray-100 border-2 border-white flex items-center justify-center text-gray-600 font-bold text-xs">
-                          +{selectedEvent.members.length - 3}
-                        </div>
-                      )}
-                    </div>
-                    <svg 
-                      className={`w-4 h-4 sm:w-5 sm:h-5 text-gray-400 transition-transform duration-200 ${
-                        isMembersDropdownOpen ? 'rotate-180' : ''
-                      }`} 
-                      fill="none" 
-                      stroke="currentColor" 
-                      viewBox="0 0 24 24"
-                    >
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </div>
-                </button>
-                
-                {/* Dropdown Content */}
-                {isMembersDropdownOpen && (
-                  <div className="mt-2 sm:mt-3 space-y-2 max-h-40 sm:max-h-48 overflow-y-auto">
-                    {selectedEvent.members.map((member) => (
-                      <div key={member.id} className="flex items-center justify-between bg-white rounded-xl px-3 sm:px-4 py-2 sm:py-3 border border-gray-100 hover:border-gray-200 transition-colors">
-                        <div className="flex items-center space-x-2 sm:space-x-3 min-w-0 flex-1">
-                          <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-green-100 flex items-center justify-center text-green-700 font-bold text-xs sm:text-sm flex-shrink-0">
-                            {member.username.charAt(0).toUpperCase()}
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <p className="text-xs sm:text-sm font-medium text-gray-900 break-words">{member.username}</p>
-                            <p className="text-xs text-gray-500 break-all">{member.email}</p>
-                          </div>
-                        </div>
-                        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold flex-shrink-0 ${
-                          member.status === 'accepted'
-                            ? 'bg-green-100 text-green-800'
-                            : member.status === 'declined'
-                              ? 'bg-red-100 text-red-800'
-                              : 'bg-yellow-100 text-yellow-800'
-                        }`}>
-                          {member.status === 'accepted' ? '✓ Accepted' : member.status === 'declined' ? '✗ Declined' : '⏳ Pending'}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
 
             {/* Action Buttons */}
             <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center pt-4 sm:pt-6 border-t border-gray-200 gap-3 sm:gap-0">
