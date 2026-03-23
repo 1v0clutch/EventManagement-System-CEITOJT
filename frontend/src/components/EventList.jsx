@@ -6,6 +6,39 @@ export default function EventList({ events, currentUser, onEdit, onRefresh }) {
   const [availability, setAvailability] = useState({});
   const [loading, setLoading] = useState({});
 
+  // Event hierarchy priority (lower number = higher priority)
+  const getEventPriority = (event) => {
+    const isHosted = currentUser && event.host && event.host.id === currentUser.id;
+    const isPersonal = event.is_personal;
+    const isMeeting = event.event_type === 'meeting';
+    const isAcademic = event.is_default_event === true;
+
+    if (isAcademic) return 6; // Academic Event
+    if (isPersonal) return 5; // Personal Event
+    if (isMeeting && !isHosted) return 4; // Invited Meeting
+    if (isMeeting && isHosted) return 3; // Hosting Meeting
+    if (!isMeeting && !isHosted) return 2; // Invited Event
+    if (!isMeeting && isHosted) return 1; // Hosting Event - highest priority
+    
+    return 7; // Fallback
+  };
+
+  // Sort events by date, time, and priority
+  const sortedEvents = [...events].sort((a, b) => {
+    // First sort by date
+    if (a.date !== b.date) {
+      return a.date.localeCompare(b.date);
+    }
+    // Then by time
+    if (a.time !== b.time) {
+      if (!a.time) return 1;
+      if (!b.time) return -1;
+      return a.time.localeCompare(b.time);
+    }
+    // Finally by priority
+    return getEventPriority(a) - getEventPriority(b);
+  });
+
   useEffect(() => {
     // Fetch availability for all members in all events
     events.forEach(event => {
@@ -59,11 +92,11 @@ export default function EventList({ events, currentUser, onEdit, onRefresh }) {
         </button>
       </div>
 
-      {events.length === 0 ? (
+      {sortedEvents.length === 0 ? (
         <p className="text-gray-500">No events yet.</p>
       ) : (
         <div className="space-y-4">
-          {events.map(event => (
+          {sortedEvents.map(event => (
             <div
               key={event.id}
               className={`border rounded-lg p-4 hover:shadow-md transition-shadow ${event.is_open ? 'border-green-500 bg-green-50' : 'border-gray-200'

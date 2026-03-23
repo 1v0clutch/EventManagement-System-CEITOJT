@@ -6,20 +6,17 @@ import { getCache, setCache } from '../services/cache';
 import Calendar from '../components/Calendar';
 import Navbar from '../components/Navbar';
 import Modal from '../components/Modal';
-import logo from "../assets/CEIT-LOGO.png";
 
 export default function Dashboard() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const [events, setEvents] = useState([]);
   const [defaultEvents, setDefaultEvents] = useState([]);
   const [userSchedules, setUserSchedules] = useState([]);
-  const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState(null);
   const [selectedDateEvents, setSelectedDateEvents] = useState([]);
-  const [highlightedDate, setHighlightedDate] = useState(null);
   const [isAccountDropdownOpen, setIsAccountDropdownOpen] = useState(false);
 
   // Modal States
@@ -27,33 +24,36 @@ export default function Dashboard() {
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isMembersDropdownOpen, setIsMembersDropdownOpen] = useState(false);
-  const [isScheduleRequiredModalOpen, setIsScheduleRequiredModalOpen] = useState(false);
-  const [hasSchedule, setHasSchedule] = useState(true);
-
 
   useEffect(() => {
-    // Check if user is validated
+    // Check if user is validated - redirect if not
     if (user && !user.is_validated) {
       navigate('/account');
       return;
     }
     
+    // Only fetch data if user is loaded and validated
+    if (!user) return;
+    
+    // Reset loading state and fetch data
+    setLoading(true);
     fetchData();
     
     // Auto-select today's date
     const today = new Date();
     const todayStr = today.toISOString().split('T')[0];
     setSelectedDate(todayStr);
-  }, []);
+  }, [user]);
 
   // Listen for refresh from navigation state (e.g., after creating event)
   useEffect(() => {
     if (location.state?.refresh) {
+      setLoading(true);
       fetchData();
       // Clear the state to prevent re-fetching on every render
       navigate(location.pathname, { replace: true, state: {} });
     }
-  }, [location.state]);
+  }, [location.state?.refresh]);
 
   // Close account dropdown when clicking outside
   useEffect(() => {
@@ -68,61 +68,103 @@ export default function Dashboard() {
   }, [isAccountDropdownOpen]);
 
   const applyDashboardData = (data, isBackground = false) => {
-    const { events: fetchedEvents, defaultEvents: fetchedDefaultEvents, members: fetchedMembers, userSchedules: fetchedSchedules } = data;
+    const { events: fetchedEvents, defaultEvents: fetchedDefaultEvents, userSchedules: fetchedSchedules } = data;
     const regularEventsOnly = fetchedEvents.filter(event => !event.is_default_event);
 
     setEvents(regularEventsOnly);
-    setMembers(fetchedMembers);
     setDefaultEvents(fetchedDefaultEvents);
     if (fetchedSchedules) setUserSchedules(fetchedSchedules);
 
     // Only auto-select today on initial load (not background refresh)
     if (!isBackground) {
-      const todayStr = new Date().toISOString().split('T')[0];
-      const todayRegularEvents = regularEventsOnly.filter(event => event.date === todayStr);
-      const todayDefaultEvents = fetchedDefaultEvents.filter(defEvent => {
-        if (!defEvent.date) return false;
-        const eventStartDate = new Date(defEvent.date);
-        const checkDate = new Date(todayStr);
-        if (!defEvent.end_date) return eventStartDate.toDateString() === checkDate.toDateString();
-        return checkDate >= new Date(defEvent.date) && checkDate <= new Date(defEvent.end_date);
-      }).map(defEvent => ({
-        ...defEvent, is_default_event: true, title: defEvent.name, time: 'All Day',
-        host: { id: 0, username: 'Academic Calendar', email: '' }, members: [], images: []
-      }));
-      setSelectedDateEvents([...todayRegularEvents, ...todayDefaultEvents]);
+      try {
+        const todayStr = new Date().toISOString().split('T')[0];
+        const todayRegularEvents = regularEventsOnly.filter(event => event.date === todayStr);
+        const todayDefaultEvents = fetchedDefaultEvents.filter(defEvent => {
+          if (!defEvent.date) return false;
+          try {
+            const eventStartDate = new Date(defEvent.date);
+            const checkDate = new Date(todayStr);
+            if (isNaN(eventStartDate.getTime()) || isNaN(checkDate.getTime())) return false;
+            if (!defEvent.end_date) return eventStartDate.toDateString() === checkDate.toDateString();
+            const eventEndDate = new Date(defEvent.end_date);
+            if (isNaN(eventEndDate.getTime())) return false;
+            return checkDate >= eventStartDate && checkDate <= eventEndDate;
+          } catch (error) {
+            console.error('Error processing default event:', error);
+            return false;
+          }
+        }).map(defEvent => ({
+          ...defEvent, is_default_event: true, title: defEvent.name, time: 'All Day',
+          host: { id: 0, username: 'Academic Calendar', email: '' }, members: [], images: []
+        }));
+        setSelectedDateEvents([...todayRegularEvents, ...todayDefaultEvents]);
+      } catch (error) {
+        console.error('Error auto-selecting today:', error);
+        setSelectedDateEvents([]);
+      }
     }
   };
 
   const fetchData = async () => {
-    const cacheKey = `dashboard:${user?.id}`;
-    const cached = getCache(cacheKey);
-
-    if (cached) {
-      // Render cached data instantly — no spinner
-      applyDashboardData(cached, false);
-      setLoading(false);
-      // Silently refresh in background
-      try {
-        const response = await api.get('/dashboard');
-        setCache(cacheKey, response.data);
-        applyDashboardData(response.data, true);
-      } catch { /* silently fail */ }
-      return;
-    }
-
     try {
+      const cacheKey = `dashboard:${user?.id}`;
+      const cached = getCache(cacheKey);
+      
+      // Ensure loading skeleton shows for minimum duration
+      const minLoadingTime = 600; // 600ms minimum for consistent UX
+      const startTime = Date.now();
+
+      if (cached) {
+        // Apply cached data but keep loading state
+        applyDashboardData(cached, false);
+        
+        // Wait for minimum loading time before hiding skeleton
+        const elapsed = Date.now() - startTime;
+        const remainingTime = Math.max(0, minLoadingTime - elapsed);
+        
+        await new Promise(resolve => setTimeout(resolve, remainingTime));
+        setLoading(false);
+        
+        // Silently refresh in background
+        try {
+          const response = await api.get('/dashboard');
+          setCache(cacheKey, response.data);
+          applyDashboardData(response.data, true);
+        } catch (error) {
+          console.error('Background refresh failed:', error);
+        }
+        return;
+      }
+
+      // No cache, fetch fresh data
       const response = await api.get('/dashboard');
       setCache(cacheKey, response.data);
       applyDashboardData(response.data, false);
+      
+      // Wait for minimum loading time before hiding skeleton
+      const elapsed = Date.now() - startTime;
+      const remainingTime = Math.max(0, minLoadingTime - elapsed);
+      
+      await new Promise(resolve => setTimeout(resolve, remainingTime));
+      setLoading(false);
     } catch (error) {
       console.error('Error fetching data:', error);
-    } finally {
       setLoading(false);
+      
+      // Show user-friendly error message
+      if (error.response?.status === 401) {
+        navigate('/login');
+      }
     }
   };
 
-  const handleEdit = (event) => {    if (event.is_personal) {
+  const handleEdit = (event) => {
+    if (!event) {
+      console.error('No event provided to handleEdit');
+      return;
+    }
+    if (event.is_personal) {
       navigate('/personal-event', { state: { event } });
     } else {
       navigate('/add-event', { state: { event } });
@@ -130,6 +172,15 @@ export default function Dashboard() {
   };
 
   const handleDelete = async (event) => {
+    if (!event || !event.id) {
+      console.error('Invalid event provided to handleDelete');
+      return;
+    }
+    
+    if (!confirm(`Are you sure you want to delete "${event.title}"?`)) {
+      return;
+    }
+
     try {
       await api.delete(`/events/${event.id}`);
       await fetchData();
@@ -157,17 +208,30 @@ export default function Dashboard() {
     const defaultEventsForDate = defaultEvents.filter(defEvent => {
       if (!defEvent.date) return false;
       
-      const eventStartDate = new Date(defEvent.date);
-      const checkDate = new Date(date);
-      
-      // If no end_date, check if it's the same day
-      if (!defEvent.end_date) {
-        return eventStartDate.toDateString() === checkDate.toDateString();
+      try {
+        const eventStartDate = new Date(defEvent.date);
+        const checkDate = new Date(date);
+        
+        // Validate dates
+        if (isNaN(eventStartDate.getTime()) || isNaN(checkDate.getTime())) {
+          return false;
+        }
+        
+        // If no end_date, check if it's the same day
+        if (!defEvent.end_date) {
+          return eventStartDate.toDateString() === checkDate.toDateString();
+        }
+        
+        // If end_date exists, check if date is within range
+        const eventEndDate = new Date(defEvent.end_date);
+        if (isNaN(eventEndDate.getTime())) {
+          return false;
+        }
+        return checkDate >= eventStartDate && checkDate <= eventEndDate;
+      } catch (error) {
+        console.error('Error processing default event date:', error);
+        return false;
       }
-      
-      // If end_date exists, check if date is within range
-      const eventEndDate = new Date(defEvent.end_date);
-      return checkDate >= eventStartDate && checkDate <= eventEndDate;
     }).map(defEvent => ({
       ...defEvent,
       is_default_event: true,
@@ -179,55 +243,53 @@ export default function Dashboard() {
     }));
 
     // Get schedule events for this date
-    const checkDate = new Date(date);
-    const dayOfWeek = checkDate.getDay(); // 0 = Sunday, 1 = Monday, etc.
-    const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-    const dayName = dayNames[dayOfWeek];
-
-    // Get current semester (based on today's date)
-    const currentDate = new Date();
-    const currentMonth = currentDate.getMonth() + 1;
-    let currentSemester;
-    
-    if (currentMonth >= 9 || currentMonth <= 1) {
-      currentSemester = 'first';
-    } else if (currentMonth >= 2 && currentMonth <= 6) {
-      currentSemester = 'second';
-    } else if (currentMonth >= 7 && currentMonth <= 8) {
-      currentSemester = 'midyear';
-    }
-
-    // Check if the specific date falls within the current semester
-    const dateMonth = checkDate.getMonth() + 1;
-    let dateInCurrentSemester = false;
-    
-    if (currentSemester === 'first' && (dateMonth >= 9 || dateMonth <= 1)) {
-      dateInCurrentSemester = true;
-    } else if (currentSemester === 'second' && (dateMonth >= 2 && dateMonth <= 6)) {
-      dateInCurrentSemester = true;
-    } else if (currentSemester === 'midyear' && (dateMonth >= 7 && dateMonth <= 8)) {
-      dateInCurrentSemester = true;
-    }
-
-    const scheduleEventsForDate = userSchedules.filter(schedule => {
-      if (schedule.day !== dayName) {
-        return false;
+    try {
+      const checkDate = new Date(date);
+      if (isNaN(checkDate.getTime())) {
+        console.error('Invalid date provided to handleDateSelect:', date);
+        setSelectedDateEvents([...events, ...defaultEventsForDate]);
+        return;
       }
+
+      const dayOfWeek = checkDate.getDay(); // 0 = Sunday, 1 = Monday, etc.
+      const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+      const dayName = dayNames[dayOfWeek];
+
+      // Determine the semester for the SELECTED date (not today's date)
+      const dateMonth = checkDate.getMonth() + 1;
+      let selectedDateSemester;
       
-      // Only show schedules during the current semester period
-      // This ensures Tuesday classes only show on Tuesdays within the current semester
-      return dateInCurrentSemester;
-    }).map(schedule => ({
-      ...schedule,
-      is_schedule: true,
-      host: { id: user?.id || 0, username: user?.name || 'You', email: user?.email || '' },
-      members: [],
-      images: []
-    }));
-    
-    // Combine regular events with default events and schedule events
-    const allEvents = [...events, ...defaultEventsForDate, ...scheduleEventsForDate];
-    setSelectedDateEvents(allEvents);
+      if (dateMonth >= 9 || dateMonth <= 1) {
+        selectedDateSemester = 'first';
+      } else if (dateMonth >= 2 && dateMonth <= 6) {
+        selectedDateSemester = 'second';
+      } else if (dateMonth >= 7 && dateMonth <= 8) {
+        selectedDateSemester = 'midyear';
+      }
+
+      const scheduleEventsForDate = userSchedules.filter(schedule => {
+        if (schedule.day !== dayName) {
+          return false;
+        }
+        
+        // Only show schedules that match the selected date's semester
+        // This ensures Tuesday classes show on Tuesdays within their semester
+        return schedule.semester === selectedDateSemester;
+      }).map(schedule => ({
+        ...schedule,
+        is_schedule: true,
+        host: { id: user?.id || 0, username: user?.name || 'You', email: user?.email || '' },
+        members: [],
+        images: []
+      }));
+      
+      // Combine regular events with default events and schedule events
+      const allEvents = [...events, ...defaultEventsForDate, ...scheduleEventsForDate];
+      setSelectedDateEvents(allEvents);
+    } catch (error) {
+      console.error('Error in handleDateSelect:', error);
+      setSelectedDateEvents([...events, ...defaultEventsForDate]);
+    }
   };
 
   const getFixedImageUrl = (url) => {
@@ -245,13 +307,28 @@ export default function Dashboard() {
       <main className="flex-1 w-full py-2 sm:py-4 px-2 sm:px-4 lg:px-8 overflow-hidden flex flex-col">
         {/* Section Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 sm:gap-3 mb-2 sm:mb-4 flex-shrink-0">
-          <div>
-            <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Calendar View</h2>
-            <p className="text-xs text-gray-600 mt-0.5 sm:mt-1 font-medium">Click a date to view or manage your events</p>
-          </div>
-          <div className="flex gap-1.5 sm:gap-2 flex-wrap w-full sm:w-auto">
-            {/* Academic Calendar - Admin Only */}
-            {user?.role === 'Admin' && (
+          {loading ? (
+            // Skeleton for header
+            <>
+              <div className="animate-pulse">
+                <div className="h-7 sm:h-8 bg-gray-200 rounded w-32 sm:w-40 mb-2"></div>
+                <div className="h-3 bg-gray-200 rounded w-48 sm:w-64"></div>
+              </div>
+              <div className="flex gap-1.5 sm:gap-2 flex-wrap w-full sm:w-auto animate-pulse">
+                <div className="h-8 sm:h-10 bg-gray-200 rounded-lg w-20 sm:w-24"></div>
+                <div className="h-8 sm:h-10 bg-gray-200 rounded-lg w-20 sm:w-24"></div>
+                <div className="h-8 sm:h-10 bg-gray-200 rounded-lg w-20 sm:w-24"></div>
+              </div>
+            </>
+          ) : (
+            <>
+              <div>
+                <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Calendar View</h2>
+                <p className="text-xs text-gray-600 mt-0.5 sm:mt-1 font-medium">Click a date to view or manage your events</p>
+              </div>
+              <div className="flex gap-1.5 sm:gap-2 flex-wrap w-full sm:w-auto">
+                {/* Academic Calendar - Admin Only */}
+                {user?.role === 'Admin' && (
               <button
                 onClick={() => navigate('/default-events')}
                 className="inline-flex items-center px-2.5 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold rounded-lg shadow hover:shadow-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 group bg-white text-green-700 border-2 border-green-700 hover:bg-green-50 focus:ring-green-600"
@@ -311,7 +388,9 @@ export default function Dashboard() {
                 </button>
               </>
             ) : null}
-          </div>
+              </div>
+            </>
+          )}
         </div>
 
         {/* Calendar */}
@@ -338,7 +417,6 @@ export default function Dashboard() {
                 defaultEvents={defaultEvents}
                 userSchedules={userSchedules}
                 onDateSelect={handleDateSelect}
-                highlightedDate={highlightedDate}
                 currentUser={user}
                 onEditEvent={handleEdit}
                 onDeleteEvent={handleDelete}
@@ -740,79 +818,7 @@ export default function Dashboard() {
         )}
       </Modal>
 
-      {/* Schedule Required Modal */}
-      <Modal
-        isOpen={isScheduleRequiredModalOpen}
-        onClose={() => {
-          if (hasSchedule) {
-            setIsScheduleRequiredModalOpen(false);
-          }
-        }}
-        title="Class Schedule Required"
-        showCloseButton={false}
-        closeOnBackdrop={false}
-      >
-        <div className="space-y-6">
-          <div className="flex flex-col items-center text-center">
-            <div className="w-20 h-20 bg-gradient-to-br from-amber-100 to-orange-100 rounded-full flex items-center justify-center mb-4">
-              <svg className="w-10 h-10 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-            <h3 className="text-xl font-bold text-gray-900 mb-2">Set Up Your Class Schedule First</h3>
-            <p className="text-gray-600 leading-relaxed">
-              Before using the dashboard, you need to set up your class schedule. This helps prevent scheduling conflicts and ensures better event planning.
-            </p>
-          </div>
 
-          <div className="bg-green-50 rounded-xl p-4 border border-green-200">
-            <h4 className="text-sm font-semibold text-green-900 mb-3">Why set up your schedule?</h4>
-            <ul className="space-y-2">
-              <li className="flex items-start text-sm text-green-800">
-                <svg className="w-5 h-5 mr-2 flex-shrink-0 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <span>Automatically detect scheduling conflicts</span>
-              </li>
-              <li className="flex items-start text-sm text-green-800">
-                <svg className="w-5 h-5 mr-2 flex-shrink-0 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <span>Better event planning and coordination</span>
-              </li>
-              <li className="flex items-start text-sm text-green-800">
-                <svg className="w-5 h-5 mr-2 flex-shrink-0 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <span>Avoid double-booking yourself</span>
-              </li>
-            </ul>
-          </div>
-
-          <div className="flex flex-col sm:flex-row gap-3">
-            <button
-              onClick={() => navigate('/account')}
-              className="flex-1 inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-green-600 to-green-700 text-white font-semibold rounded-xl hover:from-green-700 hover:to-green-800 transition-all duration-200 shadow-md hover:shadow-lg"
-            >
-              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              Set Up Schedule Now
-            </button>
-          </div>
-
-          {!hasSchedule && (
-            <div className="bg-amber-50 border border-amber-200 rounded-xl p-3">
-              <p className="text-xs text-amber-800 text-center">
-                <svg className="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                </svg>
-                You must set up your schedule to access the dashboard
-              </p>
-            </div>
-          )}
-        </div>
-      </Modal>
 
     </div>
   );

@@ -22,13 +22,40 @@ class ScheduleController extends Controller
         '#6366f1', // Indigo
     ];
 
-    public function index()
+    public function index(Request $request)
     {
         $user = Auth::user();
         
-        // Fetch all schedules in one query with specific columns only
+        // Get semester and school year from request, or use current
+        $semester = $request->query('semester');
+        $schoolYear = $request->query('school_year');
+        
+        // If not provided, calculate current semester and school year
+        if (!$semester || !$schoolYear) {
+            $now = new \DateTime();
+            $currentMonth = (int)$now->format('m');
+            $currentYear = (int)$now->format('Y');
+            
+            // Determine semester
+            if ($currentMonth >= 9 || $currentMonth <= 1) {
+                $semester = 'first';
+            } elseif ($currentMonth >= 2 && $currentMonth <= 6) {
+                $semester = 'second';
+            } else {
+                $semester = 'midyear';
+            }
+            
+            // Determine school year
+            $schoolYear = $currentMonth >= 9 
+                ? "{$currentYear}-" . ($currentYear + 1)
+                : ($currentYear - 1) . "-{$currentYear}";
+        }
+        
+        // Fetch schedules for the specific semester and school year
         $schedules = UserSchedule::where('user_id', $user->id)
-            ->select('id', 'day', 'start_time', 'end_time', 'description', 'color')
+            ->where('semester', $semester)
+            ->where('school_year', $schoolYear)
+            ->select('id', 'day', 'start_time', 'end_time', 'description', 'color', 'semester', 'school_year')
             ->orderBy('day')
             ->orderBy('start_time')
             ->get();
@@ -44,13 +71,17 @@ class ScheduleController extends Controller
                 'startTime' => $schedule->start_time,
                 'endTime' => $schedule->end_time,
                 'description' => $schedule->description,
-                'color' => $schedule->color
+                'color' => $schedule->color,
+                'semester' => $schedule->semester,
+                'schoolYear' => $schedule->school_year
             ];
         }
 
         return response()->json([
             'schedule' => $groupedSchedules,
-            'initialized' => $user->schedule_initialized
+            'initialized' => $user->schedule_initialized,
+            'semester' => $semester,
+            'schoolYear' => $schoolYear
         ]);
     }
 
@@ -61,15 +92,23 @@ class ScheduleController extends Controller
         // Basic validation - detailed validation happens in the loop
         $request->validate([
             'schedule' => 'required|array',
-            'schedule.*' => 'array'
+            'schedule.*' => 'array',
+            'semester' => 'required|in:first,second,midyear',
+            'school_year' => 'required|string|regex:/^\d{4}-\d{4}$/'
         ]);
+
+        $semester = $request->semester;
+        $schoolYear = $request->school_year;
 
         // Use transaction for data consistency
         \DB::beginTransaction();
         
         try {
-            // Delete existing schedules for this user
-            UserSchedule::where('user_id', $user->id)->delete();
+            // Delete existing schedules for this user, semester, and school year
+            UserSchedule::where('user_id', $user->id)
+                ->where('semester', $semester)
+                ->where('school_year', $schoolYear)
+                ->delete();
 
             // Prepare bulk insert data
             $schedules = [];
@@ -80,8 +119,8 @@ class ScheduleController extends Controller
             $colorIndex = 0;
             
             foreach ($request->schedule as $day => $classes) {
-                // Validate day name
-                if (!in_array($day, ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'])) {
+                // Validate day name (Monday to Saturday only - no Sunday)
+                if (!in_array($day, ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'])) {
                     continue;
                 }
                 
@@ -127,6 +166,8 @@ class ScheduleController extends Controller
                         'end_time' => $normalizedEnd,
                         'description' => $description,
                         'color' => $color,
+                        'semester' => $semester,
+                        'school_year' => $schoolYear,
                         'created_at' => $now,
                         'updated_at' => $now
                     ];
@@ -146,12 +187,16 @@ class ScheduleController extends Controller
 
             return response()->json([
                 'message' => 'Schedule saved successfully',
-                'count' => count($schedules)
+                'count' => count($schedules),
+                'semester' => $semester,
+                'schoolYear' => $schoolYear
             ]);
         } catch (\Exception $e) {
             \DB::rollBack();
             \Log::error('Schedule save failed', [
                 'user_id' => $user->id,
+                'semester' => $semester,
+                'school_year' => $schoolYear,
                 'error' => $e->getMessage(),
                 'request_data' => $request->all(),
                 'trace' => $e->getTraceAsString()

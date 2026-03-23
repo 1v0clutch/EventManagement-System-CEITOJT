@@ -22,7 +22,7 @@ export default function Calendar({ events, defaultEvents = [], userSchedules = [
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
 
-  // Calculate date boundaries: 2 months in the past, 1 year in the future h
+  // Calculate date boundaries: 2 months in the past, 1 year in the future
   const today = new Date();
   const minDate = new Date(today.getFullYear(), today.getMonth() - 2, 1);
   const maxDate = new Date(today.getFullYear() + 1, today.getMonth(), 0);
@@ -48,9 +48,30 @@ export default function Calendar({ events, defaultEvents = [], userSchedules = [
     }
   };
 
-  const getEventsForDate = (dateStr) => {
-    return events.filter(event => event.date === dateStr);
+  // Event hierarchy priority (lower number = higher priority)
+  const getEventPriority = (event) => {
+    const isHosted = currentUser && event.host && event.host.id === currentUser.id;
+    const isPersonal = event.is_personal;
+    const isMeeting = event.event_type === 'meeting';
+    const isAcademic = event.is_default_event === true;
+    const isSchedule = event.is_schedule || event.type === 'schedule';
+
+    if (isSchedule) return 7; // Class Schedule - lowest priority
+    if (isAcademic) return 6; // Academic Event
+    if (isPersonal) return 5; // Personal Event
+    if (isMeeting && !isHosted) return 4; // Invited Meeting
+    if (isMeeting && isHosted) return 3; // Hosting Meeting
+    if (!isMeeting && !isHosted) return 2; // Invited Event
+    if (!isMeeting && isHosted) return 1; // Hosting Event - highest priority
+    
+    return 8; // Fallback
   };
+
+  const getEventsForDate = (dateStr) => {
+    return events.filter(event => event.date === dateStr)
+      .sort((a, b) => getEventPriority(a) - getEventPriority(b));
+  };
+
   const getDefaultEventsForDate = (dateStr) => {
     return defaultEvents.filter(event => {
       if (!event.date) return false;
@@ -80,7 +101,7 @@ export default function Calendar({ events, defaultEvents = [], userSchedules = [
     const currentDate = new Date();
     const currentMonth = currentDate.getMonth() + 1;
     let currentSemester;
-    
+
     if (currentMonth >= 9 || currentMonth <= 1) {
       currentSemester = 'first';
     } else if (currentMonth >= 2 && currentMonth <= 6) {
@@ -92,7 +113,7 @@ export default function Calendar({ events, defaultEvents = [], userSchedules = [
     // Check if the specific date falls within the current semester
     const dateMonth = checkDate.getMonth() + 1;
     let dateInCurrentSemester = false;
-    
+
     if (currentSemester === 'first' && (dateMonth >= 9 || dateMonth <= 1)) {
       dateInCurrentSemester = true;
     } else if (currentSemester === 'second' && (dateMonth >= 2 && dateMonth <= 6)) {
@@ -106,7 +127,7 @@ export default function Calendar({ events, defaultEvents = [], userSchedules = [
       if (schedule.day !== dayName) {
         return false;
       }
-      
+
       // Only show schedules during the current semester period
       // This ensures Tuesday classes only show on Tuesdays within the current semester
       return dateInCurrentSemester;
@@ -117,10 +138,10 @@ export default function Calendar({ events, defaultEvents = [], userSchedules = [
   const hasConflicts = (dateStr) => {
     const regularEvents = getEventsForDate(dateStr);
     const scheduleEvents = getScheduleEventsForDate(dateStr);
-    
+
     // Collect all timed events (regular events + schedules)
     const timedEvents = [];
-    
+
     // Add regular events with time
     regularEvents.forEach(event => {
       if (event.time && event.time !== 'All Day') {
@@ -131,7 +152,7 @@ export default function Calendar({ events, defaultEvents = [], userSchedules = [
         });
       }
     });
-    
+
     // Add schedule events
     scheduleEvents.forEach(schedule => {
       if (schedule.start_time && schedule.end_time) {
@@ -143,23 +164,23 @@ export default function Calendar({ events, defaultEvents = [], userSchedules = [
         });
       }
     });
-    
+
     // Check for overlaps
     for (let i = 0; i < timedEvents.length; i++) {
       for (let j = i + 1; j < timedEvents.length; j++) {
         const event1 = timedEvents[i];
         const event2 = timedEvents[j];
-        
+
         // Helper function to parse time to minutes
         const parseTimeToMinutes = (timeStr) => {
           if (!timeStr) return null;
           const parts = timeStr.split(':');
           return parseInt(parts[0]) * 60 + parseInt(parts[1] || 0);
         };
-        
+
         // Get time ranges for both events
         let time1Start, time1End, time2Start, time2End;
-        
+
         if (event1.type === 'schedule') {
           time1Start = parseTimeToMinutes(event1.start_time);
           time1End = parseTimeToMinutes(event1.end_time);
@@ -168,7 +189,7 @@ export default function Calendar({ events, defaultEvents = [], userSchedules = [
           time1Start = parseTimeToMinutes(event1.time);
           time1End = time1Start + 60; // 1 hour duration
         }
-        
+
         if (event2.type === 'schedule') {
           time2Start = parseTimeToMinutes(event2.start_time);
           time2End = parseTimeToMinutes(event2.end_time);
@@ -177,7 +198,7 @@ export default function Calendar({ events, defaultEvents = [], userSchedules = [
           time2Start = parseTimeToMinutes(event2.time);
           time2End = time2Start + 60; // 1 hour duration
         }
-        
+
         // Check for overlap: two ranges overlap if one starts before the other ends
         if (time1Start !== null && time2Start !== null && time1End !== null && time2End !== null) {
           if (time1Start < time2End && time2Start < time1End) {
@@ -186,7 +207,7 @@ export default function Calendar({ events, defaultEvents = [], userSchedules = [
         }
       }
     }
-    
+
     return false;
   };
 
@@ -200,10 +221,14 @@ export default function Calendar({ events, defaultEvents = [], userSchedules = [
 
   const handleMoreClick = (e, dateStr) => {
     e.stopPropagation();
+
     const regularEvents = getEventsForDate(dateStr);
-    const academicEvents = getDefaultEventsForDate(dateStr);
+    const academicEvents = getDefaultEventsForDate(dateStr).map(event => ({
+      ...event,
+      is_default_event: true
+    }));
     const scheduleEvents = getScheduleEventsForDate(dateStr);
-    
+
     // Group all schedules into a single entry
     const groupedSchedules = scheduleEvents.length > 0 ? [{
       is_schedule: true,
@@ -213,9 +238,13 @@ export default function Calendar({ events, defaultEvents = [], userSchedules = [
       isScheduleGroup: true,
       clickedDate: dateStr
     }] : [];
-    
+
+    // Combine all events and sort by priority
+    const allEvents = [...regularEvents, ...academicEvents, ...groupedSchedules];
+    allEvents.sort((a, b) => getEventPriority(a) - getEventPriority(b));
+
     setMoreModalDate(dateStr);
-    setMoreModalEvents([...academicEvents, ...groupedSchedules, ...regularEvents]);
+    setMoreModalEvents(allEvents);
     setShowMoreModal(true);
   };
 
@@ -228,39 +257,39 @@ export default function Calendar({ events, defaultEvents = [], userSchedules = [
     const min = minutes || '00';
     const ampm = hour >= 12 ? 'PM' : 'AM';
     const displayHour = hour % 12 || 12;
-    
+
     return `${displayHour.toString().padStart(2, '0')}:${min} ${ampm}`;
   };
 
   const formatTimeRange = (startTime, endTime) => {
     if (!startTime || !endTime) return '';
-    
+
     // Parse start time
     const [startHours, startMinutes] = startTime.split(':');
     const startHour = parseInt(startHours);
     const startMin = startMinutes || '00';
     const startAmpm = startHour >= 12 ? 'PM' : 'AM';
     const startDisplayHour = startHour % 12 || 12;
-    
+
     // Parse end time
     const [endHours, endMinutes] = endTime.split(':');
     const endHour = parseInt(endHours);
     const endMin = endMinutes || '00';
     const endAmpm = endHour >= 12 ? 'PM' : 'AM';
     const endDisplayHour = endHour % 12 || 12;
-    
+
     return `${startDisplayHour}:${startMin} ${startAmpm} - ${endDisplayHour}:${endMin} ${endAmpm}`;
   };
 
   const handleEventClick = (event, e) => {
     e.stopPropagation();
-    
+
     // If it's a schedule event, gather all schedules for that day
     if (event.is_schedule || event.type === 'schedule') {
       // Use the clicked date, or fall back to moreModalDate or selectedDate
       const dateStr = event.clickedDate || moreModalDate || selectedDate;
       const allSchedulesForDay = getScheduleEventsForDate(dateStr);
-      
+
       // Create a combined schedule event with all schedules for the day
       const combinedScheduleEvent = {
         ...event,
@@ -268,16 +297,17 @@ export default function Calendar({ events, defaultEvents = [], userSchedules = [
         isScheduleGroup: true,
         date: dateStr
       };
-      
+
       setSelectedEvent(combinedScheduleEvent);
     } else {
       setSelectedEvent(event);
     }
-    
+
     setShowEventDetailModal(true);
     setShowMoreModal(false);
     setCurrentFileIndex(0); // Reset file index when opening new event
   };
+
   // File navigation functions
   const nextFile = () => {
     if (selectedEvent?.images?.length > 1) {
@@ -329,6 +359,7 @@ export default function Calendar({ events, defaultEvents = [], userSchedules = [
     const totalDaysNeeded = firstDayOfMonth + daysInMonth;
     const rowsNeeded = Math.ceil(totalDaysNeeded / 7);
     const totalCells = rowsNeeded * 7;
+
     for (let i = 0; i < totalCells; i++) {
       let cellDay, cellMonth, cellYear, isCurrentMonth;
 
@@ -354,7 +385,6 @@ export default function Calendar({ events, defaultEvents = [], userSchedules = [
 
       const isSunday = cellDate.getDay() === 0; // Check if it's Sunday
       const isPastDate = cellDate < today && isCurrentMonth;
-
       const isCurrentDay = (
         cellDay === today.getDate() &&
         cellMonth === today.getMonth() &&
@@ -366,10 +396,13 @@ export default function Calendar({ events, defaultEvents = [], userSchedules = [
       const highlighted = highlightedDate === dateStr;
 
       // Get events for this date (only for current month to avoid confusion)
-      const academicEvents = isCurrentMonth ? getDefaultEventsForDate(dateStr) : [];
+      const academicEvents = isCurrentMonth ? getDefaultEventsForDate(dateStr).map(event => ({
+        ...event,
+        is_default_event: true
+      })) : [];
       const scheduleEvents = isCurrentMonth ? getScheduleEventsForDate(dateStr) : [];
       const regularEvents = isCurrentMonth ? getEventsForDate(dateStr) : [];
-      
+
       // Group all schedules into a single entry for display
       const groupedSchedules = scheduleEvents.length > 0 ? [{
         is_schedule: true,
@@ -379,11 +412,14 @@ export default function Calendar({ events, defaultEvents = [], userSchedules = [
         isScheduleGroup: true,
         clickedDate: dateStr
       }] : [];
-      
-      // allEvents includes schedules for "View All" modal, but eventsToDisplay excludes them
-      // so regular/academic events are never displaced by the schedule indicator
-      const allEvents = [...academicEvents, ...groupedSchedules, ...regularEvents];
-      const nonScheduleEvents = [...academicEvents, ...regularEvents];
+
+      // Combine and sort all events by priority
+      const allEvents = [...regularEvents, ...academicEvents, ...groupedSchedules];
+      allEvents.sort((a, b) => getEventPriority(a) - getEventPriority(b));
+
+      // For display, exclude schedules but maintain priority order
+      const nonScheduleEvents = [...regularEvents, ...academicEvents];
+      nonScheduleEvents.sort((a, b) => getEventPriority(a) - getEventPriority(b));
 
       // Display limit: show first 1 non-schedule event to prevent text cutoff
       const displayLimit = 1;
@@ -391,15 +427,42 @@ export default function Calendar({ events, defaultEvents = [], userSchedules = [
 
       // Check if this cell will show "View More" button
       const hasViewMore = allEvents.length > displayLimit;
-      
+
       // Check for conflicts on this date
       const dateHasConflicts = isCurrentMonth && !isPastDate && hasConflicts(dateStr);
-      
-      // Check if this day has a weekly schedule (regardless of semester — for the full year tint)
+
+      // Check if this day has a weekly schedule AND falls within the current semester
       const dayOfWeek = cellDate.getDay();
       const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
       const cellDayName = dayNames[dayOfWeek];
-      const hasWeeklySchedule = userSchedules.some(s => s.day === cellDayName);
+      
+      // Get current semester (based on today's date)
+      const currentDate = new Date();
+      const currentMonth = currentDate.getMonth() + 1;
+      let currentSemester;
+      
+      if (currentMonth >= 9 || currentMonth <= 1) {
+        currentSemester = 'first';
+      } else if (currentMonth >= 2 && currentMonth <= 6) {
+        currentSemester = 'second';
+      } else if (currentMonth >= 7 && currentMonth <= 8) {
+        currentSemester = 'midyear';
+      }
+      
+      // Check if the cell date falls within the current semester
+      const cellDateMonth = cellDate.getMonth() + 1;
+      let cellDateInCurrentSemester = false;
+      
+      if (currentSemester === 'first' && (cellDateMonth >= 9 || cellDateMonth <= 1)) {
+        cellDateInCurrentSemester = true;
+      } else if (currentSemester === 'second' && (cellDateMonth >= 2 && cellDateMonth <= 6)) {
+        cellDateInCurrentSemester = true;
+      } else if (currentSemester === 'midyear' && (cellDateMonth >= 7 && cellDateMonth <= 8)) {
+        cellDateInCurrentSemester = true;
+      }
+      
+      // Only show class day tint if the day has a schedule AND the date is in the current semester
+      const hasWeeklySchedule = cellDateInCurrentSemester && userSchedules.some(s => s.day === cellDayName);
 
       days.push(
         <div
@@ -414,8 +477,7 @@ export default function Calendar({ events, defaultEvents = [], userSchedules = [
             ${isCurrentMonth ? (isPastDate ? 'cursor-default bg-gray-50' : 'cursor-default bg-white') : 'bg-gray-50/50'}
             ${selected && !isPastDate ? 'ring-2 ring-green-500 ring-inset z-10' : ''}
             ${highlighted && !isPastDate ? 'ring-2 ring-green-400 animate-pulse z-10' : ''}
-            ${isPastDate ? 'opacity-60' : ''}
-          `}
+            ${isPastDate ? 'opacity-60' : ''}`}
           style={hasWeeklySchedule && isCurrentMonth ? { backgroundColor: isPastDate ? 'rgba(20,83,45,0.07)' : 'rgba(22,163,74,0.1)' } : undefined}
         >
           {/* Date Number and Conflict Indicator */}
@@ -424,23 +486,16 @@ export default function Calendar({ events, defaultEvents = [], userSchedules = [
               <span className={`text-[9px] sm:text-xs font-semibold px-1 py-0.5 rounded-full transition-colors leading-none
                 ${isCurrentDay ? 'bg-green-600 text-white shadow-sm' : 
                   isPastDate ? 'text-gray-400' :
-                  isCurrentMonth ? 'text-gray-800' : 'text-gray-400'}
-              `}>
+                  isCurrentMonth ? 'text-gray-800' : 'text-gray-400'}`}
+              >
                 {cellDay}
               </span>
+
               {dateHasConflicts && (
                 <>
                   <div className="relative group/conflict flex-shrink-0">
-                    <svg 
-                      className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-red-600 cursor-help drop-shadow-sm" 
-                      fill="currentColor" 
-                      viewBox="0 0 20 20"
-                    >
-                      <path 
-                        fillRule="evenodd" 
-                        d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" 
-                        clipRule="evenodd" 
-                      />
+                    <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-red-600 cursor-help drop-shadow-sm" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
                     </svg>
                     {/* Tooltip */}
                     <div className="absolute left-0 top-full mt-1.5 hidden group-hover/conflict:block z-50">
@@ -487,17 +542,15 @@ export default function Calendar({ events, defaultEvents = [], userSchedules = [
                         isPastDate
                           ? 'bg-gray-400 opacity-75'
                           : isPersonal
-                          ? 'bg-purple-500 hover:bg-purple-600 cursor-pointer'
-                          : isMeeting
-                          ? (isHosted ? 'bg-amber-800 hover:bg-amber-900 cursor-pointer' : 'bg-yellow-500 hover:bg-yellow-600 cursor-pointer')
-                          : (isHosted ? 'bg-red-500 hover:bg-red-600 cursor-pointer' : 'bg-green-500 hover:bg-green-600 cursor-pointer')
+                            ? 'bg-purple-500 hover:bg-purple-600 cursor-pointer'
+                            : isMeeting
+                              ? (isHosted ? 'bg-amber-800 hover:bg-amber-900 cursor-pointer' : 'bg-yellow-500 hover:bg-yellow-600 cursor-pointer')
+                              : (isHosted ? 'bg-red-500 hover:bg-red-600 cursor-pointer' : 'bg-green-500 hover:bg-green-600 cursor-pointer')
                       }`}
-                      title={`${event.title} ${
-                        isPastDate ? '(Past Event)' :
+                      title={`${event.title} ${isPastDate ? '(Past Event)' :
                         isPersonal ? '(Personal)' : 
                         isMeeting ? (isHosted ? '(Hosting Meeting)' : '(Invited to Meeting)') : 
-                        (isHosted ? '(Hosting Event)' : '(Invited to Event)')
-                      }`}
+                        (isHosted ? '(Hosting Event)' : '(Invited to Event)')}`}
                       onClick={(e) => !isPastDate && handleEventClick(event, e)}
                     >
                       {event.title}
@@ -505,8 +558,6 @@ export default function Calendar({ events, defaultEvents = [], userSchedules = [
                   );
                 }
               })}
-
-
 
               {/* "View All" button - only show when total events > 1 and not past */}
               {!isPastDate && allEvents.length > displayLimit && (
@@ -535,10 +586,11 @@ export default function Calendar({ events, defaultEvents = [], userSchedules = [
           <button
             onClick={prevMonth}
             disabled={isAtMinDate}
-            className={`w-6 h-6 sm:w-7 sm:h-7 flex items-center justify-center rounded-lg transition-colors ${isAtMinDate
+            className={`w-6 h-6 sm:w-7 sm:h-7 flex items-center justify-center rounded-lg transition-colors ${
+              isAtMinDate
                 ? 'bg-gray-100 text-gray-300 cursor-not-allowed'
                 : 'bg-green-100 hover:bg-green-200 text-green-600 hover:text-green-800'
-              }`}
+            }`}
           >
             <svg className="w-3 h-3 sm:w-3.5 sm:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
@@ -552,16 +604,18 @@ export default function Calendar({ events, defaultEvents = [], userSchedules = [
           <button
             onClick={nextMonth}
             disabled={isAtMaxDate}
-            className={`w-6 h-6 sm:w-7 sm:h-7 flex items-center justify-center rounded-lg transition-colors ${isAtMaxDate
+            className={`w-6 h-6 sm:w-7 sm:h-7 flex items-center justify-center rounded-lg transition-colors ${
+              isAtMaxDate
                 ? 'bg-gray-100 text-gray-300 cursor-not-allowed'
                 : 'bg-green-100 hover:bg-green-200 text-green-600 hover:text-green-800'
-              }`}
+            }`}
           >
             <svg className="w-3 h-3 sm:w-3.5 sm:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
             </svg>
           </button>
         </div>
+
         {/* Day Headers */}
         <div className="grid grid-cols-7 gap-0 mb-0 flex-shrink-0 border-b border-green-200">
           {['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'].map(day => (
@@ -586,10 +640,6 @@ export default function Calendar({ events, defaultEvents = [], userSchedules = [
               <div className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded flex-shrink-0" style={{ backgroundColor: 'rgba(22,163,74,0.1)', border: '1px solid #4ade80' }}></div>
               <span className="text-gray-600 font-medium">Class Day</span>
             </div>
-            <div className="flex items-center gap-0.5 sm:gap-1 flex-shrink-0">
-              <div className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded bg-blue-500 flex-shrink-0"></div>
-              <span className="text-gray-600 font-medium">Academic Event</span>
-            </div>
             <div className="flex items-center gap-1 sm:gap-1.5">
               <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded bg-red-500"></div>
               <span className="text-gray-600 font-medium">Hosting Event</span>
@@ -611,6 +661,10 @@ export default function Calendar({ events, defaultEvents = [], userSchedules = [
               <span className="text-gray-600 font-medium">Personal Event</span>
             </div>
             <div className="flex items-center gap-0.5 sm:gap-1 flex-shrink-0">
+              <div className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded bg-blue-500 flex-shrink-0"></div>
+              <span className="text-gray-600 font-medium">Academic Event</span>
+            </div>
+            <div className="flex items-center gap-0.5 sm:gap-1 flex-shrink-0">
               <svg className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-red-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
               </svg>
@@ -619,6 +673,7 @@ export default function Calendar({ events, defaultEvents = [], userSchedules = [
           </div>
         </div>
       </div>
+
       {/* Event Detail Modal */}
       {showMoreModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 sm:p-4">
@@ -664,9 +719,7 @@ export default function Calendar({ events, defaultEvents = [], userSchedules = [
                         <div className="flex items-start gap-3">
                           <div className="w-2.5 h-2.5 rounded-full bg-blue-500 mt-1.5 flex-shrink-0"></div>
                           <div className="flex-1 min-w-0">
-                            <p className="font-medium text-gray-900 text-sm">
-                              {event.name || event.title}
-                            </p>
+                            <p className="font-medium text-gray-900 text-sm">{event.name || event.title}</p>
                             <p className="text-xs text-gray-500 mt-1">Academic Calendar</p>
                           </div>
                         </div>
@@ -675,9 +728,7 @@ export default function Calendar({ events, defaultEvents = [], userSchedules = [
                         <div className="flex items-start gap-3">
                           <div className="w-2.5 h-2.5 rounded-full bg-orange-500 mt-1.5 flex-shrink-0"></div>
                           <div className="flex-1 min-w-0">
-                            <p className="font-medium text-gray-900 text-sm">
-                              {event.day} Classes
-                            </p>
+                            <p className="font-medium text-gray-900 text-sm">{event.day} Classes</p>
                             <div className="flex items-center gap-2 mt-1">
                               <span className="text-xs text-gray-500">Click to view schedule</span>
                             </div>
@@ -690,13 +741,11 @@ export default function Calendar({ events, defaultEvents = [], userSchedules = [
                             isPersonal
                               ? 'bg-purple-500'
                               : isMeeting
-                              ? (isHosted ? 'bg-amber-800' : 'bg-yellow-500')
-                              : (isHosted ? 'bg-red-500' : 'bg-green-500')
+                                ? (isHosted ? 'bg-amber-800' : 'bg-yellow-500')
+                                : (isHosted ? 'bg-red-500' : 'bg-green-500')
                           }`}></div>
                           <div className="flex-1 min-w-0">
-                            <p className="font-medium text-gray-900 text-sm">
-                              {event.title || '(No title)'}
-                            </p>
+                            <p className="font-medium text-gray-900 text-sm">{event.title || '(No title)'}</p>
                             <div className="flex items-center gap-2 mt-1">
                               <span className="text-xs text-gray-600">{formatTime(event.time)}</span>
                               <span className="text-xs text-gray-500">
@@ -716,6 +765,7 @@ export default function Calendar({ events, defaultEvents = [], userSchedules = [
           </div>
         </div>
       )}
+
       {/* Individual Event Detail Modal */}
       {showEventDetailModal && selectedEvent && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 sm:p-4">
@@ -729,14 +779,13 @@ export default function Calendar({ events, defaultEvents = [], userSchedules = [
                   selectedEvent.is_personal
                     ? 'bg-purple-500'
                     : selectedEvent.event_type === 'meeting'
-                    ? (currentUser && selectedEvent.host && selectedEvent.host.id === currentUser.id ? 'bg-amber-800' : 'bg-yellow-500')
-                    : (currentUser && selectedEvent.host && selectedEvent.host.id === currentUser.id ? 'bg-red-500' : 'bg-green-500')
+                      ? (currentUser && selectedEvent.host && selectedEvent.host.id === currentUser.id ? 'bg-amber-800' : 'bg-yellow-500')
+                      : (currentUser && selectedEvent.host && selectedEvent.host.id === currentUser.id ? 'bg-red-500' : 'bg-green-500')
                 }`}></div>
                 <h3 className="text-lg font-semibold text-gray-900 truncate">
-                  {selectedEvent.isScheduleGroup 
-                    ? `${selectedEvent.day} Classes` 
-                    : (selectedEvent.title || selectedEvent.name)}
+                  {selectedEvent.isScheduleGroup ? `${selectedEvent.day} Classes` : (selectedEvent.title || selectedEvent.name)}
                 </h3>
+
                 {currentUser && selectedEvent.host && selectedEvent.host.id === currentUser.id && !selectedEvent.is_default_event && !selectedEvent.isScheduleGroup && (
                   <>
                     <button
@@ -766,6 +815,7 @@ export default function Calendar({ events, defaultEvents = [], userSchedules = [
                   </>
                 )}
               </div>
+
               <button
                 onClick={() => setShowEventDetailModal(false)}
                 className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
@@ -811,7 +861,7 @@ export default function Calendar({ events, defaultEvents = [], userSchedules = [
                         {selectedEvent.allSchedules.map((schedule, index) => {
                           // Get the color from the schedule, default to orange if not set
                           const scheduleColor = schedule.color || '#f97316'; // default orange-500
-                          
+
                           return (
                             <div key={index} className="flex items-start gap-3">
                               <div 
@@ -823,12 +873,16 @@ export default function Calendar({ events, defaultEvents = [], userSchedules = [
                                   {schedule.description || schedule.title || 'Class'}
                                 </p>
                                 <div className="flex items-center gap-2 text-xs text-gray-600 mt-0.5">
-                                  <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: scheduleColor }}>
+                                  <svg 
+                                    className="w-3.5 h-3.5 flex-shrink-0" 
+                                    fill="none" 
+                                    stroke="currentColor" 
+                                    viewBox="0 0 24 24"
+                                    style={{ color: scheduleColor }}
+                                  >
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                                   </svg>
-                                  <span className="font-medium">
-                                    {formatTimeRange(schedule.start_time, schedule.end_time)}
-                                  </span>
+                                  <span className="font-medium">{formatTimeRange(schedule.start_time, schedule.end_time)}</span>
                                 </div>
                               </div>
                             </div>
@@ -877,7 +931,9 @@ export default function Calendar({ events, defaultEvents = [], userSchedules = [
                   {/* Participants */}
                   {!(selectedEvent.is_default_event || !selectedEvent.time) && !selectedEvent.isScheduleGroup && selectedEvent.members && selectedEvent.members.length > 0 && (
                     <div className="mt-6 pt-5 border-t border-gray-200 flex-1 flex flex-col min-h-0">
-                      <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-3 flex-shrink-0">Participants ({selectedEvent.members.length})</p>
+                      <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-3 flex-shrink-0">
+                        Participants ({selectedEvent.members.length})
+                      </p>
                       <div className="space-y-2 overflow-y-auto flex-1">
                         {selectedEvent.members.map((member, index) => (
                           <div key={member.id || index} className="flex items-center gap-3 p-2.5 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
@@ -902,6 +958,7 @@ export default function Calendar({ events, defaultEvents = [], userSchedules = [
                   )}
                 </div>
               </div>
+
               {/* Right Column - File Viewer */}
               {selectedEvent.images && selectedEvent.images.length > 0 && (
                 <div className="w-full lg:w-[500px] border-t lg:border-t-0 lg:border-l border-gray-100 bg-gray-50 flex flex-col">
@@ -1021,6 +1078,7 @@ export default function Calendar({ events, defaultEvents = [], userSchedules = [
           </div>
         </div>
       )}
+
       {/* Delete Confirmation Modal */}
       <ConfirmDeleteModal
         isOpen={showDeleteConfirm}
@@ -1030,7 +1088,7 @@ export default function Calendar({ events, defaultEvents = [], userSchedules = [
         }}
         onConfirm={async () => {
           if (!eventToDelete) return;
-          
+
           setIsDeleting(true);
           try {
             setShowEventDetailModal(false);

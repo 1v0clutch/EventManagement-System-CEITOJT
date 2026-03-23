@@ -5,7 +5,7 @@ import api from '../services/api';
 import { invalidateCache } from '../services/cache';
 import EventForm from '../components/EventForm';
 import Navbar from '../components/Navbar';
-import logo from '../assets/CEIT-LOGO.png';
+import logo from '../assets/CvSU Logo.png';
 
 export default function AddEvent() {
   const navigate = useNavigate();
@@ -79,13 +79,20 @@ export default function AddEvent() {
   };
 
   const fetchMembers = async () => {
+    const startTime = Date.now();
     try {
       const response = await api.get('/users');
       setMembers(response.data.members);
     } catch (error) {
       console.error('Error fetching members:', error);
     } finally {
-      setLoading(false);
+      const elapsed = Date.now() - startTime;
+      const minDelay = 300 + Math.random() * 300; // 300-600ms
+      const remainingDelay = Math.max(0, minDelay - elapsed);
+      
+      setTimeout(() => {
+        setLoading(false);
+      }, remainingDelay);
     }
   };
 

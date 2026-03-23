@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 import { getCache, setCache, invalidateCache } from '../services/cache';
-import logo from "../assets/CEIT-LOGO.png";
+import logo from "../assets/CvSU Logo.png";
 import Navbar from '../components/Navbar';
 import CreatePermanentAdminModal from '../components/CreatePermanentAdminModal';
 import CreateUserModal from '../components/CreateUserModal';
@@ -103,12 +103,20 @@ export default function Admin() {
   }, [isAccountDropdownOpen]);
 
   const fetchUsers = async () => {
+    const startTime = Date.now();
     const cacheKey = `admin-users`;
     const cached = getCache(cacheKey);
 
     if (cached) {
-      setUsers(cached);
-      setLoading(false);
+      const elapsed = Date.now() - startTime;
+      const minDelay = 300 + Math.random() * 300; // 300-600ms
+      const remainingDelay = Math.max(0, minDelay - elapsed);
+      
+      setTimeout(() => {
+        setUsers(cached);
+        setLoading(false);
+      }, remainingDelay);
+      
       // Background refresh
       try {
         const response = await api.get('/users/all');
@@ -125,7 +133,13 @@ export default function Admin() {
     } catch (error) {
       console.error('Error fetching users:', error);
     } finally {
-      setLoading(false);
+      const elapsed = Date.now() - startTime;
+      const minDelay = 300 + Math.random() * 300; // 300-600ms
+      const remainingDelay = Math.max(0, minDelay - elapsed);
+      
+      setTimeout(() => {
+        setLoading(false);
+      }, remainingDelay);
     }
   };
 

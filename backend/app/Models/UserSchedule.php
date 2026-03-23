@@ -12,7 +12,9 @@ class UserSchedule extends Model
         'start_time',
         'end_time',
         'description',
-        'color'
+        'color',
+        'semester',
+        'school_year'
     ];
 
     public function user()

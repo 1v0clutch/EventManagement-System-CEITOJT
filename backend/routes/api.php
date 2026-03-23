@@ -57,6 +57,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/default-events/v2/scheduled', [DefaultEventControllerV2::class, 'getScheduledEvents']);
     Route::get('/default-events/v2/statistics', [DefaultEventControllerV2::class, 'getStatistics']);
     
+    // Admin-only routes for setting/removing dates
+    Route::middleware('admin')->group(function () {
+        Route::post('/default-events/v2/{id}/set-date', [DefaultEventControllerV2::class, 'setDate']);
+        Route::delete('/default-events/v2/{id}/remove-date', [DefaultEventControllerV2::class, 'removeDate']);
+    });
+    
     Route::get('/default-events', [DefaultEventController::class , 'index']);
 
     // Default Events (Academic Calendar) - Admin Only for modifications
@@ -64,6 +70,13 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::put('/default-events/{id}/date', [DefaultEventController::class , 'updateDate']);
             Route::post('/default-events/create-empty', [DefaultEventController::class , 'createEmptyEvent']);
             Route::post('/default-events/create-with-details', [DefaultEventController::class , 'createEventWithDetails']);
+
+            // Created Academic Events - Isolated per school year and semester
+            Route::get('/created-academic-events', [\App\Http\Controllers\CreatedAcademicEventController::class, 'index']);
+            Route::post('/created-academic-events', [\App\Http\Controllers\CreatedAcademicEventController::class, 'store']);
+            Route::put('/created-academic-events/{event}', [\App\Http\Controllers\CreatedAcademicEventController::class, 'update']);
+            Route::delete('/created-academic-events/{event}', [\App\Http\Controllers\CreatedAcademicEventController::class, 'destroy']);
+            Route::put('/created-academic-events/{event}/date', [\App\Http\Controllers\CreatedAcademicEventController::class, 'updateDate']);
 
             // Archive
             Route::get('/archive', [ArchiveController::class , 'index']);

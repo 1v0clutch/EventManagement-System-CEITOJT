@@ -25,6 +25,7 @@ export default function Archive() {
     }, [location]);
 
     const fetchArchivedEvents = async () => {
+        const startTime = Date.now();
         try {
             setLoading(true);
             const response = await api.get('/archive');
@@ -34,7 +35,13 @@ export default function Archive() {
             setError('Failed to load archived events');
             console.error(err);
         } finally {
-            setLoading(false);
+            const elapsed = Date.now() - startTime;
+            const minDelay = 300 + Math.random() * 300; // 300-600ms
+            const remainingDelay = Math.max(0, minDelay - elapsed);
+            
+            setTimeout(() => {
+                setLoading(false);
+            }, remainingDelay);
         }
     };
 

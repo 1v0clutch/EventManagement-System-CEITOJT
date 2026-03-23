@@ -6,7 +6,8 @@ import api from '../services/api';
 import logo from "../assets/CvSU Logo.png";
 
 export default function Navbar({
-  isLoading = false
+  isLoading = false,
+  pageTitle = "Dashboard"
 }) {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
@@ -84,7 +85,7 @@ export default function Navbar({
               </button>
               <div className="min-w-0">
                 <h1 className="text-lg sm:text-2xl font-bold text-white tracking-tight truncate">Event Management</h1>
-                <p className="text-xs text-green-200 font-medium hidden sm:block">Dashboard</p>
+                <p className="text-xs text-green-200 font-medium hidden sm:block">{pageTitle}</p>
               </div>
             </div>
 

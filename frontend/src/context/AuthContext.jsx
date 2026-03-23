@@ -42,8 +42,13 @@ const initAuthState = () => {
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(() => initAuthState().user);
-  const [loading] = useState(false); // No longer needed for initial auth
+  const [loading, setLoading] = useState(true);
   const sessionTimerRef = useRef(null);
+
+  // Initialize loading state synchronously
+  useEffect(() => {
+    setLoading(false);
+  }, []);
 
   const clearSessionTimer = () => {
     if (sessionTimerRef.current) {

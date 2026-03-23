@@ -30,13 +30,21 @@ export default function History() {
   }, [filterType]);
 
   const fetchActivities = async (page = 1) => {
+    const startTime = Date.now();
     const cacheKey = `activities:${user?.id}:${filterType}:${page}`;
     const cached = getCache(cacheKey);
 
     if (cached) {
-      setActivities(cached.activities);
-      setPagination(cached.pagination);
-      setLoading(false);
+      const elapsed = Date.now() - startTime;
+      const minDelay = 300 + Math.random() * 300; // 300-600ms
+      const remainingDelay = Math.max(0, minDelay - elapsed);
+      
+      setTimeout(() => {
+        setActivities(cached.activities);
+        setPagination(cached.pagination);
+        setLoading(false);
+      }, remainingDelay);
+      
       // Background refresh
       try {
         const response = await api.get('/activities', { params: { type: filterType, page, per_page: 20 } });
@@ -56,7 +64,13 @@ export default function History() {
     } catch (error) {
       console.error('Error fetching activities:', error);
     } finally {
-      setLoading(false);
+      const elapsed = Date.now() - startTime;
+      const minDelay = 300 + Math.random() * 300; // 300-600ms
+      const remainingDelay = Math.max(0, minDelay - elapsed);
+      
+      setTimeout(() => {
+        setLoading(false);
+      }, remainingDelay);
     }
   };
 
