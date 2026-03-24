@@ -32,6 +32,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'email_verified_at',
         'schedule_initialized',
         'is_bootstrap',
+        'has_changed_credentials',
     ];
 
     /**

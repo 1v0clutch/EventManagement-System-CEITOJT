@@ -5,8 +5,8 @@ import api from '../services/api';
 import { getCache, setCache, invalidateCache } from '../services/cache';
 import logo from "../assets/CEIT-LOGO.png";
 import Navbar from '../components/Navbar';
-import CreatePermanentAdminModal from '../components/CreatePermanentAdminModal';
 import CreateUserModal from '../components/CreateUserModal';
+import CreateDeanModal from '../components/CreateDeanModal';
 
 export default function Admin() {
   const navigate = useNavigate();
@@ -19,9 +19,8 @@ export default function Admin() {
   const [editingUserId, setEditingUserId] = useState(null);
   const [selectedRole, setSelectedRole] = useState('');
   const [isAccountDropdownOpen, setIsAccountDropdownOpen] = useState(false);
-  const [isBootstrapAdmin, setIsBootstrapAdmin] = useState(false);
-  const [showCreateAdminModal, setShowCreateAdminModal] = useState(false);
   const [showCreateUserModal, setShowCreateUserModal] = useState(false);
+  const [showCreateDeanModal, setShowCreateDeanModal] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
   const [isEditUserModalOpen, setIsEditUserModalOpen] = useState(false);
   const [showPendingOnly, setShowPendingOnly] = useState(false);
@@ -74,7 +73,6 @@ export default function Admin() {
     }
     fetchUsers();
     fetchEvents();
-    checkBootstrapStatus();
   }, [user, navigate]);
 
   // Handle navigation state to show pending users
@@ -136,20 +134,6 @@ export default function Admin() {
     } catch (error) {
       console.error('Error fetching events:', error);
     }
-  };
-
-  const checkBootstrapStatus = async () => {
-    try {
-      const response = await api.get('/setup/check-bootstrap');
-      setIsBootstrapAdmin(response.data.is_bootstrap);
-    } catch (error) {
-      console.error('Error checking bootstrap status:', error);
-      setIsBootstrapAdmin(false);
-    }
-  };
-
-  const handleCreateAdminSuccess = () => {
-    fetchUsers();
   };
 
   const handleViewEvent = (event) => {
@@ -335,34 +319,6 @@ export default function Admin() {
       {/* Main Content */}
       <main className="flex-1 w-full px-4 sm:px-6 lg:px-8 py-8">
         <div className="max-w-7xl mx-auto">
-          {/* Bootstrap Admin Warning Banner */}
-          {isBootstrapAdmin && (
-            <div className="mb-6 bg-white border-l-4 border-green-500 p-4 rounded-xl shadow-md hover:shadow-lg transition-shadow duration-300">
-              <div className="flex items-start justify-between">
-                <div className="flex items-start">
-                  <svg className="w-6 h-6 text-green-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                  </svg>
-                  <div className="ml-3">
-                    <h3 className="text-sm font-bold text-gray-900">Bootstrap Admin Account</h3>
-                    <p className="text-sm text-gray-600 mt-1">
-                      You are logged in as a temporary setup admin. Create 2 permanent admin accounts to complete the setup.
-                    </p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => setShowCreateAdminModal(true)}
-                  className="ml-4 flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-all duration-300 shadow-md hover:shadow-lg whitespace-nowrap"
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
-                  </svg>
-                  <span className="font-semibold">Create Admin</span>
-                </button>
-              </div>
-            </div>
-          )}
-
           {/* Stats Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
             {loading ? (
@@ -440,15 +396,28 @@ export default function Admin() {
                   <h2 className="text-2xl font-bold text-gray-900">User Management</h2>
                   <p className="text-sm text-gray-600 mt-1">Manage users, roles, and validations</p>
                 </div>
-                <button
-                  onClick={() => setShowCreateUserModal(true)}
-                  className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-all duration-300 shadow-md hover:shadow-lg"
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
-                  </svg>
-                  <span className="font-semibold">Create User</span>
-                </button>
+                <div className="flex items-center gap-3">
+                  {!deanExists && (
+                    <button
+                      onClick={() => setShowCreateDeanModal(true)}
+                      className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all duration-300 shadow-md hover:shadow-lg"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+                      </svg>
+                      <span className="font-semibold">Create Dean</span>
+                    </button>
+                  )}
+                  <button
+                    onClick={() => setShowCreateUserModal(true)}
+                    className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-all duration-300 shadow-md hover:shadow-lg"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+                    </svg>
+                    <span className="font-semibold">Create User</span>
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -717,13 +686,6 @@ export default function Admin() {
         </div>
       </main>
 
-      {/* Create Permanent Admin Modal */}
-      <CreatePermanentAdminModal
-        isOpen={showCreateAdminModal}
-        onClose={() => setShowCreateAdminModal(false)}
-        onSuccess={handleCreateAdminSuccess}
-      />
-
       {/* Create User Modal */}
       <CreateUserModal
         isOpen={showCreateUserModal}
@@ -732,6 +694,16 @@ export default function Admin() {
         onSuccess={() => {
           fetchUsers();
           setShowCreateUserModal(false);
+        }}
+      />
+
+      {/* Create Dean Modal */}
+      <CreateDeanModal
+        isOpen={showCreateDeanModal}
+        onClose={() => setShowCreateDeanModal(false)}
+        onSuccess={() => {
+          fetchUsers();
+          setShowCreateDeanModal(false);
         }}
       />
 

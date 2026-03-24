@@ -5,6 +5,7 @@ import Navbar from '../components/Navbar';
 import logo from '../assets/CEIT-LOGO.png';
 import api from '../services/api';
 import { getCache, setCache, invalidateCache } from '../services/cache';
+import PasswordInput from '../components/PasswordInput';
 
 // Scrollbar-hidden style for time columns
 const noScrollbar = {
@@ -152,6 +153,9 @@ export default function AccountDashboard() {
     username: '',
     email: '',
     department: '',
+    current_password: '',
+    new_password: '',
+    new_password_confirmation: '',
   });
   const [profilePicture, setProfilePicture] = useState(null);
   const [profilePicturePreview, setProfilePicturePreview] = useState(null);
@@ -209,6 +213,9 @@ export default function AccountDashboard() {
         username: user.username || '',
         email: user.email || '',
         department: user.department || '',
+        current_password: '',
+        new_password: '',
+        new_password_confirmation: '',
       });
       
       // Set profile picture preview if exists
@@ -319,37 +326,57 @@ export default function AccountDashboard() {
 
   const handleSaveChanges = async (e) => {
     e.preventDefault();
+
+    if (formData.new_password && formData.new_password !== formData.new_password_confirmation) {
+      setMessage({ type: 'error', text: 'New passwords do not match.' });
+      return;
+    }
+
     try {
       const formDataToSend = new FormData();
       formDataToSend.append('username', formData.username);
-      // Email and department are not sent - they cannot be changed
-      formDataToSend.append('_method', 'PUT'); // Laravel method spoofing
-      
+
+      // Admin one-time credential change
+      if (!user?.has_changed_credentials && user?.role === 'Admin') {
+        // Send new email if changed
+        if (formData.email && formData.email !== user.email) {
+          formDataToSend.append('email', formData.email);
+        }
+        // Send password fields if filled
+        if (formData.current_password && formData.new_password) {
+          formDataToSend.append('current_password', formData.current_password);
+          formDataToSend.append('new_password', formData.new_password);
+          formDataToSend.append('new_password_confirmation', formData.new_password_confirmation);
+        }
+      }
+
       if (profilePicture) {
         formDataToSend.append('profile_picture', profilePicture);
       }
 
       const response = await api.post('/user/profile', formDataToSend, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
+        headers: { 'Content-Type': 'multipart/form-data' },
       });
-      
-      // Update the user in context with the response data
+
       updateUser({
         username: response.data.user.username,
         email: response.data.user.email,
         department: response.data.user.department,
         profile_picture: response.data.user.profile_picture,
+        has_changed_credentials: response.data.user.has_changed_credentials,
       });
-      
+
       setMessage({ type: 'success', text: 'Profile updated successfully!' });
       setEditMode(false);
       setProfilePicture(null);
-      
-      setTimeout(() => {
-        setMessage({ type: '', text: '' });
-      }, 3000);
+      setFormData(prev => ({
+        ...prev,
+        current_password: '',
+        new_password: '',
+        new_password_confirmation: '',
+      }));
+
+      setTimeout(() => setMessage({ type: '', text: '' }), 3000);
     } catch (error) {
       setMessage({ type: 'error', text: error.response?.data?.message || 'Failed to update profile.' });
     }
@@ -1033,9 +1060,17 @@ export default function AccountDashboard() {
                             id="email"
                             name="email"
                             value={formData.email}
-                            disabled
-                            className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg shadow-sm bg-gray-100 text-gray-500 cursor-not-allowed"
+                            onChange={handleInputChange}
+                            disabled={!(!user?.has_changed_credentials && user?.role === 'Admin')}
+                            className={`w-full px-4 py-3 border-2 rounded-lg shadow-sm focus:outline-none transition-all duration-300 ${
+                              !user?.has_changed_credentials && user?.role === 'Admin'
+                                ? 'border-gray-200 focus:ring-2 focus:ring-green-600 focus:border-green-600 hover:border-gray-300'
+                                : 'border-gray-200 bg-gray-100 text-gray-500 cursor-not-allowed'
+                            }`}
                           />
+                          {!user?.has_changed_credentials && user?.role === 'Admin' && (
+                            <p className="mt-1 text-xs text-amber-600">One-time change only</p>
+                          )}
                         </div>
 
                         <div>
@@ -1058,6 +1093,49 @@ export default function AccountDashboard() {
                           </select>
                         </div>
 
+                        {/* One-time password change for Admin */}
+                        {!user?.has_changed_credentials && user?.role === 'Admin' && (
+                          <div className="space-y-4 pt-4 border-t border-gray-100">
+                            <h4 className="text-lg font-bold text-gray-900">Change Password <span className="text-xs font-normal text-amber-600">(One-Time Only)</span></h4>
+                            <div>
+                              <label htmlFor="current_password" className="block text-sm font-semibold text-gray-900 mb-2 uppercase tracking-wide">
+                                Current Password
+                              </label>
+                              <PasswordInput
+                                id="current_password"
+                                name="current_password"
+                                value={formData.current_password}
+                                onChange={handleInputChange}
+                                className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-green-600 transition-all duration-300 hover:border-gray-300"
+                              />
+                            </div>
+                            <div>
+                              <label htmlFor="new_password" className="block text-sm font-semibold text-gray-900 mb-2 uppercase tracking-wide">
+                                New Password
+                              </label>
+                              <PasswordInput
+                                id="new_password"
+                                name="new_password"
+                                value={formData.new_password}
+                                onChange={handleInputChange}
+                                className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-green-600 transition-all duration-300 hover:border-gray-300"
+                              />
+                            </div>
+                            <div>
+                              <label htmlFor="new_password_confirmation" className="block text-sm font-semibold text-gray-900 mb-2 uppercase tracking-wide">
+                                Confirm New Password
+                              </label>
+                              <PasswordInput
+                                id="new_password_confirmation"
+                                name="new_password_confirmation"
+                                value={formData.new_password_confirmation}
+                                onChange={handleInputChange}
+                                className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-green-600 transition-all duration-300 hover:border-gray-300"
+                              />
+                            </div>
+                          </div>
+                        )}
+
                         <div className="flex gap-3 pt-6 border-t border-gray-200">
                           <button
                             type="submit"
@@ -1073,6 +1151,9 @@ export default function AccountDashboard() {
                                 username: user.username || '',
                                 email: user.email || '',
                                 department: user.department || '',
+                                current_password: '',
+                                new_password: '',
+                                new_password_confirmation: '',
                               });
                               setProfilePicture(null);
                               setProfilePicturePreview(user.profile_picture || null);

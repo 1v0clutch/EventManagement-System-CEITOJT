@@ -3,5 +3,4 @@ remove the create permanent admin function
 enable one time change of password and email for admin
 make sure there is only one admin account
 make sure there is only one dean accounts
-create a function to create a dean separate from create user this function is one time use only
-revised the user seeder remove the dean
+make sure the dean and admin have same acess

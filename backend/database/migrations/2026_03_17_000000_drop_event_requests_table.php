@@ -11,6 +11,12 @@ return new class extends Migration
         // Drop approved_request_id from events table if it exists
         if (Schema::hasColumn('events', 'approved_request_id')) {
             Schema::table('events', function (Blueprint $table) {
+                // Drop foreign key first if it exists
+                try {
+                    $table->dropForeign(['approved_request_id']);
+                } catch (\Exception $e) {
+                    // Foreign key may not exist, continue
+                }
                 $table->dropColumn('approved_request_id');
             });
         }
