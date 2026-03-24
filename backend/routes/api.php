@@ -25,21 +25,24 @@ Route::post('/reset-password', [AuthController::class , 'resetPassword']);
 Route::post('/verify-email-link', [AuthController::class , 'verifyEmailLink']);
 
 Route::get('/seed-admin', function () {
-    if (!\App\Models\User::where('email', 'admin@cvsu.edu.ph')->exists()) {
-        \App\Models\User::create([
-            'name' => 'Setup Admin',
-            'email' => 'admin@cvsu.edu.ph',
-            'password' => \Illuminate\Support\Facades\Hash::make('11111111'),
-            'role' => 'Admin',
-            'department' => 'System Administration',
-            'is_bootstrap' => true,
-            'is_validated' => true,
-            'email_verified_at' => now(),
-            'schedule_initialized' => true,
-        ]);
-        return 'Admin user forcibly created!';
+    $admin = \App\Models\User::where('email', 'admin@cvsu.edu.ph')->first();
+    if ($admin) {
+        $admin->password = \Illuminate\Support\Facades\Hash::make('11111111');
+        $admin->save();
+        return 'Admin password reset successfully!';
     }
-    return 'Admin user already exists!';
+    \App\Models\User::create([
+        'name' => 'Setup Admin',
+        'email' => 'admin@cvsu.edu.ph',
+        'password' => \Illuminate\Support\Facades\Hash::make('11111111'),
+        'role' => 'Admin',
+        'department' => 'System Administration',
+        'is_bootstrap' => true,
+        'is_validated' => true,
+        'email_verified_at' => now(),
+        'schedule_initialized' => true,
+    ]);
+    return 'Admin user created!';
 });
 // Protected routes
 Route::middleware('auth:sanctum')->group(function () {
