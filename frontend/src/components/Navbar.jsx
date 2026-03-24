@@ -7,7 +7,9 @@ import logo from "../assets/CvSU Logo.png";
 
 export default function Navbar({
   isLoading = false,
-  pageTitle = "Dashboard"
+  pageTitle = "Dashboard",
+  onNotificationClick = null,
+  refreshTrigger = 0,
 }) {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
@@ -22,6 +24,10 @@ export default function Navbar({
     fetchEvents();
     fetchMembers();
   }, []);
+
+  useEffect(() => {
+    if (refreshTrigger > 0) fetchEvents();
+  }, [refreshTrigger]);
 
   // Fetch members when modal opens
   useEffect(() => {
@@ -137,7 +143,7 @@ export default function Navbar({
                 <NotificationBell
                   events={events}
                   user={user}
-                  onNotificationClick={(event) => navigate('/dashboard', { state: { viewEvent: event } })}
+                  onNotificationClick={onNotificationClick || ((event) => navigate('/dashboard', { state: { viewEvent: event } }))}
                   isDisabled={isLoading}
                 />
               </div>
@@ -224,7 +230,7 @@ export default function Navbar({
                 <NotificationBell
                   events={events}
                   user={user}
-                  onNotificationClick={(event) => navigate('/dashboard', { state: { viewEvent: event } })}
+                  onNotificationClick={onNotificationClick || ((event) => navigate('/dashboard', { state: { viewEvent: event } }))}
                   isDisabled={isLoading}
                 />
               </div>

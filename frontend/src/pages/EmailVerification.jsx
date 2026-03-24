@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import api from '../services/api';
+import { useAuth } from '../context/AuthContext';
 import AuthBackground from '../components/AuthBackground';
 
 export default function EmailVerification() {
@@ -13,6 +14,7 @@ export default function EmailVerification() {
 
   const navigate = useNavigate();
   const location = useLocation();
+  const { login } = useAuth();
 
   useEffect(() => {
     // Get email from location state or redirect to register
@@ -36,16 +38,19 @@ export default function EmailVerification() {
         otp: otp.trim()
       });
 
-      setSuccess('Email verified successfully! Redirecting to dashboard...');
+      setSuccess('Email verified successfully! Redirecting...');
 
-      // Store token and user data
-      localStorage.setItem('token', response.data.token);
-      localStorage.setItem('user', JSON.stringify(response.data.user));
+      // Use auth context login to properly set user state
+      await login(null, null, false, response.data.user, response.data.token);
 
-      // Redirect to dashboard after 2 seconds
+      // Redirect based on schedule_initialized
       setTimeout(() => {
-        navigate('/dashboard');
-      }, 2000);
+        if (response.data.user?.schedule_initialized) {
+          navigate('/dashboard');
+        } else {
+          navigate('/account');
+        }
+      }, 1500);
 
     } catch (err) {
       setError(err.response?.data?.message || 'Verification failed. Please try again.');
@@ -164,7 +169,7 @@ export default function EmailVerification() {
               </button>
             </div>
 
-            <div className="text-center">
+            <div className="text-center space-y-2">
               <p className="text-sm text-gray-600">
                 Didn't receive the code?{' '}
                 <button
@@ -176,16 +181,23 @@ export default function EmailVerification() {
                   {resending ? 'Sending...' : 'Resend Code'}
                 </button>
               </p>
-            </div>
-
-            <div className="text-center">
-              <button
-                type="button"
-                onClick={() => navigate('/register')}
-                className="font-medium text-gray-600 hover:text-gray-500"
-              >
-                Back to Registration
-              </button>
+              <div className="flex justify-center gap-4 text-sm">
+                <button
+                  type="button"
+                  onClick={() => navigate('/register')}
+                  className="font-medium text-gray-500 hover:text-gray-700"
+                >
+                  Back to Register
+                </button>
+                <span className="text-gray-300">|</span>
+                <button
+                  type="button"
+                  onClick={() => navigate('/login')}
+                  className="font-medium text-gray-500 hover:text-gray-700"
+                >
+                  Back to Login
+                </button>
+              </div>
             </div>
           </form>
         </div>

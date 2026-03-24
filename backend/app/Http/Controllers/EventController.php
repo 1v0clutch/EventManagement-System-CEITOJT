@@ -339,7 +339,7 @@ class EventController extends Controller
         }
 
         $request->validate([
-            'status' => 'required|in:accepted,declined',
+            'status' => 'required|in:accepted,declined,pending',
         ]);
 
         $event->members()->updateExistingPivot($user->id, [

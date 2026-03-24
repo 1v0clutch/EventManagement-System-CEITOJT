@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import ConfirmDeleteModal from './ConfirmDeleteModal';
 
-export default function Calendar({ events, defaultEvents = [], userSchedules = [], onDateSelect, highlightedDate, currentUser, onEditEvent, onDeleteEvent }) {
+export default function Calendar({ events, defaultEvents = [], userSchedules = [], onDateSelect, highlightedDate, currentUser, onEditEvent, onDeleteEvent, onRespondToEvent, externalEventToOpen, onExternalEventOpened }) {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(null);
   const [showMoreModal, setShowMoreModal] = useState(false);
@@ -19,6 +19,21 @@ export default function Calendar({ events, defaultEvents = [], userSchedules = [
   // Members pagination state
   const [membersPage, setMembersPage] = useState(1);
   const MEMBERS_PER_PAGE = 8;
+
+  // Invitation response state
+  const [respondingToEvent, setRespondingToEvent] = useState(false);
+
+  // Open event externally (e.g. from notification bell)
+  useEffect(() => {
+    if (externalEventToOpen) {
+      setSelectedEvent(externalEventToOpen);
+      setShowEventDetailModal(true);
+      setShowMoreModal(false);
+      setCurrentFileIndex(0);
+      setMembersPage(1);
+      if (onExternalEventOpened) onExternalEventOpened();
+    }
+  }, [externalEventToOpen]);
 
   const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
     'July', 'August', 'September', 'October', 'November', 'December'];
@@ -831,7 +846,8 @@ export default function Calendar({ events, defaultEvents = [], userSchedules = [
             {/* Modal Content */}
             <div className="flex flex-col lg:flex-row flex-1 min-h-0 overflow-hidden">
               {/* Left Column - Event Details */}
-              <div className="flex-1 overflow-y-auto px-6 py-5 flex flex-col">
+              <div className="flex-1 flex flex-col min-h-0">
+                <div className="flex-1 overflow-y-auto px-6 py-5">
                 <div className="space-y-5">
                   {/* Date */}
                   <div>
@@ -1015,6 +1031,73 @@ export default function Calendar({ events, defaultEvents = [], userSchedules = [
                     </div>
                   )}
                 </div>
+                </div>
+
+                {/* Accept / Decline — sticky footer, always visible */}
+                {onRespondToEvent && !selectedEvent.is_default_event && !selectedEvent.isScheduleGroup && !selectedEvent.is_personal &&
+                  selectedEvent.members && selectedEvent.host &&
+                  currentUser && selectedEvent.host.id !== currentUser.id &&
+                  selectedEvent.members.some(m => m.id === currentUser.id) && (() => {
+                    const myMembership = selectedEvent.members.find(m => m.id === currentUser.id);
+                    const myStatus = myMembership?.status;
+
+                    const respond = async (status) => {
+                      setRespondingToEvent(true);
+                      try {
+                        await onRespondToEvent(selectedEvent.id, status);
+                        // Update local state so button changes immediately without closing
+                        setSelectedEvent(prev => ({
+                          ...prev,
+                          members: prev.members.map(m =>
+                            m.id === currentUser.id ? { ...m, status } : m
+                          )
+                        }));
+                      } finally {
+                        setRespondingToEvent(false);
+                      }
+                    };
+
+                    if (myStatus === 'pending') {
+                      return (
+                        <div className="flex-shrink-0 px-6 py-4 border-t border-gray-200 bg-white flex gap-2">
+                          <button disabled={respondingToEvent} onClick={() => respond('accepted')}
+                            className="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors">
+                            ✓ Accept Invitation
+                          </button>
+                          <button disabled={respondingToEvent} onClick={() => respond('declined')}
+                            className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 disabled:opacity-50 transition-colors">
+                            ✗ Decline
+                          </button>
+                        </div>
+                      );
+                    }
+                    if (myStatus === 'accepted') {
+                      return (
+                        <div className="flex-shrink-0 px-6 py-4 border-t border-gray-200 bg-white flex items-center gap-2">
+                          <span className="flex-1 inline-flex items-center justify-center px-3 py-2.5 rounded-lg text-sm font-semibold bg-green-100 text-green-800">
+                            ✓ You accepted this invitation
+                          </span>
+                          <button disabled={respondingToEvent} onClick={() => respond('pending')}
+                            className="px-3 py-2.5 text-sm font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 disabled:opacity-50 transition-colors whitespace-nowrap">
+                            Cancel
+                          </button>
+                        </div>
+                      );
+                    }
+                    // declined
+                    return (
+                      <div className="flex-shrink-0 px-6 py-4 border-t border-gray-200 bg-white flex items-center gap-2">
+                        <span className="flex-1 inline-flex items-center justify-center px-3 py-2.5 rounded-lg text-sm font-semibold bg-red-100 text-red-800">
+                          ✗ You declined this invitation
+                        </span>
+                        <button disabled={respondingToEvent} onClick={() => respond('pending')}
+                          className="px-3 py-2.5 text-sm font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 disabled:opacity-50 transition-colors whitespace-nowrap">
+                          Cancel
+                        </button>
+                      </div>
+                    );
+                  })()
+                }
               </div>
 
               {/* Right Column - File Viewer */}

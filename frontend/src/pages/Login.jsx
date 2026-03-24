@@ -58,6 +58,14 @@ export default function Login() {
     } catch (err) {
       const response = err.response?.data;
 
+      // Unverified email — redirect to OTP screen so they can complete registration
+      if (response?.requires_verification) {
+        navigate('/verify-email', {
+          state: { email: response.email || email }
+        });
+        return;
+      }
+
       // Check if it's a 2FA requirement
       if (response?.requires_otp) {
         navigate('/verify-login-otp', {

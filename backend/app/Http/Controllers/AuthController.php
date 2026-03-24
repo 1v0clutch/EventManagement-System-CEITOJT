@@ -25,7 +25,6 @@ class AuthController extends Controller
                     'required',
                     'string',
                     'email',
-                    'unique:users',
                     'regex:/^[a-zA-Z0-9._%+-]+@cvsu\.edu\.ph$/i'
                 ],
                 'password' => 'required|string|min:6',
@@ -34,6 +33,22 @@ class AuthController extends Controller
             ]);
 
             $email = strtolower(trim($request->email));
+
+            // If a user with this email exists but never verified their OTP,
+            // treat it as a fresh registration attempt — clean up the stale record.
+            $existingUser = User::where('email', $email)->first();
+            if ($existingUser) {
+                if ($existingUser->email_verified_at) {
+                    // Fully registered — block with a clear message
+                    return response()->json([
+                        'message' => 'This email is already registered. Please log in instead.',
+                    ], 422);
+                }
+                // Unverified — delete stale user and any pending OTPs so they can retry
+                DB::table('email_verification_otps')->where('email', $email)->delete();
+                $existingUser->tokens()->delete();
+                $existingUser->delete();
+            }
             
             // Capitalize first letter of each word in names
             $firstName = $this->capitalizeWords(trim($request->first_name));
@@ -294,9 +309,22 @@ class AuthController extends Controller
                 'user_id' => $user->id,
                 'ip' => $ip,
             ]);
-            
+
+            // Resend a fresh OTP so they can complete registration
+            DB::table('email_verification_otps')->where('email', $email)->delete();
+            $otp = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+            DB::table('email_verification_otps')->insert([
+                'email' => $email,
+                'otp' => $otp,
+                'expires_at' => now()->addMinutes(10),
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+            $brevoService = new BrevoMailService();
+            $brevoService->sendRegistrationOtp($email, $otp, $user->name);
+
             return response()->json([
-                'message' => 'Please verify your email address before logging in.',
+                'message' => 'Your email is not verified yet. A new verification code has been sent to your email.',
                 'requires_verification' => true,
                 'email' => $user->email,
             ], 403);

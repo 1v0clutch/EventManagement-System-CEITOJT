@@ -26,6 +26,11 @@ export default function Dashboard() {
   const [isScheduleRequiredModalOpen, setIsScheduleRequiredModalOpen] = useState(false);
   const [hasSchedule, setHasSchedule] = useState(true);
 
+  // Event to open directly in Calendar popup (from notification click)
+  const [calendarEventToOpen, setCalendarEventToOpen] = useState(null);
+  // Trigger Navbar to re-fetch events (e.g. after responding to invitation)
+  const [navbarRefreshTrigger, setNavbarRefreshTrigger] = useState(0);
+
 
   useEffect(() => {
     // Check if user is validated - redirect if not
@@ -52,10 +57,18 @@ export default function Dashboard() {
     if (location.state?.refresh) {
       setLoading(true);
       fetchData();
-      // Clear the state to prevent re-fetching on every render
       navigate(location.pathname, { replace: true, state: {} });
     }
   }, [location.state?.refresh]);
+
+  // Open event from notification click (viewEvent state)
+  useEffect(() => {
+    if (location.state?.viewEvent && events.length > 0) {
+      const targetEvent = events.find(e => e.id === location.state.viewEvent.id) || location.state.viewEvent;
+      setCalendarEventToOpen(targetEvent);
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location.state?.viewEvent, events]);
 
   // Close account dropdown when clicking outside
   useEffect(() => {
@@ -112,22 +125,11 @@ export default function Dashboard() {
     try {
       const cacheKey = `dashboard:${user?.id}`;
       const cached = getCache(cacheKey);
-      
-      // Ensure loading skeleton shows for minimum duration
-      const minLoadingTime = 600; // 600ms minimum for consistent UX
-      const startTime = Date.now();
 
       if (cached) {
-        // Apply cached data but keep loading state
         applyDashboardData(cached, false);
-        
-        // Wait for minimum loading time before hiding skeleton
-        const elapsed = Date.now() - startTime;
-        const remainingTime = Math.max(0, minLoadingTime - elapsed);
-        
-        await new Promise(resolve => setTimeout(resolve, remainingTime));
         setLoading(false);
-        
+
         // Silently refresh in background
         try {
           const response = await api.get('/dashboard');
@@ -139,22 +141,15 @@ export default function Dashboard() {
         return;
       }
 
-      // No cache, fetch fresh data
+      // No cache — fetch fresh data
       const response = await api.get('/dashboard');
       setCache(cacheKey, response.data);
       applyDashboardData(response.data, false);
-      
-      // Wait for minimum loading time before hiding skeleton
-      const elapsed = Date.now() - startTime;
-      const remainingTime = Math.max(0, minLoadingTime - elapsed);
-      
-      await new Promise(resolve => setTimeout(resolve, remainingTime));
       setLoading(false);
     } catch (error) {
       console.error('Error fetching data:', error);
       setLoading(false);
-      
-      // Show user-friendly error message
+
       if (error.response?.status === 401) {
         navigate('/login');
       }
@@ -302,7 +297,14 @@ export default function Dashboard() {
 
   return (
     <div className="h-screen bg-gradient-to-br from-gray-50 via-green-100 to-gray-50 flex flex-col overflow-hidden">
-      <Navbar isLoading={loading} />
+      <Navbar
+        isLoading={loading}
+        refreshTrigger={navbarRefreshTrigger}
+        onNotificationClick={(event) => {
+          const fresh = events.find(e => e.id === event.id) || event;
+          setCalendarEventToOpen(fresh);
+        }}
+      />
 
       {/* Main Content */}
       <main className="flex-1 w-full py-2 sm:py-4 px-2 sm:px-4 lg:px-8 overflow-hidden flex flex-col">
@@ -421,6 +423,14 @@ export default function Dashboard() {
                 currentUser={user}
                 onEditEvent={handleEdit}
                 onDeleteEvent={handleDelete}
+                onRespondToEvent={async (eventId, status) => {
+                  await api.post(`/events/${eventId}/respond`, { status });
+                  // Refresh in background — UI already updates optimistically via Calendar local state
+                  fetchData();
+                  setNavbarRefreshTrigger(t => t + 1);
+                }}
+                externalEventToOpen={calendarEventToOpen}
+                onExternalEventOpened={() => setCalendarEventToOpen(null)}
               />
             )}
           </div>

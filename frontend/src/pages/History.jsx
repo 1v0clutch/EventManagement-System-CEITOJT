@@ -12,6 +12,7 @@ export default function History() {
   const [loading, setLoading] = useState(true);
   const [isAccountDropdownOpen, setIsAccountDropdownOpen] = useState(false);
   const [filterType, setFilterType] = useState('all');
+  const [filterStatus, setFilterStatus] = useState('all');
   const [selectedActivity, setSelectedActivity] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [pagination, setPagination] = useState({
@@ -27,27 +28,24 @@ export default function History() {
       return;
     }
     fetchActivities();
-  }, [filterType]);
+  }, [filterType, filterStatus]);
 
   const fetchActivities = async (page = 1) => {
     const startTime = Date.now();
-    const cacheKey = `activities:${user?.id}:${filterType}:${page}`;
+    const cacheKey = `activities:${user?.id}:${filterType}:${filterStatus}:${page}`;
     const cached = getCache(cacheKey);
 
     if (cached) {
-      const elapsed = Date.now() - startTime;
-      const minDelay = 300 + Math.random() * 300; // 300-600ms
-      const remainingDelay = Math.max(0, minDelay - elapsed);
-      
-      setTimeout(() => {
-        setActivities(cached.activities);
-        setPagination(cached.pagination);
-        setLoading(false);
-      }, remainingDelay);
+      setActivities(cached.activities);
+      setPagination(cached.pagination);
+      setLoading(false);
       
       // Background refresh
       try {
-        const response = await api.get('/activities', { params: { type: filterType, page, per_page: 20 } });
+        const params = { page, per_page: 20 };
+        if (filterType !== 'all') params.type = filterType;
+        if (filterStatus !== 'all') params.status = filterStatus;
+        const response = await api.get('/activities', { params });
         setCache(cacheKey, response.data);
         setActivities(response.data.activities);
         setPagination(response.data.pagination);
@@ -57,20 +55,17 @@ export default function History() {
 
     try {
       setLoading(true);
-      const response = await api.get('/activities', { params: { type: filterType, page, per_page: 20 } });
+      const params = { page, per_page: 20 };
+      if (filterType !== 'all') params.type = filterType;
+      if (filterStatus !== 'all') params.status = filterStatus;
+      const response = await api.get('/activities', { params });
       setCache(cacheKey, response.data);
       setActivities(response.data.activities);
       setPagination(response.data.pagination);
     } catch (error) {
       console.error('Error fetching activities:', error);
     } finally {
-      const elapsed = Date.now() - startTime;
-      const minDelay = 300 + Math.random() * 300; // 300-600ms
-      const remainingDelay = Math.max(0, minDelay - elapsed);
-      
-      setTimeout(() => {
-        setLoading(false);
-      }, remainingDelay);
+      setLoading(false);
     }
   };
 
@@ -112,33 +107,17 @@ export default function History() {
     switch (type) {
       case 'event_hosted':
         return (
-          <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
-            <svg className={`${iconClasses} text-purple-600`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
+            <svg className={`${iconClasses} text-red-600`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
             </svg>
           </div>
         );
       case 'event_invited':
         return (
-          <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-            <svg className={`${iconClasses} text-blue-600`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+            <svg className={`${iconClasses} text-green-600`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-            </svg>
-          </div>
-        );
-      case 'hierarchy_approval_requested':
-        return (
-          <div className="w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center">
-            <svg className={`${iconClasses} text-amber-600`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-            </svg>
-          </div>
-        );
-      case 'hierarchy_approval_decision':
-        return (
-          <div className="w-10 h-10 bg-teal-100 rounded-full flex items-center justify-center">
-            <svg className={`${iconClasses} text-teal-600`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
             </svg>
           </div>
         );
@@ -172,13 +151,9 @@ export default function History() {
   const getActivityTitle = (activity) => {
     switch (activity.type) {
       case 'event_hosted':
-        return `Hosted: ${activity.title}`;
+        return activity.title;
       case 'event_invited':
-        return `Invited to: ${activity.title}`;
-      case 'hierarchy_approval_requested':
-        return `Approval Requested: ${activity.title}`;
-      case 'hierarchy_approval_decision':
-        return `Approval Decision: ${activity.title}`;
+        return activity.title;
       case 'message_sent':
       case 'message_received':
         return activity.title;
@@ -189,38 +164,37 @@ export default function History() {
 
   const getStatusBadge = (activity) => {
     const status = activity?.status;
+    const type = activity?.type;
     if (!status) return <span className="px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-700">Unknown</span>;
-    let badgeClass = '';
-    let statusText = '';
 
+    // event_hosted always shows "Hosted"
+    if (type === 'event_hosted') {
+      return <span className="px-2 py-1 text-xs font-semibold rounded-full bg-purple-100 text-purple-700">Hosted</span>;
+    }
+
+    // event_invited shows the user's response status
+    if (type === 'event_invited') {
+      if (status === 'accepted') return <span className="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-700">Accepted</span>;
+      if (status === 'declined') return <span className="px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-700">Declined</span>;
+      return <span className="px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-700">Pending</span>;
+    }
+
+    // fallback for other types
     switch (status) {
       case 'completed':
       case 'accepted':
       case 'approved':
       case 'read':
-        badgeClass = 'bg-green-100 text-green-700';
-        statusText = status.charAt(0).toUpperCase() + status.slice(1);
-        break;
+        return <span className="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-700">{status.charAt(0).toUpperCase() + status.slice(1)}</span>;
       case 'declined':
       case 'rejected':
-        badgeClass = 'bg-red-100 text-red-700';
-        statusText = status.charAt(0).toUpperCase() + status.slice(1);
-        break;
+        return <span className="px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-700">{status.charAt(0).toUpperCase() + status.slice(1)}</span>;
       case 'pending':
       case 'unread':
-        badgeClass = 'bg-yellow-100 text-yellow-700';
-        statusText = status.charAt(0).toUpperCase() + status.slice(1);
-        break;
+        return <span className="px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-700">{status.charAt(0).toUpperCase() + status.slice(1)}</span>;
       default:
-        badgeClass = 'bg-gray-100 text-gray-700';
-        statusText = status.charAt(0).toUpperCase() + status.slice(1);
+        return <span className="px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-700">{status.charAt(0).toUpperCase() + status.slice(1)}</span>;
     }
-
-    return (
-      <span className={`px-2 py-1 text-xs font-semibold rounded-full ${badgeClass}`}>
-        {statusText}
-      </span>
-    );
   };
 
   const formatDate = (dateString) => {
@@ -258,41 +232,56 @@ export default function History() {
 
         {/* Filters */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="flex flex-col gap-4">
             {/* Activity Type Filter */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Activity Type</label>
               <div className="flex gap-2 flex-wrap">
-                <button
-                  onClick={() => setFilterType('all')}
-                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                    filterType === 'all'
-                      ? 'bg-green-600 text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-                >
-                  All
-                </button>
-                <button
-                  onClick={() => setFilterType('event_hosted')}
-                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                    filterType === 'event_hosted'
-                      ? 'bg-green-600 text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-                >
-                  Events Hosted
-                </button>
-                <button
-                  onClick={() => setFilterType('event_invited')}
-                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                    filterType === 'event_invited'
-                      ? 'bg-green-600 text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-                >
-                  Invitations
-                </button>
+                {[
+                  { value: 'all', label: 'All' },
+                  { value: 'event_hosted', label: 'Hosted' },
+                  { value: 'event_invited', label: 'Invited' },
+                ].map(({ value, label }) => (
+                  <button
+                    key={value}
+                    onClick={() => { setFilterType(value); setFilterStatus('all'); }}
+                    className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                      filterType === value
+                        ? 'bg-green-600 text-white'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Status Filter — only relevant for invited events */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Invitation Status</label>
+              <div className="flex gap-2 flex-wrap">
+                {[
+                  { value: 'all', label: 'All' },
+                  { value: 'accepted', label: 'Accepted' },
+                  { value: 'declined', label: 'Declined' },
+                  { value: 'pending', label: 'Pending' },
+                ].map(({ value, label }) => (
+                  <button
+                    key={value}
+                    onClick={() => { setFilterStatus(value); if (value !== 'all') setFilterType('event_invited'); }}
+                    className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                      filterStatus === value
+                        ? value === 'accepted' ? 'bg-green-600 text-white'
+                          : value === 'declined' ? 'bg-red-500 text-white'
+                          : value === 'pending' ? 'bg-yellow-500 text-white'
+                          : 'bg-green-600 text-white'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
               </div>
             </div>
           </div>
@@ -348,9 +337,17 @@ export default function History() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
-                          <h3 className="text-sm font-semibold text-gray-900 mb-1">
-                            {getActivityTitle(activity)}
-                          </h3>
+                          <div className="flex items-center gap-2 mb-1">
+                            {activity.type === 'event_hosted' && (
+                              <span className="text-xs font-semibold text-red-600 uppercase tracking-wide">Hosted</span>
+                            )}
+                            {activity.type === 'event_invited' && (
+                              <span className="text-xs font-semibold text-green-600 uppercase tracking-wide">Invited</span>
+                            )}
+                            <h3 className="text-sm font-semibold text-gray-900">
+                              {getActivityTitle(activity)}
+                            </h3>
+                          </div>
                           <p className="text-sm text-gray-600 mb-2 line-clamp-2">
                             {activity.description}
                           </p>
