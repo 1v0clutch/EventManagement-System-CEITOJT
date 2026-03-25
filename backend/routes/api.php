@@ -24,6 +24,17 @@ Route::post('/reset-password-otp', [AuthController::class , 'resetPasswordWithOt
 Route::post('/reset-password', [AuthController::class , 'resetPassword']);
 Route::post('/verify-email-link', [AuthController::class , 'verifyEmailLink']);
 
+// DEBUG ROUTE TO VERIFY API KEY STATE ON RENDER
+Route::get('/test-brevo', function () {
+    return response()->json([
+        'has_api_key_in_config' => !empty(config('services.brevo.key')),
+        'has_api_key_in_env' => !empty(env('BREVO_API_KEY')),
+        'key_preview' => substr(config('services.brevo.key') ?? '', 0, 10) . '...',
+        'queue_connection' => config('queue.default'),
+        'mail_mailer' => config('mail.default'),
+    ]);
+});
+
 // Protected routes
 Route::middleware('auth:sanctum')->group(function () {
     // Auth
@@ -45,33 +56,34 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/personal-events/{event}', [App\Http\Controllers\PersonalEventController::class , 'destroy']);
 
     // Default Events (Academic Calendar) - View access for all authenticated users
-    Route::get('/default-events', [DefaultEventController::class, 'index']);
-    
-    // Default Events V2 (New Architecture with separate date tracking)
-    Route::get('/default-events/v2', [DefaultEventControllerV2::class, 'index']);
-    Route::get('/default-events/v2/scheduled', [DefaultEventControllerV2::class, 'getScheduledEvents']);
-    Route::get('/default-events/v2/statistics', [DefaultEventControllerV2::class, 'getStatistics']);
-    
-    // Admin-only routes for setting/removing dates
-    Route::middleware('admin')->group(function () {
-        Route::post('/default-events/v2/{id}/set-date', [DefaultEventControllerV2::class, 'setDate']);
-        Route::delete('/default-events/v2/{id}/remove-date', [DefaultEventControllerV2::class, 'removeDate']);
-    });
-    
     Route::get('/default-events', [DefaultEventController::class , 'index']);
 
-    // Default Events (Academic Calendar) - Admin Only for modifications
+    // Default Events V2 (New Architecture with separate date tracking)
+    Route::get('/default-events/v2', [DefaultEventControllerV2::class , 'index']);
+    Route::get('/default-events/v2/scheduled', [DefaultEventControllerV2::class , 'getScheduledEvents']);
+    Route::get('/default-events/v2/statistics', [DefaultEventControllerV2::class , 'getStatistics']);
+
+    // Admin-only routes for setting/removing dates
     Route::middleware('admin')->group(function () {
+            Route::post('/default-events/v2/{id}/set-date', [DefaultEventControllerV2::class , 'setDate']);
+            Route::delete('/default-events/v2/{id}/remove-date', [DefaultEventControllerV2::class , 'removeDate']);
+        }
+        );
+
+        Route::get('/default-events', [DefaultEventController::class , 'index']);
+
+        // Default Events (Academic Calendar) - Admin Only for modifications
+        Route::middleware('admin')->group(function () {
             Route::put('/default-events/{id}/date', [DefaultEventController::class , 'updateDate']);
             Route::post('/default-events/create-empty', [DefaultEventController::class , 'createEmptyEvent']);
             Route::post('/default-events/create-with-details', [DefaultEventController::class , 'createEventWithDetails']);
 
             // Created Academic Events - Isolated per school year and semester
-            Route::get('/created-academic-events', [\App\Http\Controllers\CreatedAcademicEventController::class, 'index']);
-            Route::post('/created-academic-events', [\App\Http\Controllers\CreatedAcademicEventController::class, 'store']);
-            Route::put('/created-academic-events/{event}', [\App\Http\Controllers\CreatedAcademicEventController::class, 'update']);
-            Route::delete('/created-academic-events/{event}', [\App\Http\Controllers\CreatedAcademicEventController::class, 'destroy']);
-            Route::put('/created-academic-events/{event}/date', [\App\Http\Controllers\CreatedAcademicEventController::class, 'updateDate']);
+            Route::get('/created-academic-events', [\App\Http\Controllers\CreatedAcademicEventController::class , 'index']);
+            Route::post('/created-academic-events', [\App\Http\Controllers\CreatedAcademicEventController::class , 'store']);
+            Route::put('/created-academic-events/{event}', [\App\Http\Controllers\CreatedAcademicEventController::class , 'update']);
+            Route::delete('/created-academic-events/{event}', [\App\Http\Controllers\CreatedAcademicEventController::class , 'destroy']);
+            Route::put('/created-academic-events/{event}/date', [\App\Http\Controllers\CreatedAcademicEventController::class , 'updateDate']);
 
             // Archive
             Route::get('/archive', [ArchiveController::class , 'index']);
@@ -91,7 +103,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/users/{id}/revoke-validation', [UserController::class , 'revokeValidation']);
 
         // Schedules
-        Route::get('/schedules', [ScheduleController::class , 'index']);
+        Route::get('/init-schedule', [AppController::class , 'initSchedule']);
         Route::post('/schedules', [ScheduleController::class , 'store']);
         Route::delete('/schedules/{id}', [ScheduleController::class , 'destroy']);
         Route::post('/schedules/check-conflicts', [ScheduleController::class , 'checkConflicts']);
@@ -104,4 +116,5 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('/messages/{id}', [App\Http\Controllers\MessageController::class , 'destroy']);
 
         // Activity History
-        Route::get('/activities', [App\Http\Controllers\ActivityController::class , 'index']);    });
+        Route::get('/activities', [App\Http\Controllers\ActivityController::class , 'index']);
+    });
