@@ -1,2 +1,8 @@
+<<<<<<< HEAD
 mdFiles/
 *.md
+=======
+backend/test-brevo-api.php
+Journal/Plan.txt
+ENV_CHANGES_SUMMARY.md
+>>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d

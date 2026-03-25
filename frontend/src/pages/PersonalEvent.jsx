@@ -4,7 +4,11 @@ import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 import { invalidateCache } from '../services/cache';
 import Navbar from '../components/Navbar';
+<<<<<<< HEAD
 import logo from '../assets/CvSU Logo.png';
+=======
+import logo from '../assets/CEIT-LOGO.png';
+>>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
 
 export default function PersonalEvent() {
   const navigate = useNavigate();

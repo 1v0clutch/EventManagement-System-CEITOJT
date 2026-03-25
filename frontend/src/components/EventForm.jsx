@@ -21,12 +21,15 @@ export default function EventForm({ members, onEventCreated, editingEvent, onCan
   const [searchMember, setSearchMember] = useState('');
   const [isDragging, setIsDragging] = useState(false);
   const [fileError, setFileError] = useState('');
+<<<<<<< HEAD
   const [membersPage, setMembersPage] = useState(1);
   const MEMBERS_PER_PAGE = 6;
   const [showInvitedModal, setShowInvitedModal] = useState(false);
   const [invitedSearch, setInvitedSearch] = useState('');
   const [invitedPage, setInvitedPage] = useState(1);
   const INVITED_PER_PAGE = 8;
+=======
+>>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
 
   // Calculate school year based on date
   const getSchoolYearFromDate = (dateString) => {
@@ -306,6 +309,7 @@ export default function EventForm({ members, onEventCreated, editingEvent, onCan
   const filteredMembers = members.filter(member => {
     // Exclude current user (host)
     if (member.id === currentUser?.id) return false;
+<<<<<<< HEAD
 
     // Filter by department
     if (filterDepartment !== 'all' && member.department !== filterDepartment) return false;
@@ -317,11 +321,28 @@ export default function EventForm({ members, onEventCreated, editingEvent, onCan
   });
 
   // Further filter by search term, sorted alphabetically only
+=======
+    
+    // Always show selected members regardless of filters
+    if (selectedMembers.includes(member.id)) return true;
+    
+    // Filter by department
+    if (filterDepartment !== 'all' && member.department !== filterDepartment) return false;
+    
+    // Filter by role
+    if (filterRole !== 'all' && member.role !== filterRole) return false;
+    
+    return true;
+  });
+
+  // Further filter by search term and sort selected members first
+>>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
   const searchFilteredMembers = filteredMembers
     .filter(member =>
       member.username.toLowerCase().includes(searchMember.toLowerCase()) ||
       member.email.toLowerCase().includes(searchMember.toLowerCase())
     )
+<<<<<<< HEAD
     .sort((a, b) => a.username.localeCompare(b.username));
 
   // Members that have been invited (for the modal)
@@ -372,6 +393,22 @@ export default function EventForm({ members, onEventCreated, editingEvent, onCan
     (membersPage - 1) * MEMBERS_PER_PAGE,
     membersPage * MEMBERS_PER_PAGE
   );
+=======
+    .sort((a, b) => {
+      // Sort selected members first
+      const aSelected = selectedMembers.includes(a.id);
+      const bSelected = selectedMembers.includes(b.id);
+      
+      if (aSelected && !bSelected) return -1;
+      if (!aSelected && bSelected) return 1;
+      
+      // If both selected or both not selected, sort alphabetically
+      return a.username.localeCompare(b.username);
+    });
+
+  const availableDepartments = [...new Set(members.map(m => m.department).filter(Boolean))];
+  const availableRoles = [...new Set(members.map(m => m.role).filter(Boolean))];
+>>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
 
   return (
     <div className="animate-fade-in">
@@ -648,6 +685,7 @@ export default function EventForm({ members, onEventCreated, editingEvent, onCan
                   </div>
                   <h3 className="text-base font-bold text-gray-900">Invite Members</h3>
                 </div>
+<<<<<<< HEAD
                 <button
                   type="button"
                   onClick={() => { setShowInvitedModal(true); setInvitedSearch(''); }}
@@ -664,6 +702,17 @@ export default function EventForm({ members, onEventCreated, editingEvent, onCan
                   {selectedMembers.length} Invited
                 </button>
               </div>
+=======
+                {selectedMembers.length > 0 && (
+                  <span className="text-xs font-semibold text-green-700 bg-green-50 px-2.5 py-1 rounded-full">
+                    {selectedMembers.length} selected
+                  </span>
+                )}
+              </div>
+
+
+
+>>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
               {/* Search Bar */}
               <div className="mb-3">
                 <div className="relative">
@@ -719,6 +768,10 @@ export default function EventForm({ members, onEventCreated, editingEvent, onCan
                     <option key={role} value={role}>{role}</option>
                   ))}
                 </select>
+<<<<<<< HEAD
+=======
+                
+>>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
                 <button
                   type="button"
                   onClick={handleSelectAll}
@@ -742,17 +795,24 @@ export default function EventForm({ members, onEventCreated, editingEvent, onCan
                   )}
                 </button>
               </div>
+<<<<<<< HEAD
               <div className="border border-gray-200 rounded-lg bg-gray-50/50 overflow-hidden">
                 <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide px-3 pt-3 pb-1">
                   Browse Members
                 </p>
                 {searchFilteredMembers.length === 0 ? (
                   <div className="h-28 flex items-center justify-center">
+=======
+              <div className="border border-gray-200 rounded-lg bg-gray-50/50 h-96 overflow-y-auto">
+                {searchFilteredMembers.length === 0 ? (
+                  <div className="h-full flex items-center justify-center">
+>>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
                     <p className="text-sm text-gray-400">
                       {searchMember ? 'No members found' : 'No members available'}
                     </p>
                   </div>
                 ) : (
+<<<<<<< HEAD
                   <>
                     <div className="p-2 space-y-1">
                       {pagedMembers.map(member => (
@@ -819,6 +879,41 @@ export default function EventForm({ members, onEventCreated, editingEvent, onCan
                       </div>
                     )}
                   </>
+=======
+                  <div className="p-2 space-y-1">
+                    {searchFilteredMembers.map(member => (
+                      <label
+                        key={member.id}
+                        className={`flex items-center p-2.5 rounded-lg cursor-pointer transition-colors ${selectedMembers.includes(member.id)
+                          ? 'bg-green-100 border border-green-300'
+                          : 'hover:bg-white border border-transparent'
+                          }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={selectedMembers.includes(member.id)}
+                          onChange={() => toggleMember(member.id)}
+                          className="h-4 w-4 text-green-700 focus:ring-green-600 border-gray-300 rounded"
+                        />
+                        <span className="ml-2.5 text-sm text-gray-700 font-medium">
+                          {member.username}
+                          <div className="flex items-center gap-2 mt-0.5">
+                            {member.role && (
+                              <span className="text-xs font-semibold text-green-700 bg-green-100 px-2 py-0.5 rounded-full">
+                                {member.role}
+                              </span>
+                            )}
+                            {member.department && (
+                              <span className="text-xs text-gray-500 font-normal">
+                                {member.department}
+                              </span>
+                            )}
+                          </div>
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+>>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
                 )}
               </div>
             </div>
@@ -864,6 +959,7 @@ export default function EventForm({ members, onEventCreated, editingEvent, onCan
           )}
         </div>
       </form>
+<<<<<<< HEAD
 
       {/* Invited Members Modal */}
       {showInvitedModal && (
@@ -1008,6 +1104,8 @@ export default function EventForm({ members, onEventCreated, editingEvent, onCan
           </div>
         </div>
       )}
+=======
+>>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
     </div>
   );
 }

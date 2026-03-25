@@ -7,7 +7,10 @@ export default {
   theme: {
     extend: {
       screens: {
+<<<<<<< HEAD
         'xs': '475px',
+=======
+>>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
         'laptop': '1440px',
       },
       colors: {
@@ -32,9 +35,12 @@ export default {
         'fadeIn': 'fadeIn 0.2s ease-in-out',
         'scaleIn': 'scaleIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
         'fade-in-up': 'fadeInUp 0.3s ease-out',
+<<<<<<< HEAD
         'fade-in': 'fadeIn 0.2s ease-in-out',
         'scale-in': 'scaleIn 0.2s ease-out',
         'shake': 'shake 0.5s ease-in-out',
+=======
+>>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
       },
       keyframes: {
         fadeIn: {
@@ -49,11 +55,14 @@ export default {
           '0%': { opacity: '0', transform: 'translateY(10px)' },
           '100%': { opacity: '1', transform: 'translateY(0)' },
         },
+<<<<<<< HEAD
         shake: {
           '0%, 100%': { transform: 'translateX(0)' },
           '10%, 30%, 50%, 70%, 90%': { transform: 'translateX(-4px)' },
           '20%, 40%, 60%, 80%': { transform: 'translateX(4px)' },
         },
+=======
+>>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
       },
     },
   },

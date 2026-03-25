@@ -51,8 +51,11 @@ class DefaultEventControllerV2 extends Controller
                 'date' => $dateAssignment?->date?->format('Y-m-d'),
                 'end_date' => $dateAssignment?->end_date?->format('Y-m-d'),
                 'school_year' => $schoolYear,
+<<<<<<< HEAD
                 'semester' => $dateAssignment?->semester,
                 'semester_name' => $dateAssignment?->semester_name,
+=======
+>>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
                 'has_date_set' => $dateAssignment !== null,
                 'date_id' => $dateAssignment?->id,
             ];
@@ -95,10 +98,13 @@ class DefaultEventControllerV2 extends Controller
 
         // Parse the date from request
         $date = \Carbon\Carbon::parse($request->date);
+<<<<<<< HEAD
         $month = $date->month;
         
         // Determine semester from month
         $semester = DefaultEventDate::getSemesterFromMonth($month);
+=======
+>>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
 
         // Validate that the date is within the school year
         list($startYear, $endYear) = explode('-', $request->school_year);
@@ -129,8 +135,12 @@ class DefaultEventControllerV2 extends Controller
             [
                 'date' => $request->date,
                 'end_date' => $request->end_date,
+<<<<<<< HEAD
                 'month' => $month,
                 'semester' => $semester,
+=======
+                'month' => $date->month,
+>>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
                 'created_by' => $request->user()?->id,
             ]
         );
@@ -188,7 +198,10 @@ class DefaultEventControllerV2 extends Controller
         $validator = Validator::make($request->all(), [
             'school_year' => 'required|string|regex:/^\d{4}-\d{4}$/',
             'month' => 'nullable|integer|min:1|max:12',
+<<<<<<< HEAD
             'semester' => 'nullable|integer|min:1|max:3',
+=======
+>>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
         ]);
 
         if ($validator->fails()) {
@@ -205,10 +218,13 @@ class DefaultEventControllerV2 extends Controller
             $query->forMonth($request->month);
         }
 
+<<<<<<< HEAD
         if ($request->has('semester')) {
             $query->forSemester($request->semester);
         }
 
+=======
+>>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
         $eventDates = $query->orderedByDate()->get();
 
         $events = $eventDates->map(function ($eventDate) {
@@ -219,8 +235,11 @@ class DefaultEventControllerV2 extends Controller
                 'date' => $eventDate->date->format('Y-m-d'),
                 'end_date' => $eventDate->end_date?->format('Y-m-d'),
                 'month' => $eventDate->month,
+<<<<<<< HEAD
                 'semester' => $eventDate->semester,
                 'semester_name' => $eventDate->semester_name,
+=======
+>>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
                 'school_year' => $eventDate->school_year,
                 'created_at' => $eventDate->created_at->format('Y-m-d H:i:s'),
             ];
@@ -264,6 +283,7 @@ class DefaultEventControllerV2 extends Controller
             ->get()
             ->pluck('count', 'month');
 
+<<<<<<< HEAD
         $eventsBySemester = DefaultEventDate::forSchoolYear($schoolYear)
             ->select('semester', DB::raw('count(*) as count'))
             ->groupBy('semester')
@@ -279,6 +299,8 @@ class DefaultEventControllerV2 extends Controller
                 return [$semesterName => $item->count];
             });
 
+=======
+>>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
         return response()->json([
             'school_year' => $schoolYear,
             'total_base_events' => $totalBaseEvents,
@@ -288,7 +310,10 @@ class DefaultEventControllerV2 extends Controller
                 ? round(($eventsWithDates / $totalBaseEvents) * 100, 2) 
                 : 0,
             'events_by_month' => $eventsByMonth,
+<<<<<<< HEAD
             'events_by_semester' => $eventsBySemester,
+=======
+>>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
         ]);
     }
 }

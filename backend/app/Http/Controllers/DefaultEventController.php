@@ -20,6 +20,7 @@ class DefaultEventController extends Controller
     {
         $schoolYear = $request->query('school_year');
         
+<<<<<<< HEAD
         if (!$schoolYear) {
             return response()->json([
                 'error' => 'school_year parameter is required'
@@ -84,6 +85,62 @@ class DefaultEventController extends Controller
 
         return response()->json([
             'events' => $allEvents
+=======
+        if ($schoolYear) {
+            // Get all events (base + school-year-specific)
+            $allEvents = DefaultEvent::where(function($q) use ($schoolYear) {
+                $q->where('school_year', $schoolYear)
+                  ->orWhereNull('school_year');
+            })
+            ->orderByRaw('CASE WHEN school_year IS NULL THEN 1 ELSE 0 END')
+            ->orderBy('month')
+            ->orderBy('order')
+            ->get(['id', 'name', 'month', 'order', 'date', 'end_date', 'school_year']);
+
+            // Get all school-year-specific event names to exclude their base versions
+            $schoolYearEventNames = $allEvents
+                ->where('school_year', $schoolYear)
+                ->pluck('name')
+                ->unique()
+                ->toArray();
+
+            // Filter events: 
+            // 1. Include all school-year-specific events
+            // 2. Include base events ONLY if no school-year-specific version exists for that event name
+            $eventsByKey = [];
+            foreach ($allEvents as $event) {
+                $isSchoolYearSpecific = $event->school_year === $schoolYear;
+                $hasSchoolYearVersion = in_array($event->name, $schoolYearEventNames);
+                
+                // Include if it's school-year-specific OR if it's a base event with no school-year version
+                if ($isSchoolYearSpecific || !$hasSchoolYearVersion) {
+                    $key = $event->name . '_' . $event->month;
+                    
+                    // Only add if we haven't seen this exact event yet
+                    if (!isset($eventsByKey[$key])) {
+                        $eventsByKey[$key] = $event;
+                    }
+                }
+            }
+            
+            // Re-sort by month and order for display
+            $events = collect(array_values($eventsByKey))
+                ->sortBy([
+                    ['month', 'asc'],
+                    ['order', 'asc']
+                ])
+                ->values()
+                ->all();
+        } else {
+            // No school year filter - return all events
+            $events = DefaultEvent::orderBy('month')
+                ->orderBy('order')
+                ->get(['id', 'name', 'month', 'order', 'date', 'end_date', 'school_year']);
+        }
+
+        return response()->json([
+            'events' => $events
+>>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
         ]);
     }
 
@@ -109,12 +166,20 @@ class DefaultEventController extends Controller
             ], 422);
         }
 
+<<<<<<< HEAD
         // Find the base event template (should have school_year = NULL)
         $baseEvent = DefaultEvent::whereNull('school_year')->find($id);
 
         if (!$baseEvent) {
             return response()->json([
                 'error' => 'Base event template not found'
+=======
+        $baseEvent = DefaultEvent::find($id);
+
+        if (!$baseEvent) {
+            return response()->json([
+                'error' => 'Event not found'
+>>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
             ], 404);
         }
 
@@ -166,6 +231,7 @@ class DefaultEventController extends Controller
         }
 
         // Extract the month from the selected date
+<<<<<<< HEAD
         $month = $date->month;
         
         // Determine semester from month
@@ -197,6 +263,38 @@ class DefaultEventController extends Controller
                 'semester' => $eventDate->semester,
                 'month' => $eventDate->month,
             ]
+=======
+        $newMonth = $date->month;
+
+        // Check if a school-year-specific version already exists
+        $existingEvent = DefaultEvent::where('name', $baseEvent->name)
+            ->where('month', $baseEvent->month)
+            ->where('school_year', $request->school_year)
+            ->first();
+
+        if ($existingEvent) {
+            // Update existing school-year-specific event
+            $existingEvent->date = $request->date;
+            $existingEvent->end_date = $request->end_date;
+            $existingEvent->month = $newMonth; // Update month to match the selected date
+            $existingEvent->save();
+            $event = $existingEvent;
+        } else {
+            // Create a new school-year-specific copy with the new month
+            $event = DefaultEvent::create([
+                'name' => $baseEvent->name,
+                'month' => $newMonth, // Use the month from the selected date
+                'order' => $baseEvent->order,
+                'date' => $request->date,
+                'end_date' => $request->end_date,
+                'school_year' => $request->school_year,
+            ]);
+        }
+
+        return response()->json([
+            'message' => 'Event date updated successfully',
+            'event' => $event
+>>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
         ]);
     }
 
@@ -211,6 +309,10 @@ class DefaultEventController extends Controller
         $validator = Validator::make($request->all(), [
             'name' => 'nullable|string|max:255',
             'month' => 'required|integer|min:1|max:12',
+<<<<<<< HEAD
+=======
+            'school_year' => 'required|string|regex:/^\d{4}-\d{4}$/',
+>>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
         ]);
 
         if ($validator->fails()) {
@@ -221,6 +323,7 @@ class DefaultEventController extends Controller
         }
 
         $month = $request->month;
+<<<<<<< HEAD
         $name = $request->name ?? 'New Event';
 
         // Get the highest order number for this month to place the new event at the end
@@ -229,17 +332,34 @@ class DefaultEventController extends Controller
             ->max('order') ?? 0;
 
         // Create empty event TEMPLATE (no school_year, no date)
+=======
+        $schoolYear = $request->school_year;
+        $name = $request->name ?? 'New Event';
+
+        // Get the highest order number for this month to place the new event at the end
+        $maxOrder = DefaultEvent::where('month', $month)->max('order') ?? 0;
+
+        // Create empty event
+>>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
         $event = DefaultEvent::create([
             'name' => $name,
             'month' => $month,
             'order' => $maxOrder + 1,
             'date' => null,
+<<<<<<< HEAD
             'end_date' => null,
             'school_year' => null, // Template, not a created event
         ]);
 
         return response()->json([
             'message' => 'Event template created successfully',
+=======
+            'school_year' => $schoolYear,
+        ]);
+
+        return response()->json([
+            'message' => 'Empty event created successfully',
+>>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
             'event' => $event
         ], 201);
     }
@@ -270,7 +390,10 @@ class DefaultEventController extends Controller
         $month = $request->month;
         $schoolYear = $request->school_year;
         $name = $request->name;
+<<<<<<< HEAD
         $date = \Carbon\Carbon::parse($request->date);
+=======
+>>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
 
         // Validate that the date is within the school year
         list($startYear, $endYear) = explode('-', $schoolYear);
@@ -296,6 +419,7 @@ class DefaultEventController extends Controller
             }
         }
 
+<<<<<<< HEAD
         // Get the highest order number for this month
         $maxOrder = DefaultEvent::whereNull('school_year')
             ->where('month', $month)
@@ -322,10 +446,24 @@ class DefaultEventController extends Controller
             'end_date' => $request->end_date,
             'month' => $date->month,
             'created_by' => $request->user()?->id,
+=======
+        // Get the highest order number for this month to place the new event at the end
+        $maxOrder = DefaultEvent::where('month', $month)->max('order') ?? 0;
+
+        // Create event with details
+        $event = DefaultEvent::create([
+            'name' => $name,
+            'month' => $month,
+            'order' => $maxOrder + 1,
+            'date' => $request->date,
+            'end_date' => $request->end_date,
+            'school_year' => $schoolYear,
+>>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
         ]);
 
         return response()->json([
             'message' => 'Event created successfully',
+<<<<<<< HEAD
             'event' => [
                 'id' => $template->id,
                 'name' => $template->name,
@@ -336,6 +474,9 @@ class DefaultEventController extends Controller
                 'school_year' => $eventDate->school_year,
                 'semester' => $eventDate->semester,
             ]
+=======
+            'event' => $event
+>>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
         ], 201);
     }
 }

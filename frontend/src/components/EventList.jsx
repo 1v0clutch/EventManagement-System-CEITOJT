@@ -6,6 +6,7 @@ export default function EventList({ events, currentUser, onEdit, onRefresh }) {
   const [availability, setAvailability] = useState({});
   const [loading, setLoading] = useState({});
 
+<<<<<<< HEAD
   // Event hierarchy priority (lower number = higher priority)
   const getEventPriority = (event) => {
     const isHosted = currentUser && event.host && event.host.id === currentUser.id;
@@ -39,6 +40,8 @@ export default function EventList({ events, currentUser, onEdit, onRefresh }) {
     return getEventPriority(a) - getEventPriority(b);
   });
 
+=======
+>>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
   useEffect(() => {
     // Fetch availability for all members in all events
     events.forEach(event => {
@@ -92,11 +95,19 @@ export default function EventList({ events, currentUser, onEdit, onRefresh }) {
         </button>
       </div>
 
+<<<<<<< HEAD
       {sortedEvents.length === 0 ? (
         <p className="text-gray-500">No events yet.</p>
       ) : (
         <div className="space-y-4">
           {sortedEvents.map(event => (
+=======
+      {events.length === 0 ? (
+        <p className="text-gray-500">No events yet.</p>
+      ) : (
+        <div className="space-y-4">
+          {events.map(event => (
+>>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
             <div
               key={event.id}
               className={`border rounded-lg p-4 hover:shadow-md transition-shadow ${event.is_open ? 'border-green-500 bg-green-50' : 'border-gray-200'

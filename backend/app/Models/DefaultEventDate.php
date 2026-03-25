@@ -10,7 +10,10 @@ class DefaultEventDate extends Model
     protected $fillable = [
         'default_event_id',
         'school_year',
+<<<<<<< HEAD
         'semester',
+=======
+>>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
         'date',
         'end_date',
         'month',
@@ -21,7 +24,10 @@ class DefaultEventDate extends Model
         'date' => 'date',
         'end_date' => 'date',
         'month' => 'integer',
+<<<<<<< HEAD
         'semester' => 'integer',
+=======
+>>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
     ];
 
     /**
@@ -57,6 +63,7 @@ class DefaultEventDate extends Model
     }
 
     /**
+<<<<<<< HEAD
      * Scope a query to only include dates for a specific semester.
      */
     public function scopeForSemester($query, int $semester)
@@ -65,12 +72,15 @@ class DefaultEventDate extends Model
     }
 
     /**
+=======
+>>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
      * Scope a query to order by date.
      */
     public function scopeOrderedByDate($query)
     {
         return $query->orderBy('date');
     }
+<<<<<<< HEAD
 
     /**
      * Determine the semester based on the month.
@@ -106,4 +116,6 @@ class DefaultEventDate extends Model
             default => 'Unknown',
         };
     }
+=======
+>>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
 }

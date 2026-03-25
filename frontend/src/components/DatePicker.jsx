@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 
+<<<<<<< HEAD
 export default function DatePicker({ 
   selectedDate, 
   onDateSelect, 
@@ -36,6 +37,12 @@ export default function DatePicker({
       setCurrentMonth(month);
     }
   }, [initialMonth]);
+=======
+export default function DatePicker({ selectedDate, onDateSelect, minDate, maxDate, className = '', excludeSundays = true }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [currentMonth, setCurrentMonth] = useState(new Date());
+  const datePickerRef = useRef(null);
+>>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
 
   const monthNames = [
     'January', 'February', 'March', 'April', 'May', 'June',
@@ -53,6 +60,7 @@ export default function DatePicker({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+<<<<<<< HEAD
   // Keyboard navigation
   useEffect(() => {
     if (!isOpen || !focusedDate) return;
@@ -104,6 +112,8 @@ export default function DatePicker({
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, focusedDate, currentMonth]);
 
+=======
+>>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
   // Format date to YYYY-MM-DD without timezone conversion
   const formatDateString = (year, month, day) => {
     const yyyy = year;
@@ -165,6 +175,7 @@ export default function DatePicker({
 
   const handleDateClick = (dateString) => {
     onDateSelect(dateString);
+<<<<<<< HEAD
     setFocusedDate(dateString);
     setIsOpen(false);
   };
@@ -207,6 +218,11 @@ export default function DatePicker({
 
   const sizeClasses = getSizeClasses();
 
+=======
+    setIsOpen(false);
+  };
+
+>>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
   const navigateMonth = (direction) => {
     setCurrentMonth(prev => {
       const newMonth = new Date(prev);
@@ -248,6 +264,7 @@ export default function DatePicker({
 
       {/* Calendar Dropdown */}
       {isOpen && (
+<<<<<<< HEAD
         <div 
           className={`absolute z-50 mt-1 bg-white rounded-xl shadow-2xl border border-gray-200 p-4 w-80 animate-fade-in`}
           role="dialog"
@@ -260,21 +277,38 @@ export default function DatePicker({
               onClick={() => navigateMonth(-1)}
               className="p-1.5 hover:bg-gray-100 rounded-lg transition-all duration-200"
               aria-label="Previous month"
+=======
+        <div className="absolute z-50 mt-1 bg-white rounded-lg shadow-xl border border-gray-200 p-4 w-full max-w-md">
+          {/* Month Navigation */}
+          <div className="flex items-center justify-between mb-4">
+            <button
+              type="button"
+              onClick={() => navigateMonth(-1)}
+              className="p-1 hover:bg-gray-100 rounded transition-colors"
+>>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
             >
               <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
               </svg>
             </button>
 
+<<<<<<< HEAD
             <h3 className="text-sm font-bold text-gray-900" aria-live="polite">
+=======
+            <h3 className="text-sm font-semibold text-gray-900">
+>>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
               {monthNames[currentMonth.getMonth()]} {currentMonth.getFullYear()}
             </h3>
 
             <button
               type="button"
               onClick={() => navigateMonth(1)}
+<<<<<<< HEAD
               className="p-1.5 hover:bg-gray-100 rounded-lg transition-all duration-200"
               aria-label="Next month"
+=======
+              className="p-1 hover:bg-gray-100 rounded transition-colors"
+>>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
             >
               <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
@@ -283,6 +317,7 @@ export default function DatePicker({
           </div>
 
           {/* Day Headers */}
+<<<<<<< HEAD
           <div className="grid grid-cols-7 gap-1 mb-1">
             {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map((day, idx) => (
               <div 
@@ -290,11 +325,17 @@ export default function DatePicker({
                 className={`text-xs font-bold text-center py-1 ${idx === 0 || idx === 6 ? 'text-amber-600' : 'text-gray-600'}`}
                 aria-label={['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][idx]}
               >
+=======
+          <div className="grid grid-cols-7 gap-1 mb-2">
+            {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map(day => (
+              <div key={day} className="text-xs font-medium text-gray-500 text-center py-2">
+>>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
                 {day}
               </div>
             ))}
           </div>
 
+<<<<<<< HEAD
           {/* Calendar Grid - Fixed 6 rows */}
           <div className="grid grid-cols-7 gap-1" role="grid">
             {days.map((dayObj, index) => {
@@ -340,6 +381,64 @@ export default function DatePicker({
                 </button>
               );
             })}
+=======
+          {/* Calendar Grid */}
+          <div className="grid grid-cols-7 gap-1">
+            {days.map((dayObj, index) => (
+              <button
+                key={index}
+                type="button"
+                onClick={() => !dayObj.isDisabled && dayObj.isCurrentMonth && handleDateClick(dayObj.dateString)}
+                disabled={dayObj.isDisabled || !dayObj.isCurrentMonth}
+                className={`
+                  h-8 w-8 text-xs rounded transition-colors
+                  ${dayObj.isCurrentMonth
+                    ? dayObj.isDisabled
+                      ? 'text-gray-300 cursor-not-allowed bg-gray-100'
+                      : dayObj.isSelected
+                        ? 'bg-green-600 text-white font-semibold'
+                        : dayObj.isToday
+                          ? 'bg-blue-100 text-blue-800 font-semibold'
+                          : 'text-gray-700 hover:bg-gray-100'
+                    : 'text-gray-300 cursor-default'
+                  }
+                `}
+              >
+                {dayObj.day}
+              </button>
+            ))}
+          </div>
+
+          {/* Today Button */}
+          <div className="mt-3 pt-3 border-t border-gray-200">
+            <button
+              type="button"
+              onClick={() => {
+                const today = new Date();
+                const todayString = formatDateString(today.getFullYear(), today.getMonth(), today.getDate());
+                if (!isDateDisable(today.getFullYear(), today.getMonth(), today.getDate())) {
+                  handleDateClick(todayString);
+                }
+              }}
+              disabled={(() => {
+                const today = new Date();
+                return isDateDisable(today.getFullYear(), today.getMonth(), today.getDate());
+              })()}
+              className="w-full px-3 py-2 text-xs font-medium text-green-700 bg-green-50 hover:bg-green-100 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Today
+            </button>
+          </div>
+
+          {/* Legend */}
+          <div className="mt-2 pt-2 border-t border-gray-200">
+            <div className="flex flex-wrap gap-2 text-xs text-gray-500">
+              <div className="flex items-center gap-1">
+                <div className="w-2 h-2 bg-gray-100 rounded"></div>
+                <span>{excludeSundays ? 'Unavailable dates' : 'Past dates unavailable'}</span>
+              </div>
+            </div>
+>>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
           </div>
         </div>
       )}

@@ -17,6 +17,7 @@ class TestUsersSeeder extends Seeder
      *
      * Email format: firstname.lastname.role[n].dept@cvsu.edu.ph (no spaces anywhere)
      */
+<<<<<<< HEAD
 
     /**
      * Generate a unique schedule for a user based on their pattern type and a seed index.
@@ -101,6 +102,8 @@ class TestUsersSeeder extends Seeder
         ];
     }
 
+=======
+>>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
     public function run(): void
     {
         $departments = [
@@ -111,6 +114,47 @@ class TestUsersSeeder extends Seeder
             'DIT'   => 'Department of Information Technology',
         ];
 
+<<<<<<< HEAD
+=======
+        // Typical weekly schedule blocks used for seeding
+        // Each role gets a realistic schedule pattern
+        $schedulePatterns = [
+            'heavy' => [ // Dean, Chairpersons
+                ['day' => 'Monday',    'start' => '07:30', 'end' => '09:00', 'desc' => 'Administrative Meeting'],
+                ['day' => 'Monday',    'start' => '10:00', 'end' => '12:00', 'desc' => 'Office Hours'],
+                ['day' => 'Tuesday',   'start' => '08:00', 'end' => '10:00', 'desc' => 'Department Meeting'],
+                ['day' => 'Tuesday',   'start' => '13:00', 'end' => '15:00', 'desc' => 'Consultation'],
+                ['day' => 'Wednesday', 'start' => '07:30', 'end' => '09:30', 'desc' => 'Faculty Meeting'],
+                ['day' => 'Wednesday', 'start' => '10:00', 'end' => '12:00', 'desc' => 'Office Hours'],
+                ['day' => 'Thursday',  'start' => '08:00', 'end' => '10:00', 'desc' => 'Administrative Tasks'],
+                ['day' => 'Thursday',  'start' => '13:00', 'end' => '15:00', 'desc' => 'Consultation'],
+                ['day' => 'Friday',    'start' => '07:30', 'end' => '09:00', 'desc' => 'Weekly Review'],
+                ['day' => 'Friday',    'start' => '10:00', 'end' => '12:00', 'desc' => 'Office Hours'],
+            ],
+            'faculty' => [ // Faculty Members
+                ['day' => 'Monday',    'start' => '07:30', 'end' => '09:00', 'desc' => 'Class - Lecture'],
+                ['day' => 'Monday',    'start' => '10:30', 'end' => '12:00', 'desc' => 'Class - Lab'],
+                ['day' => 'Tuesday',   'start' => '08:00', 'end' => '09:30', 'desc' => 'Class - Lecture'],
+                ['day' => 'Tuesday',   'start' => '13:00', 'end' => '14:30', 'desc' => 'Class - Lecture'],
+                ['day' => 'Wednesday', 'start' => '07:30', 'end' => '09:00', 'desc' => 'Class - Lecture'],
+                ['day' => 'Wednesday', 'start' => '10:30', 'end' => '12:00', 'desc' => 'Class - Lab'],
+                ['day' => 'Thursday',  'start' => '08:00', 'end' => '09:30', 'desc' => 'Class - Lecture'],
+                ['day' => 'Thursday',  'start' => '13:00', 'end' => '14:30', 'desc' => 'Consultation Hours'],
+                ['day' => 'Friday',    'start' => '07:30', 'end' => '09:00', 'desc' => 'Class - Lecture'],
+                ['day' => 'Friday',    'start' => '10:00', 'end' => '11:30', 'desc' => 'Research / Prep'],
+            ],
+            'coordinator' => [ // Coordinators, CEIT Officials
+                ['day' => 'Monday',    'start' => '08:00', 'end' => '10:00', 'desc' => 'Program Coordination'],
+                ['day' => 'Monday',    'start' => '13:00', 'end' => '15:00', 'desc' => 'Office Hours'],
+                ['day' => 'Tuesday',   'start' => '09:00', 'end' => '11:00', 'desc' => 'Curriculum Review'],
+                ['day' => 'Wednesday', 'start' => '08:00', 'end' => '10:00', 'desc' => 'Program Coordination'],
+                ['day' => 'Wednesday', 'start' => '13:00', 'end' => '15:00', 'desc' => 'Office Hours'],
+                ['day' => 'Thursday',  'start' => '09:00', 'end' => '11:00', 'desc' => 'Accreditation Tasks'],
+                ['day' => 'Friday',    'start' => '08:00', 'end' => '10:00', 'desc' => 'Weekly Coordination'],
+            ],
+        ];
+
+>>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
         $testUsers = [];
 
         // ========================================
@@ -382,10 +426,17 @@ class TestUsersSeeder extends Seeder
         $now = now();
 
         DB::transaction(function () use (
+<<<<<<< HEAD
             $testUsers,
             &$created, &$existing, &$schedulesCreated, $now
         ) {
             foreach ($testUsers as $userIndex => $userData) {
+=======
+            $testUsers, $schedulePatterns,
+            &$created, &$existing, &$schedulesCreated, $now
+        ) {
+            foreach ($testUsers as $userData) {
+>>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
                 $pattern = $userData['schedule_pattern'];
                 unset($userData['schedule_pattern']);
 
@@ -399,6 +450,7 @@ class TestUsersSeeder extends Seeder
                 }
 
                 // Seed schedules if a pattern is defined and user has none yet
+<<<<<<< HEAD
                 // Each user gets a unique schedule via their index as the seed
                 if ($pattern && UserSchedule::where('user_id', $user->id)->doesntExist()) {
                     $slots = $this->generateSchedule($pattern, $userIndex);
@@ -419,6 +471,19 @@ class TestUsersSeeder extends Seeder
                             'school_year' => $seedSchoolYear,
                             'created_at'  => $now,
                             'updated_at'  => $now,
+=======
+                if ($pattern && UserSchedule::where('user_id', $user->id)->doesntExist()) {
+                    $rows = [];
+                    foreach ($schedulePatterns[$pattern] as $slot) {
+                        $rows[] = [
+                            'user_id'    => $user->id,
+                            'day'        => $slot['day'],
+                            'start_time' => $slot['start'],
+                            'end_time'   => $slot['end'],
+                            'description' => $slot['desc'],
+                            'created_at' => $now,
+                            'updated_at' => $now,
+>>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
                         ];
                     }
                     UserSchedule::insert($rows);
@@ -470,9 +535,15 @@ class TestUsersSeeder extends Seeder
         $this->command->info("   CEIT Faculty:     bernard.castillo.fac1.CEIT@cvsu.edu.ph");
 
         $this->command->info("\n📅 SCHEDULE PATTERNS:");
+<<<<<<< HEAD
         $this->command->info("   • Dean / Chairpersons: 10 slots/week (admin-heavy, unique per user)");
         $this->command->info("   • CEIT Officials / All Coordinators: 7 slots/week (unique per user)");
         $this->command->info("   • Faculty Members: 10 slots/week (class schedule, unique per user)");
+=======
+        $this->command->info("   • Dean / Chairpersons: 10 slots/week (admin-heavy)");
+        $this->command->info("   • CEIT Officials / All Coordinators: 7 slots/week");
+        $this->command->info("   • Faculty Members: 10 slots/week (class schedule)");
+>>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
 
         $this->command->info("\n✅ Seeding completed successfully!\n");
     }

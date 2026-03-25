@@ -1,7 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import api from '../services/api';
+<<<<<<< HEAD
 import { useAuth } from '../context/AuthContext';
+=======
+>>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
 import AuthBackground from '../components/AuthBackground';
 
 export default function EmailVerification() {
@@ -14,7 +17,10 @@ export default function EmailVerification() {
 
   const navigate = useNavigate();
   const location = useLocation();
+<<<<<<< HEAD
   const { login } = useAuth();
+=======
+>>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
 
   useEffect(() => {
     // Get email from location state or redirect to register
@@ -38,6 +44,7 @@ export default function EmailVerification() {
         otp: otp.trim()
       });
 
+<<<<<<< HEAD
       setSuccess('Email verified successfully! Redirecting...');
 
       // Use auth context login to properly set user state
@@ -51,6 +58,18 @@ export default function EmailVerification() {
           navigate('/account');
         }
       }, 1500);
+=======
+      setSuccess('Email verified successfully! Redirecting to dashboard...');
+
+      // Store token and user data
+      localStorage.setItem('token', response.data.token);
+      localStorage.setItem('user', JSON.stringify(response.data.user));
+
+      // Redirect to dashboard after 2 seconds
+      setTimeout(() => {
+        navigate('/dashboard');
+      }, 2000);
+>>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
 
     } catch (err) {
       setError(err.response?.data?.message || 'Verification failed. Please try again.');
@@ -169,7 +188,11 @@ export default function EmailVerification() {
               </button>
             </div>
 
+<<<<<<< HEAD
             <div className="text-center space-y-2">
+=======
+            <div className="text-center">
+>>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
               <p className="text-sm text-gray-600">
                 Didn't receive the code?{' '}
                 <button
@@ -181,6 +204,7 @@ export default function EmailVerification() {
                   {resending ? 'Sending...' : 'Resend Code'}
                 </button>
               </p>
+<<<<<<< HEAD
               <div className="flex justify-center gap-4 text-sm">
                 <button
                   type="button"
@@ -198,6 +222,18 @@ export default function EmailVerification() {
                   Back to Login
                 </button>
               </div>
+=======
+            </div>
+
+            <div className="text-center">
+              <button
+                type="button"
+                onClick={() => navigate('/register')}
+                className="font-medium text-gray-600 hover:text-gray-500"
+              >
+                Back to Registration
+              </button>
+>>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
             </div>
           </form>
         </div>
