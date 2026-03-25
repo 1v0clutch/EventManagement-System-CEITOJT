@@ -31,9 +31,9 @@ api.interceptors.response.use(
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       localStorage.removeItem('rememberMe');
-      localStorage.removeItem('lastActivity');
       sessionStorage.removeItem('token');
       sessionStorage.removeItem('user');
+      sessionStorage.removeItem('sessionExpiry');
       window.location.href = '/login';
     }
     return Promise.reject(error);

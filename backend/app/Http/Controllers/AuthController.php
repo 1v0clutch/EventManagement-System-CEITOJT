@@ -531,14 +531,9 @@ class AuthController extends Controller
                 'updated_at' => now(),
             ]);
 
-            // Log OTP generation (in production, you would send this via email)
-            Log::info('OTP generated for password reset', [
-                'email' => $email,
-                'otp' => $otp, // Remove this in production for security
-                'timestamp' => now(),
-            ]);
-            
-            $emailSent = true; // Assume email sending is successful for now
+            // Send OTP email via Brevo
+            $brevoService = new BrevoMailService();
+            $emailSent = $brevoService->sendPasswordResetOtp($email, $otp, $user->name);
 
             if (!$emailSent) {
                 throw new \Exception('Failed to send OTP email');

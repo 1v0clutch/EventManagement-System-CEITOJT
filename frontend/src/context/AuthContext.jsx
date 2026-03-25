@@ -3,18 +3,42 @@ import api from '../services/api';
 
 const AuthContext = createContext(null);
 
+const SESSION_TIMEOUT_MS = 60 * 60 * 1000; // 1 hour
+
 // Read auth state synchronously from storage — no useEffect delay
 const initAuthState = () => {
-  const token = localStorage.getItem('token');
-  const savedUser = localStorage.getItem('user');
-
-  if (!token || !savedUser) return { user: null };
-
-  try {
-    return { user: JSON.parse(savedUser) };
-  } catch {
-    return { user: null };
+  // Check localStorage first (remember me)
+  const persistedToken = localStorage.getItem('token');
+  const persistedUser = localStorage.getItem('user');
+  if (persistedToken && persistedUser) {
+    try {
+      return { user: JSON.parse(persistedUser), storage: 'local' };
+    } catch {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+    }
   }
+
+  // Check sessionStorage (no remember me — 1hr session)
+  const sessionToken = sessionStorage.getItem('token');
+  const sessionUser = sessionStorage.getItem('user');
+  const sessionExpiry = sessionStorage.getItem('sessionExpiry');
+
+  if (sessionToken && sessionUser && sessionExpiry) {
+    if (Date.now() < parseInt(sessionExpiry, 10)) {
+      try {
+        return { user: JSON.parse(sessionUser), storage: 'session' };
+      } catch {
+        // fall through to null
+      }
+    }
+    // Expired — clear it
+    sessionStorage.removeItem('token');
+    sessionStorage.removeItem('user');
+    sessionStorage.removeItem('sessionExpiry');
+  }
+
+  return { user: null };
 };
 
 export const AuthProvider = ({ children }) => {
@@ -36,15 +60,29 @@ export const AuthProvider = ({ children }) => {
       localStorage.removeItem('rememberMe');
       sessionStorage.removeItem('token');
       sessionStorage.removeItem('user');
+      sessionStorage.removeItem('sessionExpiry');
       setUser(null);
     }
   }, []);
 
+  // Check session expiry every minute (only applies to non-remember-me sessions)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const expiry = sessionStorage.getItem('sessionExpiry');
+      if (expiry && Date.now() >= parseInt(expiry, 10)) {
+        performLogout();
+      }
+    }, 60 * 1000);
+    return () => clearInterval(interval);
+  }, [performLogout]);
+
   const login = async (email, password, rememberMe = false, userFromOtp = null, tokenFromOtp = null) => {
     // If called from OTP verification, use provided user and token
     if (userFromOtp && tokenFromOtp) {
-      localStorage.setItem('token', tokenFromOtp);
-      localStorage.setItem('user', JSON.stringify(userFromOtp));
+      // Default to session storage (no remember me context from OTP flow)
+      sessionStorage.setItem('token', tokenFromOtp);
+      sessionStorage.setItem('user', JSON.stringify(userFromOtp));
+      sessionStorage.setItem('sessionExpiry', String(Date.now() + SESSION_TIMEOUT_MS));
       setUser(userFromOtp);
       return { user: userFromOtp, token: tokenFromOtp };
     }
@@ -57,10 +95,23 @@ export const AuthProvider = ({ children }) => {
 
     const { user, token } = response.data;
 
-    // Always persist in localStorage so the session survives browser restarts
-    localStorage.setItem('token', token);
-    localStorage.setItem('user', JSON.stringify(user));
-    localStorage.setItem('rememberMe', rememberMe ? 'true' : 'false');
+    if (rememberMe) {
+      // Persist across browser restarts — no expiry
+      localStorage.setItem('token', token);
+      localStorage.setItem('user', JSON.stringify(user));
+      // Clear any leftover session storage
+      sessionStorage.removeItem('token');
+      sessionStorage.removeItem('user');
+      sessionStorage.removeItem('sessionExpiry');
+    } else {
+      // Session only — expires in 1 hour
+      sessionStorage.setItem('token', token);
+      sessionStorage.setItem('user', JSON.stringify(user));
+      sessionStorage.setItem('sessionExpiry', String(Date.now() + SESSION_TIMEOUT_MS));
+      // Clear any leftover local storage
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+    }
 
     setUser(user);
     return response.data;
