@@ -3,6 +3,7 @@ import cvsu from '../assets/CVSU.jpg';
 import cvsu1 from '../assets/cvsu1.png';
 
 // Configuration: Background images
+//gh
 //g
 export const BACKGROUND_IMAGES = [
   cvsu,
