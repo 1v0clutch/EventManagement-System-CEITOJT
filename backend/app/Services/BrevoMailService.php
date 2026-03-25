@@ -26,6 +26,8 @@ class BrevoMailService
             $htmlContent = $this->buildOtpEmailHtml($userName, $otp);
 
             dispatch(function () use ($email, $subject, $htmlContent) {
+                $originalTimeout = ini_get('default_socket_timeout');
+                ini_set('default_socket_timeout', 3);
                 try {
                     Mail::html($htmlContent, function ($message) use ($email, $subject) {
                                 $message->to($email)
@@ -42,6 +44,9 @@ class BrevoMailService
                                 'email' => $email,
                                 'error' => $e->getMessage(),
                             ]);
+                        }
+                        finally {
+                            ini_set('default_socket_timeout', $originalTimeout);
                         }
                     })->afterResponse();
 
@@ -66,6 +71,8 @@ class BrevoMailService
             $htmlContent = $this->buildConfirmationEmailHtml($userName);
 
             dispatch(function () use ($email, $subject, $htmlContent) {
+                $originalTimeout = ini_get('default_socket_timeout');
+                ini_set('default_socket_timeout', 3);
                 try {
                     Mail::html($htmlContent, function ($message) use ($email, $subject) {
                                 $message->to($email)
@@ -82,6 +89,9 @@ class BrevoMailService
                                 'email' => $email,
                                 'error' => $e->getMessage(),
                             ]);
+                        }
+                        finally {
+                            ini_set('default_socket_timeout', $originalTimeout);
                         }
                     })->afterResponse();
 
@@ -106,6 +116,8 @@ class BrevoMailService
             $htmlContent = $this->buildRegistrationOtpHtml($userName, $otp);
 
             dispatch(function () use ($email, $subject, $htmlContent) {
+                $originalTimeout = ini_get('default_socket_timeout');
+                ini_set('default_socket_timeout', 3);
                 try {
                     Mail::html($htmlContent, function ($message) use ($email, $subject) {
                                 $message->to($email)
@@ -122,6 +134,9 @@ class BrevoMailService
                                 'email' => $email,
                                 'error' => $e->getMessage(),
                             ]);
+                        }
+                        finally {
+                            ini_set('default_socket_timeout', $originalTimeout);
                         }
                     })->afterResponse();
 
@@ -172,6 +187,8 @@ class BrevoMailService
             </div>';
 
             dispatch(function () use ($email, $subject, $htmlContent) {
+                $originalTimeout = ini_get('default_socket_timeout');
+                ini_set('default_socket_timeout', 3);
                 try {
                     Mail::html($htmlContent, function ($message) use ($email, $subject) {
                                 $message->to($email)
@@ -188,6 +205,9 @@ class BrevoMailService
                                 'email' => $email,
                                 'error' => $e->getMessage(),
                             ]);
+                        }
+                        finally {
+                            ini_set('default_socket_timeout', $originalTimeout);
                         }
                     })->afterResponse();
 
@@ -208,6 +228,7 @@ class BrevoMailService
     protected function buildOtpEmailHtml(string $userName, string $otp): string
     {
         return <<<HTML
+
 
 <!DOCTYPE html>
 <html>
@@ -260,6 +281,7 @@ HTML;
     {
         return <<<HTML
 
+
 <!DOCTYPE html>
 <html>
 <head>
@@ -302,6 +324,7 @@ HTML;
     protected function buildRegistrationOtpHtml(string $userName, string $otp): string
     {
         return <<<HTML
+
 
 <!DOCTYPE html>
 <html>
