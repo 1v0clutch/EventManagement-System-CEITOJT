@@ -19,14 +19,9 @@ return [
 
     'allowed_methods' => ['*'],
 
-<<<<<<< HEAD
-    'allowed_origins' => array_filter(array_merge(
+    'allowed_origins' => array_filter(array_unique(array_merge(
     // Local development origins
     [
-=======
-    'allowed_origins' => [
-        env('FRONTEND_URL', 'http://localhost:5173'),
->>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
         'http://localhost:5173',
         'http://localhost:5174',
         'http://localhost:3000',
@@ -34,12 +29,9 @@ return [
         'http://127.0.0.1:5174',
         'http://127.0.0.1:3000',
     ],
-<<<<<<< HEAD
     // Production origin from env (e.g. https://your-app.vercel.app)
     env('FRONTEND_URL') ? [env('FRONTEND_URL')] : []
-)),
-=======
->>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
+))),
 
     'allowed_origins_patterns' => [],
 

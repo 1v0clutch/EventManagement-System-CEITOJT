@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
@@ -6,23 +6,11 @@ import { getCache, setCache } from '../services/cache';
 import Calendar from '../components/Calendar';
 import Navbar from '../components/Navbar';
 import Modal from '../components/Modal';
-<<<<<<< HEAD
-=======
 import logo from "../assets/CEIT-LOGO.png";
->>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
 
 export default function Dashboard() {
   const navigate = useNavigate();
   const location = useLocation();
-<<<<<<< HEAD
-  const { user } = useAuth();
-  const [events, setEvents] = useState([]);
-  const [defaultEvents, setDefaultEvents] = useState([]);
-  const [userSchedules, setUserSchedules] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [selectedDate, setSelectedDate] = useState(null);
-  const [selectedDateEvents, setSelectedDateEvents] = useState([]);
-=======
   const { user, logout } = useAuth();
   const [events, setEvents] = useState([]);
   const [defaultEvents, setDefaultEvents] = useState([]);
@@ -32,26 +20,12 @@ export default function Dashboard() {
   const [selectedDate, setSelectedDate] = useState(null);
   const [selectedDateEvents, setSelectedDateEvents] = useState([]);
   const [highlightedDate, setHighlightedDate] = useState(null);
->>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
   const [isAccountDropdownOpen, setIsAccountDropdownOpen] = useState(false);
 
   // Modal States
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
-<<<<<<< HEAD
-  const [isScheduleRequiredModalOpen, setIsScheduleRequiredModalOpen] = useState(false);
-  const [hasSchedule, setHasSchedule] = useState(true);
-
-  // Event to open directly in Calendar popup (from notification click)
-  const [calendarEventToOpen, setCalendarEventToOpen] = useState(null);
-  // Trigger Navbar to re-fetch events (e.g. after responding to invitation)
-  const [navbarRefreshTrigger, setNavbarRefreshTrigger] = useState(0);
-
-
-  useEffect(() => {
-    // Check if user is validated - redirect if not
-=======
   const [isMembersDropdownOpen, setIsMembersDropdownOpen] = useState(false);
   const [isScheduleRequiredModalOpen, setIsScheduleRequiredModalOpen] = useState(false);
   const [hasSchedule, setHasSchedule] = useState(true);
@@ -59,57 +33,27 @@ export default function Dashboard() {
 
   useEffect(() => {
     // Check if user is validated
->>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
     if (user && !user.is_validated) {
       navigate('/account');
       return;
     }
     
-<<<<<<< HEAD
-    // Only fetch data if user is loaded and validated
-    if (!user) return;
-    
-    // Reset loading state and fetch data
-    setLoading(true);
-=======
->>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
     fetchData();
     
     // Auto-select today's date
     const today = new Date();
     const todayStr = today.toISOString().split('T')[0];
     setSelectedDate(todayStr);
-<<<<<<< HEAD
-  }, [user]);
-=======
   }, []);
->>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
 
   // Listen for refresh from navigation state (e.g., after creating event)
   useEffect(() => {
     if (location.state?.refresh) {
-<<<<<<< HEAD
-      setLoading(true);
-      fetchData();
-      navigate(location.pathname, { replace: true, state: {} });
-    }
-  }, [location.state?.refresh]);
-
-  // Open event from notification click (viewEvent state)
-  useEffect(() => {
-    if (location.state?.viewEvent && events.length > 0) {
-      const targetEvent = events.find(e => e.id === location.state.viewEvent.id) || location.state.viewEvent;
-      setCalendarEventToOpen(targetEvent);
-      navigate(location.pathname, { replace: true, state: {} });
-    }
-  }, [location.state?.viewEvent, events]);
-=======
       fetchData();
       // Clear the state to prevent re-fetching on every render
       navigate(location.pathname, { replace: true, state: {} });
     }
   }, [location.state]);
->>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
 
   // Close account dropdown when clicking outside
   useEffect(() => {
@@ -124,51 +68,16 @@ export default function Dashboard() {
   }, [isAccountDropdownOpen]);
 
   const applyDashboardData = (data, isBackground = false) => {
-<<<<<<< HEAD
-    const { events: fetchedEvents, defaultEvents: fetchedDefaultEvents, userSchedules: fetchedSchedules } = data;
-    const regularEventsOnly = fetchedEvents.filter(event => !event.is_default_event);
-
-    setEvents(regularEventsOnly);
-=======
     const { events: fetchedEvents, defaultEvents: fetchedDefaultEvents, members: fetchedMembers, userSchedules: fetchedSchedules } = data;
     const regularEventsOnly = fetchedEvents.filter(event => !event.is_default_event);
 
     setEvents(regularEventsOnly);
     setMembers(fetchedMembers);
->>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
     setDefaultEvents(fetchedDefaultEvents);
     if (fetchedSchedules) setUserSchedules(fetchedSchedules);
 
     // Only auto-select today on initial load (not background refresh)
     if (!isBackground) {
-<<<<<<< HEAD
-      try {
-        const todayStr = new Date().toISOString().split('T')[0];
-        const todayRegularEvents = regularEventsOnly.filter(event => event.date === todayStr);
-        const todayDefaultEvents = fetchedDefaultEvents.filter(defEvent => {
-          if (!defEvent.date) return false;
-          try {
-            const eventStartDate = new Date(defEvent.date);
-            const checkDate = new Date(todayStr);
-            if (isNaN(eventStartDate.getTime()) || isNaN(checkDate.getTime())) return false;
-            if (!defEvent.end_date) return eventStartDate.toDateString() === checkDate.toDateString();
-            const eventEndDate = new Date(defEvent.end_date);
-            if (isNaN(eventEndDate.getTime())) return false;
-            return checkDate >= eventStartDate && checkDate <= eventEndDate;
-          } catch (error) {
-            console.error('Error processing default event:', error);
-            return false;
-          }
-        }).map(defEvent => ({
-          ...defEvent, is_default_event: true, title: defEvent.name, time: 'All Day',
-          host: { id: 0, username: 'Academic Calendar', email: '' }, members: [], images: []
-        }));
-        setSelectedDateEvents([...todayRegularEvents, ...todayDefaultEvents]);
-      } catch (error) {
-        console.error('Error auto-selecting today:', error);
-        setSelectedDateEvents([]);
-      }
-=======
       const todayStr = new Date().toISOString().split('T')[0];
       const todayRegularEvents = regularEventsOnly.filter(event => event.date === todayStr);
       const todayDefaultEvents = fetchedDefaultEvents.filter(defEvent => {
@@ -182,58 +91,15 @@ export default function Dashboard() {
         host: { id: 0, username: 'Academic Calendar', email: '' }, members: [], images: []
       }));
       setSelectedDateEvents([...todayRegularEvents, ...todayDefaultEvents]);
->>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
     }
   };
 
   const fetchData = async () => {
-<<<<<<< HEAD
-    try {
-      const cacheKey = `dashboard:${user?.id}`;
-      const cached = getCache(cacheKey);
-
-      if (cached) {
-        applyDashboardData(cached, false);
-        setLoading(false);
-
-        // Silently refresh in background
-        try {
-          const response = await api.get('/dashboard');
-          setCache(cacheKey, response.data);
-          applyDashboardData(response.data, true);
-        } catch (error) {
-          console.error('Background refresh failed:', error);
-        }
-        return;
-      }
-
-      // No cache — fetch fresh data
-      const response = await api.get('/dashboard');
-      setCache(cacheKey, response.data);
-      applyDashboardData(response.data, false);
-      setLoading(false);
-    } catch (error) {
-      console.error('Error fetching data:', error);
-      setLoading(false);
-
-      if (error.response?.status === 401) {
-        navigate('/login');
-      }
-    }
-  };
-
-  const handleEdit = (event) => {
-    if (!event) {
-      console.error('No event provided to handleEdit');
-      return;
-    }
-    if (event.is_personal) {
-=======
     const cacheKey = `dashboard:${user?.id}`;
     const cached = getCache(cacheKey);
 
     if (cached) {
-      // Render cached data instantly — no spinner
+      // Render cached data instantly ΓÇö no spinner
       applyDashboardData(cached, false);
       setLoading(false);
       // Silently refresh in background
@@ -257,7 +123,6 @@ export default function Dashboard() {
   };
 
   const handleEdit = (event) => {    if (event.is_personal) {
->>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
       navigate('/personal-event', { state: { event } });
     } else {
       navigate('/add-event', { state: { event } });
@@ -265,18 +130,6 @@ export default function Dashboard() {
   };
 
   const handleDelete = async (event) => {
-<<<<<<< HEAD
-    if (!event || !event.id) {
-      console.error('Invalid event provided to handleDelete');
-      return;
-    }
-    
-    if (!confirm(`Are you sure you want to delete "${event.title}"?`)) {
-      return;
-    }
-
-=======
->>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
     try {
       await api.delete(`/events/${event.id}`);
       await fetchData();
@@ -293,10 +146,7 @@ export default function Dashboard() {
   const handleCloseModal = () => {
     setIsModalOpen(false);
     setSelectedEvent(null);
-<<<<<<< HEAD
-=======
     setIsMembersDropdownOpen(false);
->>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
     setCurrentImageIndex(0);
   };
 
@@ -307,32 +157,6 @@ export default function Dashboard() {
     const defaultEventsForDate = defaultEvents.filter(defEvent => {
       if (!defEvent.date) return false;
       
-<<<<<<< HEAD
-      try {
-        const eventStartDate = new Date(defEvent.date);
-        const checkDate = new Date(date);
-        
-        // Validate dates
-        if (isNaN(eventStartDate.getTime()) || isNaN(checkDate.getTime())) {
-          return false;
-        }
-        
-        // If no end_date, check if it's the same day
-        if (!defEvent.end_date) {
-          return eventStartDate.toDateString() === checkDate.toDateString();
-        }
-        
-        // If end_date exists, check if date is within range
-        const eventEndDate = new Date(defEvent.end_date);
-        if (isNaN(eventEndDate.getTime())) {
-          return false;
-        }
-        return checkDate >= eventStartDate && checkDate <= eventEndDate;
-      } catch (error) {
-        console.error('Error processing default event date:', error);
-        return false;
-      }
-=======
       const eventStartDate = new Date(defEvent.date);
       const checkDate = new Date(date);
       
@@ -344,7 +168,6 @@ export default function Dashboard() {
       // If end_date exists, check if date is within range
       const eventEndDate = new Date(defEvent.end_date);
       return checkDate >= eventStartDate && checkDate <= eventEndDate;
->>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
     }).map(defEvent => ({
       ...defEvent,
       is_default_event: true,
@@ -356,55 +179,6 @@ export default function Dashboard() {
     }));
 
     // Get schedule events for this date
-<<<<<<< HEAD
-    try {
-      const checkDate = new Date(date);
-      if (isNaN(checkDate.getTime())) {
-        console.error('Invalid date provided to handleDateSelect:', date);
-        setSelectedDateEvents([...events, ...defaultEventsForDate]);
-        return;
-      }
-
-      const dayOfWeek = checkDate.getDay(); // 0 = Sunday, 1 = Monday, etc.
-      const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-      const dayName = dayNames[dayOfWeek];
-
-      // Determine the semester for the SELECTED date (not today's date)
-      const dateMonth = checkDate.getMonth() + 1;
-      let selectedDateSemester;
-      
-      if (dateMonth >= 9 || dateMonth <= 1) {
-        selectedDateSemester = 'first';
-      } else if (dateMonth >= 2 && dateMonth <= 6) {
-        selectedDateSemester = 'second';
-      } else if (dateMonth >= 7 && dateMonth <= 8) {
-        selectedDateSemester = 'midyear';
-      }
-
-      const scheduleEventsForDate = userSchedules.filter(schedule => {
-        if (schedule.day !== dayName) {
-          return false;
-        }
-        
-        // Only show schedules that match the selected date's semester
-        // This ensures Tuesday classes show on Tuesdays within their semester
-        return schedule.semester === selectedDateSemester;
-      }).map(schedule => ({
-        ...schedule,
-        is_schedule: true,
-        host: { id: user?.id || 0, username: user?.name || 'You', email: user?.email || '' },
-        members: [],
-        images: []
-      }));
-      
-      // Combine regular events with default events and schedule events
-      const allEvents = [...events, ...defaultEventsForDate, ...scheduleEventsForDate];
-      setSelectedDateEvents(allEvents);
-    } catch (error) {
-      console.error('Error in handleDateSelect:', error);
-      setSelectedDateEvents([...events, ...defaultEventsForDate]);
-    }
-=======
     const checkDate = new Date(date);
     const dayOfWeek = checkDate.getDay(); // 0 = Sunday, 1 = Monday, etc.
     const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -454,7 +228,6 @@ export default function Dashboard() {
     // Combine regular events with default events and schedule events
     const allEvents = [...events, ...defaultEventsForDate, ...scheduleEventsForDate];
     setSelectedDateEvents(allEvents);
->>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
   };
 
   const getFixedImageUrl = (url) => {
@@ -466,47 +239,12 @@ export default function Dashboard() {
 
   return (
     <div className="h-screen bg-gradient-to-br from-gray-50 via-green-100 to-gray-50 flex flex-col overflow-hidden">
-<<<<<<< HEAD
-      <Navbar
-        isLoading={loading}
-        refreshTrigger={navbarRefreshTrigger}
-        onNotificationClick={(event) => {
-          const fresh = events.find(e => e.id === event.id) || event;
-          setCalendarEventToOpen(fresh);
-        }}
-      />
-=======
       <Navbar isLoading={loading} />
->>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
 
       {/* Main Content */}
       <main className="flex-1 w-full py-2 sm:py-4 px-2 sm:px-4 lg:px-8 overflow-hidden flex flex-col">
         {/* Section Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 sm:gap-3 mb-2 sm:mb-4 flex-shrink-0">
-<<<<<<< HEAD
-          {loading ? (
-            // Skeleton for header
-            <>
-              <div className="animate-pulse">
-                <div className="h-7 sm:h-8 bg-gray-200 rounded w-32 sm:w-40 mb-2"></div>
-                <div className="h-3 bg-gray-200 rounded w-48 sm:w-64"></div>
-              </div>
-              <div className="flex gap-1.5 sm:gap-2 flex-wrap w-full sm:w-auto animate-pulse">
-                <div className="h-8 sm:h-10 bg-gray-200 rounded-lg w-20 sm:w-24"></div>
-                <div className="h-8 sm:h-10 bg-gray-200 rounded-lg w-20 sm:w-24"></div>
-                <div className="h-8 sm:h-10 bg-gray-200 rounded-lg w-20 sm:w-24"></div>
-              </div>
-            </>
-          ) : (
-            <>
-              <div>
-                <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Calendar View</h2>
-                <p className="text-xs text-gray-600 mt-0.5 sm:mt-1 font-medium">Click a date to view or manage your events</p>
-              </div>
-              <div className="flex gap-1.5 sm:gap-2 flex-wrap w-full sm:w-auto">
-                {/* Academic Calendar - Admin Only */}
-                {user?.role === 'Admin' && (
-=======
           <div>
             <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Calendar View</h2>
             <p className="text-xs text-gray-600 mt-0.5 sm:mt-1 font-medium">Click a date to view or manage your events</p>
@@ -514,7 +252,6 @@ export default function Dashboard() {
           <div className="flex gap-1.5 sm:gap-2 flex-wrap w-full sm:w-auto">
             {/* Academic Calendar - Admin Only */}
             {user?.role === 'Admin' && (
->>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
               <button
                 onClick={() => navigate('/default-events')}
                 className="inline-flex items-center px-2.5 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold rounded-lg shadow hover:shadow-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 group bg-white text-green-700 border-2 border-green-700 hover:bg-green-50 focus:ring-green-600"
@@ -574,13 +311,7 @@ export default function Dashboard() {
                 </button>
               </>
             ) : null}
-<<<<<<< HEAD
-              </div>
-            </>
-          )}
-=======
           </div>
->>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
         </div>
 
         {/* Calendar */}
@@ -607,24 +338,10 @@ export default function Dashboard() {
                 defaultEvents={defaultEvents}
                 userSchedules={userSchedules}
                 onDateSelect={handleDateSelect}
-<<<<<<< HEAD
-                currentUser={user}
-                onEditEvent={handleEdit}
-                onDeleteEvent={handleDelete}
-                onRespondToEvent={async (eventId, status) => {
-                  await api.post(`/events/${eventId}/respond`, { status });
-                  // Refresh in background — UI already updates optimistically via Calendar local state
-                  fetchData();
-                  setNavbarRefreshTrigger(t => t + 1);
-                }}
-                externalEventToOpen={calendarEventToOpen}
-                onExternalEventOpened={() => setCalendarEventToOpen(null)}
-=======
                 highlightedDate={highlightedDate}
                 currentUser={user}
                 onEditEvent={handleEdit}
                 onDeleteEvent={handleDelete}
->>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
               />
             )}
           </div>
@@ -746,8 +463,6 @@ export default function Dashboard() {
               </div>
             </div>
 
-<<<<<<< HEAD
-=======
             {/* Members Dropdown */}
             {selectedEvent.members && selectedEvent.members.length > 0 && (
               <div>
@@ -818,7 +533,7 @@ export default function Dashboard() {
                               ? 'bg-red-100 text-red-800'
                               : 'bg-yellow-100 text-yellow-800'
                         }`}>
-                          {member.status === 'accepted' ? '✓ Accepted' : member.status === 'declined' ? '✗ Declined' : '⏳ Pending'}
+                          {member.status === 'accepted' ? 'Γ£ô Accepted' : member.status === 'declined' ? 'Γ£ù Declined' : 'ΓÅ│ Pending'}
                         </span>
                       </div>
                     ))}
@@ -827,7 +542,6 @@ export default function Dashboard() {
               </div>
             )}
 
->>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
             {/* Action Buttons */}
             <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center pt-4 sm:pt-6 border-t border-gray-200 gap-3 sm:gap-0">
               {/* Accept/Decline for invited members */}
@@ -853,7 +567,7 @@ export default function Dashboard() {
                         }}
                         className="flex-1 sm:flex-none px-4 py-2.5 sm:py-2 text-sm font-medium text-white bg-green-600 rounded-xl hover:bg-green-700 transition-colors touch-manipulation"
                       >
-                        ✓ Accept
+                        Γ£ô Accept
                       </button>
                       <button
                         onClick={async () => {
@@ -870,7 +584,7 @@ export default function Dashboard() {
                         }}
                         className="flex-1 sm:flex-none px-4 py-2.5 sm:py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-xl hover:bg-gray-300 transition-colors touch-manipulation"
                       >
-                        ✗ Decline
+                        Γ£ù Decline
                       </button>
                     </div>
                   );
@@ -880,7 +594,7 @@ export default function Dashboard() {
                       ? 'bg-green-100 text-green-800'
                       : 'bg-red-100 text-red-800'
                       }`}>
-                      {myStatus === 'accepted' ? '✓ You accepted' : '✗ You declined'}
+                      {myStatus === 'accepted' ? 'Γ£ô You accepted' : 'Γ£ù You declined'}
                     </span>
                   );
                 }
@@ -1026,9 +740,6 @@ export default function Dashboard() {
         )}
       </Modal>
 
-<<<<<<< HEAD
-
-=======
       {/* Schedule Required Modal */}
       <Modal
         isOpen={isScheduleRequiredModalOpen}
@@ -1102,7 +813,6 @@ export default function Dashboard() {
           )}
         </div>
       </Modal>
->>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
 
     </div>
   );

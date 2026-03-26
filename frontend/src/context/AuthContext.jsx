@@ -1,21 +1,8 @@
-<<<<<<< HEAD
-import { createContext, useContext, useState, useEffect, useCallback } from 'react';
-=======
 import { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
->>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
 import api from '../services/api';
 
 const AuthContext = createContext(null);
 
-<<<<<<< HEAD
-// Read auth state synchronously from storage — no useEffect delay
-const initAuthState = () => {
-  const token = localStorage.getItem('token');
-  const savedUser = localStorage.getItem('user');
-
-  if (!token || !savedUser) return { user: null };
-
-=======
 const SESSION_TIMEOUT_MS = 60 * 60 * 1000; // 1 hour in milliseconds
 const LAST_ACTIVITY_KEY = 'lastActivity';
 
@@ -46,7 +33,6 @@ const initAuthState = () => {
     }
   }
 
->>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
   try {
     return { user: JSON.parse(savedUser) };
   } catch {
@@ -56,19 +42,7 @@ const initAuthState = () => {
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(() => initAuthState().user);
-<<<<<<< HEAD
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    setLoading(false);
-  }, []);
-
-  const performLogout = useCallback(async () => {
-    try {
-      await api.post('/logout');
-    } catch {
-=======
-  const [loading] = useState(false); // No longer needed for initial auth
+  const [loading, setLoading] = useState(false); // No longer needed for initial auth
   const sessionTimerRef = useRef(null);
 
   const clearSessionTimer = () => {
@@ -83,24 +57,18 @@ export const AuthProvider = ({ children }) => {
     try {
       await api.post('/logout');
     } catch (error) {
->>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
       // Silently fail — token may already be invalid
     } finally {
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       localStorage.removeItem('rememberMe');
-<<<<<<< HEAD
-=======
       localStorage.removeItem(LAST_ACTIVITY_KEY);
->>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
       sessionStorage.removeItem('token');
       sessionStorage.removeItem('user');
       setUser(null);
     }
   }, []);
 
-<<<<<<< HEAD
-=======
   // Start a 1-hour inactivity timer for non-remembered sessions
   const startSessionTimer = useCallback(() => {
     if (localStorage.getItem('rememberMe') === 'true') return;
@@ -139,16 +107,12 @@ export const AuthProvider = ({ children }) => {
     };
   }, [user, resetActivity, startSessionTimer]);
 
->>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
   const login = async (email, password, rememberMe = false, userFromOtp = null, tokenFromOtp = null) => {
     // If called from OTP verification, use provided user and token
     if (userFromOtp && tokenFromOtp) {
       localStorage.setItem('token', tokenFromOtp);
       localStorage.setItem('user', JSON.stringify(userFromOtp));
-<<<<<<< HEAD
-=======
       localStorage.setItem('rememberMe', 'true');
->>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
       setUser(userFromOtp);
       return { user: userFromOtp, token: tokenFromOtp };
     }
@@ -161,12 +125,6 @@ export const AuthProvider = ({ children }) => {
 
     const { user, token } = response.data;
 
-<<<<<<< HEAD
-    // Always persist in localStorage so the session survives browser restarts
-    localStorage.setItem('token', token);
-    localStorage.setItem('user', JSON.stringify(user));
-    localStorage.setItem('rememberMe', rememberMe ? 'true' : 'false');
-=======
     if (rememberMe) {
       // Persist across browser sessions
       localStorage.setItem('token', token);
@@ -180,7 +138,6 @@ export const AuthProvider = ({ children }) => {
       localStorage.setItem('rememberMe', 'false');
       localStorage.setItem(LAST_ACTIVITY_KEY, Date.now().toString());
     }
->>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
 
     setUser(user);
     return response.data;
@@ -210,12 +167,8 @@ export const AuthProvider = ({ children }) => {
 
   const updateUser = (updatedUserData) => {
     const updatedUser = { ...user, ...updatedUserData };
-<<<<<<< HEAD
-    localStorage.setItem('user', JSON.stringify(updatedUser));
-=======
     const storage = getStorage();
     storage.setItem('user', JSON.stringify(updatedUser));
->>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
     setUser(updatedUser);
   };
 

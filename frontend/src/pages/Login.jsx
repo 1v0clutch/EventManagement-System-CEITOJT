@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import AuthBackground from '../components/AuthBackground';
@@ -58,17 +58,6 @@ export default function Login() {
     } catch (err) {
       const response = err.response?.data;
 
-<<<<<<< HEAD
-      // Unverified email — redirect to OTP screen so they can complete registration
-      if (response?.requires_verification) {
-        navigate('/verify-email', {
-          state: { email: response.email || email }
-        });
-        return;
-      }
-
-=======
->>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
       // Check if it's a 2FA requirement
       if (response?.requires_otp) {
         navigate('/verify-login-otp', {

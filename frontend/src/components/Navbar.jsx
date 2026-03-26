@@ -6,14 +6,10 @@ import api from '../services/api';
 import logo from "../assets/CvSU Logo.png";
 
 export default function Navbar({
-<<<<<<< HEAD
   isLoading = false,
   pageTitle = "Dashboard",
   onNotificationClick = null,
   refreshTrigger = 0,
-=======
-  isLoading = false
->>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
 }) {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
@@ -29,13 +25,10 @@ export default function Navbar({
     fetchMembers();
   }, []);
 
-<<<<<<< HEAD
   useEffect(() => {
     if (refreshTrigger > 0) fetchEvents();
   }, [refreshTrigger]);
 
-=======
->>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
   // Fetch members when modal opens
   useEffect(() => {
     if (isMembersModalOpen && members.length === 0) {
@@ -98,11 +91,7 @@ export default function Navbar({
               </button>
               <div className="min-w-0">
                 <h1 className="text-lg sm:text-2xl font-bold text-white tracking-tight truncate">Event Management</h1>
-<<<<<<< HEAD
                 <p className="text-xs text-green-200 font-medium hidden sm:block">{pageTitle}</p>
-=======
-                <p className="text-xs text-green-200 font-medium hidden sm:block">Dashboard</p>
->>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
               </div>
             </div>
 
@@ -154,11 +143,7 @@ export default function Navbar({
                 <NotificationBell
                   events={events}
                   user={user}
-<<<<<<< HEAD
                   onNotificationClick={onNotificationClick || ((event) => navigate('/dashboard', { state: { viewEvent: event } }))}
-=======
-                  onNotificationClick={(event) => navigate('/dashboard', { state: { viewEvent: event } })}
->>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
                   isDisabled={isLoading}
                 />
               </div>
@@ -245,11 +230,7 @@ export default function Navbar({
                 <NotificationBell
                   events={events}
                   user={user}
-<<<<<<< HEAD
                   onNotificationClick={onNotificationClick || ((event) => navigate('/dashboard', { state: { viewEvent: event } }))}
-=======
-                  onNotificationClick={(event) => navigate('/dashboard', { state: { viewEvent: event } })}
->>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
                   isDisabled={isLoading}
                 />
               </div>

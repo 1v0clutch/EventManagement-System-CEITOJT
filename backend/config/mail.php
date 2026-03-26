@@ -3,7 +3,7 @@
 return [
 
     /*
-<<<<<<< HEAD
+     /*
      |--------------------------------------------------------------------------
      | Default Mailer
      |--------------------------------------------------------------------------
@@ -14,23 +14,11 @@ return [
      | "mailers" array. Examples of each type of mailer are provided.
      |
      */
-=======
-    |--------------------------------------------------------------------------
-    | Default Mailer
-    |--------------------------------------------------------------------------
-    |
-    | This option controls the default mailer that is used to send all email
-    | messages unless another mailer is explicitly specified when sending
-    | the message. All additional mailers can be configured within the
-    | "mailers" array. Examples of each type of mailer are provided.
-    |
-    */
->>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
 
     'default' => env('MAIL_MAILER', 'log'),
 
     /*
-<<<<<<< HEAD
+     /*
      |--------------------------------------------------------------------------
      | Mailer Configurations
      |--------------------------------------------------------------------------
@@ -48,25 +36,6 @@ return [
      |            "failover", "roundrobin"
      |
      */
-=======
-    |--------------------------------------------------------------------------
-    | Mailer Configurations
-    |--------------------------------------------------------------------------
-    |
-    | Here you may configure all of the mailers used by your application plus
-    | their respective settings. Several examples have been configured for
-    | you and you are free to add your own as your application requires.
-    |
-    | Laravel supports a variety of mail "transport" drivers that can be used
-    | when delivering an email. You may specify which one you're using for
-    | your mailers below. You may also add additional mailers if needed.
-    |
-    | Supported: "smtp", "sendmail", "mailgun", "ses", "ses-v2",
-    |            "postmark", "resend", "log", "array",
-    |            "failover", "roundrobin"
-    |
-    */
->>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
 
     'mailers' => [
 
@@ -78,13 +47,8 @@ return [
             'port' => env('MAIL_PORT', 2525),
             'username' => env('MAIL_USERNAME'),
             'password' => env('MAIL_PASSWORD'),
-<<<<<<< HEAD
             'timeout' => 5,
             'local_domain' => env('MAIL_EHLO_DOMAIN', parse_url((string)env('APP_URL', 'http://localhost'), PHP_URL_HOST)),
-=======
-            'timeout' => null,
-            'local_domain' => env('MAIL_EHLO_DOMAIN', parse_url((string) env('APP_URL', 'http://localhost'), PHP_URL_HOST)),
->>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
         ],
 
         'ses' => [
@@ -138,7 +102,7 @@ return [
     ],
 
     /*
-<<<<<<< HEAD
+     /*
      |--------------------------------------------------------------------------
      | Global "From" Address
      |--------------------------------------------------------------------------
@@ -148,17 +112,6 @@ return [
      | used globally for all emails that are sent by your application.
      |
      */
-=======
-    |--------------------------------------------------------------------------
-    | Global "From" Address
-    |--------------------------------------------------------------------------
-    |
-    | You may wish for all emails sent by your application to be sent from
-    | the same address. Here you may specify a name and address that is
-    | used globally for all emails that are sent by your application.
-    |
-    */
->>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
 
     'from' => [
         'address' => env('MAIL_FROM_ADDRESS', env('MAIL_USERNAME', 'hello@example.com')),
@@ -166,7 +119,7 @@ return [
     ],
 
     /*
-<<<<<<< HEAD
+     /*
      |--------------------------------------------------------------------------
      | Global "Reply-To" Address
      |--------------------------------------------------------------------------
@@ -176,17 +129,6 @@ return [
      | for all emails that are sent by your application.
      |
      */
-=======
-    |--------------------------------------------------------------------------
-    | Global "Reply-To" Address
-    |--------------------------------------------------------------------------
-    |
-    | You may wish for all emails sent by your application to have a reply-to
-    | address. Here you may specify a name and address that is used globally
-    | for all emails that are sent by your application.
-    |
-    */
->>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
 
     'reply_to' => [
         'address' => env('MAIL_REPLY_TO_ADDRESS'),

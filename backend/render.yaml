@@ -1,5 +1,4 @@
 services:
-<<<<<<< HEAD
   # Laravel API Web Service
   - type: web
     name: event-management-api
@@ -25,6 +24,14 @@ services:
         value: local
       - key: BROADCAST_CONNECTION
         value: log
+      - key: APP_URL
+        value: https://eventmanagement-backend.onrender.com
+      - key: FRONTEND_URL
+        sync: false
+      - key: DB_CONNECTION
+        value: pgsql
+      - key: APP_KEY
+        sync: false
 
   # Queue Worker (handles emails, OTP, notifications)
   - type: worker
@@ -34,36 +41,7 @@ services:
     buildCommand: composer install --no-dev --optimize-autoloader
     startCommand: php artisan queue:work --tries=3 --timeout=90 --sleep=3 --max-time=3600
     envVars:
-=======
-  - type: web
-    name: eventmanagement-backend
-    env: docker
-    plan: free
-    rootDir: backend
-    envVars:
-      - key: APP_KEY
-        generateValue: true
->>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
       - key: APP_ENV
         value: production
       - key: APP_DEBUG
         value: false
-<<<<<<< HEAD
-=======
-      - key: APP_URL
-        value: https://eventmanagement-backend.onrender.com
-      - key: FRONTEND_URL
-        sync: false
-      - key: DB_CONNECTION
-        value: mysql
-      - key: DB_HOST
-        sync: false
-      - key: DB_PORT
-        value: 46323
-      - key: DB_DATABASE
-        sync: false
-      - key: DB_USERNAME
-        sync: false
-      - key: DB_PASSWORD
-        sync: false
->>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d

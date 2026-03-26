@@ -22,54 +22,46 @@ class ScheduleController extends Controller
         '#6366f1', // Indigo
     ];
 
-<<<<<<< HEAD
     public function index(Request $request)
     {
         $user = Auth::user();
-        
+
         // Get semester and school year from request, or use current
         $semester = $request->query('semester');
         $schoolYear = $request->query('school_year');
-        
+
         // If not provided, calculate current semester and school year
         if (!$semester || !$schoolYear) {
             $now = new \DateTime();
             $currentMonth = (int)$now->format('m');
             $currentYear = (int)$now->format('Y');
-            
+
             // Determine semester
             if ($currentMonth >= 9 || $currentMonth <= 1) {
                 $semester = 'first';
-            } elseif ($currentMonth >= 2 && $currentMonth <= 6) {
+            }
+            elseif ($currentMonth >= 2 && $currentMonth <= 6) {
                 $semester = 'second';
-            } else {
+            }
+            else {
                 $semester = 'midyear';
             }
-            
+
             // Determine school year
-            $schoolYear = $currentMonth >= 9 
+            $schoolYear = $currentMonth >= 9
                 ? "{$currentYear}-" . ($currentYear + 1)
                 : ($currentYear - 1) . "-{$currentYear}";
         }
-        
+
         // Fetch schedules for the specific semester and school year
         $schedules = UserSchedule::where('user_id', $user->id)
             ->where('semester', $semester)
             ->where('school_year', $schoolYear)
             ->select('id', 'day', 'start_time', 'end_time', 'description', 'color', 'semester', 'school_year')
-=======
-    public function index()
-    {
-        $user = Auth::user();
-        
-        // Fetch all schedules in one query with specific columns only
-        $schedules = UserSchedule::where('user_id', $user->id)
-            ->select('id', 'day', 'start_time', 'end_time', 'description', 'color')
->>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
             ->orderBy('day')
             ->orderBy('start_time')
             ->get();
-        
+
         // Group schedules by day efficiently
         $groupedSchedules = [];
         foreach ($schedules as $schedule) {
@@ -81,36 +73,27 @@ class ScheduleController extends Controller
                 'startTime' => $schedule->start_time,
                 'endTime' => $schedule->end_time,
                 'description' => $schedule->description,
-<<<<<<< HEAD
                 'color' => $schedule->color,
                 'semester' => $schedule->semester,
                 'schoolYear' => $schedule->school_year
-=======
-                'color' => $schedule->color
->>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
             ];
         }
 
         return response()->json([
             'schedule' => $groupedSchedules,
-<<<<<<< HEAD
             'initialized' => $user->schedule_initialized,
             'semester' => $semester,
             'schoolYear' => $schoolYear
-=======
-            'initialized' => $user->schedule_initialized
->>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
         ]);
     }
 
     public function store(Request $request)
     {
         $user = Auth::user();
-        
+
         // Basic validation - detailed validation happens in the loop
         $request->validate([
             'schedule' => 'required|array',
-<<<<<<< HEAD
             'schedule.*' => 'array',
             'semester' => 'required|in:first,second,midyear',
             'school_year' => 'required|string|regex:/^\d{4}-\d{4}$/'
@@ -119,80 +102,65 @@ class ScheduleController extends Controller
         $semester = $request->semester;
         $schoolYear = $request->school_year;
 
-=======
-            'schedule.*' => 'array'
-        ]);
-
->>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
         // Use transaction for data consistency
         \DB::beginTransaction();
-        
+
         try {
-<<<<<<< HEAD
             // Delete existing schedules for this user, semester, and school year
             UserSchedule::where('user_id', $user->id)
                 ->where('semester', $semester)
                 ->where('school_year', $schoolYear)
                 ->delete();
-=======
-            // Delete existing schedules for this user
-            UserSchedule::where('user_id', $user->id)->delete();
->>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
 
             // Prepare bulk insert data
             $schedules = [];
             $now = now();
-            
+
             // Track unique class descriptions and assign colors
             $classColorMap = [];
             $colorIndex = 0;
-            
+
             foreach ($request->schedule as $day => $classes) {
-<<<<<<< HEAD
                 // Validate day name (Monday to Saturday only - no Sunday)
                 if (!in_array($day, ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'])) {
-=======
-                // Validate day name
-                if (!in_array($day, ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'])) {
->>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
                     continue;
                 }
-                
+
                 foreach ($classes as $index => $class) {
                     // Skip if both times are empty (user didn't fill this slot)
                     if (empty($class['startTime']) && empty($class['endTime'])) {
                         continue;
                     }
-                    
+
                     // Check if one time is filled but not the other
                     if (empty($class['startTime']) || empty($class['endTime'])) {
                         throw new \Exception("Both start and end times are required for {$day}");
                     }
-                    
+
                     // Trim whitespace
                     $startTime = trim($class['startTime']);
                     $endTime = trim($class['endTime']);
-                    
+
                     // Normalize times to 24-hour format
                     $normalizedStart = $this->normalizeTime($startTime, $day, 'start');
                     $normalizedEnd = $this->normalizeTime($endTime, $day, 'end');
-                    
+
                     // Validate that start time is before end time
                     if ($normalizedStart >= $normalizedEnd) {
                         throw new \Exception("Start time must be before end time for {$day} (Start: {$normalizedStart}, End: {$normalizedEnd})");
                     }
-                    
+
                     // Get description and normalize it for color mapping
                     $description = $class['description'] ?? '';
                     $normalizedDescription = strtolower(trim($description));
-                    
+
                     // Assign color based on class description (same description = same color)
                     if (!isset($classColorMap[$normalizedDescription])) {
                         $classColorMap[$normalizedDescription] = $this->colorPalette[$colorIndex % count($this->colorPalette)];
                         $colorIndex++;
                     }
                     $color = $classColorMap[$normalizedDescription];
-                    
+
                     $schedules[] = [
                         'user_id' => $user->id,
                         'day' => $day,
@@ -200,11 +168,8 @@ class ScheduleController extends Controller
                         'end_time' => $normalizedEnd,
                         'description' => $description,
                         'color' => $color,
-<<<<<<< HEAD
                         'semester' => $semester,
                         'school_year' => $schoolYear,
-=======
->>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
                         'created_at' => $now,
                         'updated_at' => $now
                     ];
@@ -215,32 +180,26 @@ class ScheduleController extends Controller
             if (!empty($schedules)) {
                 UserSchedule::insert($schedules);
             }
-            
+
             // Mark schedule as initialized (even if empty)
             $user->schedule_initialized = true;
             $user->save();
-            
+
             \DB::commit();
 
             return response()->json([
                 'message' => 'Schedule saved successfully',
-<<<<<<< HEAD
                 'count' => count($schedules),
                 'semester' => $semester,
                 'schoolYear' => $schoolYear
-=======
-                'count' => count($schedules)
->>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
             ]);
-        } catch (\Exception $e) {
+        }
+        catch (\Exception $e) {
             \DB::rollBack();
             \Log::error('Schedule save failed', [
                 'user_id' => $user->id,
-<<<<<<< HEAD
                 'semester' => $semester,
                 'school_year' => $schoolYear,
-=======
->>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
                 'error' => $e->getMessage(),
                 'request_data' => $request->all(),
                 'trace' => $e->getTraceAsString()
@@ -264,41 +223,42 @@ class ScheduleController extends Controller
             $hour = (int)$matches[1];
             $minute = $matches[2];
             $ampm = strtoupper($matches[3]);
-            
+
             // Validate hour range for 12-hour format
             if ($hour < 1 || $hour > 12) {
                 throw new \Exception("Invalid hour '{$hour}' in {$type} time for {$day}. Hour must be 1-12 for 12-hour format.");
             }
-            
+
             // Convert to 24-hour format
             if ($ampm === 'PM' && $hour !== 12) {
                 $hour += 12;
-            } elseif ($ampm === 'AM' && $hour === 12) {
+            }
+            elseif ($ampm === 'AM' && $hour === 12) {
                 $hour = 0;
             }
-            
+
             return sprintf('%02d:%s', $hour, $minute);
         }
-        
+
         // Check for 24-hour format (with or without seconds)
         if (preg_match('/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/', $time, $matches)) {
             $hour = (int)$matches[1];
             $minute = $matches[2];
             // Ignore seconds if present
-            
+
             // Validate hour range for 24-hour format
             if ($hour < 0 || $hour > 23) {
                 throw new \Exception("Invalid hour '{$hour}' in {$type} time for {$day}. Hour must be 0-23 for 24-hour format.");
             }
-            
+
             // Validate minute range
             if ((int)$minute < 0 || (int)$minute > 59) {
                 throw new \Exception("Invalid minute '{$minute}' in {$type} time for {$day}. Minute must be 0-59.");
             }
-            
+
             return sprintf('%02d:%02d', $hour, (int)$minute);
         }
-        
+
         // Invalid format
         throw new \Exception("Invalid time format '{$time}' for {$day} {$type} time. Expected HH:MM (24-hour) or HH:MM AM/PM (12-hour).");
     }
@@ -341,14 +301,15 @@ class ScheduleController extends Controller
         $timeParts = explode(':', $eventTime);
         $eventHour = (int)$timeParts[0];
         $eventMinute = isset($timeParts[1]) ? (int)$timeParts[1] : 0;
-        
+
         // Handle AM/PM
         if (stripos($eventTime, 'pm') !== false && $eventHour < 12) {
             $eventHour += 12;
-        } elseif (stripos($eventTime, 'am') !== false && $eventHour === 12) {
+        }
+        elseif (stripos($eventTime, 'am') !== false && $eventHour === 12) {
             $eventHour = 0;
         }
-        
+
         $eventTimeStr = sprintf('%02d:%02d', $eventHour, $eventMinute);
 
         // Get schedules for all users on that day

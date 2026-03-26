@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import api from '../services/api';
 import DatePicker from './DatePicker';
 
@@ -21,15 +21,6 @@ export default function EventForm({ members, onEventCreated, editingEvent, onCan
   const [searchMember, setSearchMember] = useState('');
   const [isDragging, setIsDragging] = useState(false);
   const [fileError, setFileError] = useState('');
-<<<<<<< HEAD
-  const [membersPage, setMembersPage] = useState(1);
-  const MEMBERS_PER_PAGE = 6;
-  const [showInvitedModal, setShowInvitedModal] = useState(false);
-  const [invitedSearch, setInvitedSearch] = useState('');
-  const [invitedPage, setInvitedPage] = useState(1);
-  const INVITED_PER_PAGE = 8;
-=======
->>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
 
   // Calculate school year based on date
   const getSchoolYearFromDate = (dateString) => {
@@ -146,7 +137,7 @@ export default function EventForm({ members, onEventCreated, editingEvent, onCan
     } catch (err) {
       console.error('Error saving event:', err.response?.data);
 
-      // Schedule conflict — auto-retry with ignore flag
+      // Schedule conflict ΓÇö auto-retry with ignore flag
       if (err.response?.status === 409 && err.response?.data?.warning === 'schedule_conflict') {
         formData.append('ignore_conflicts', 'true');
         try {
@@ -309,19 +300,6 @@ export default function EventForm({ members, onEventCreated, editingEvent, onCan
   const filteredMembers = members.filter(member => {
     // Exclude current user (host)
     if (member.id === currentUser?.id) return false;
-<<<<<<< HEAD
-
-    // Filter by department
-    if (filterDepartment !== 'all' && member.department !== filterDepartment) return false;
-
-    // Filter by role
-    if (filterRole !== 'all' && member.role !== filterRole) return false;
-
-    return true;
-  });
-
-  // Further filter by search term, sorted alphabetically only
-=======
     
     // Always show selected members regardless of filters
     if (selectedMembers.includes(member.id)) return true;
@@ -336,64 +314,11 @@ export default function EventForm({ members, onEventCreated, editingEvent, onCan
   });
 
   // Further filter by search term and sort selected members first
->>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
   const searchFilteredMembers = filteredMembers
     .filter(member =>
       member.username.toLowerCase().includes(searchMember.toLowerCase()) ||
       member.email.toLowerCase().includes(searchMember.toLowerCase())
     )
-<<<<<<< HEAD
-    .sort((a, b) => a.username.localeCompare(b.username));
-
-  // Members that have been invited (for the modal)
-  const invitedMembers = members.filter(m => selectedMembers.includes(m.id));
-  const filteredInvitedMembers = invitedMembers.filter(m =>
-    m.username.toLowerCase().includes(invitedSearch.toLowerCase()) ||
-    m.email.toLowerCase().includes(invitedSearch.toLowerCase())
-  );
-  const totalInvitedPages = Math.ceil(filteredInvitedMembers.length / INVITED_PER_PAGE);
-  const pagedInvitedMembers = filteredInvitedMembers.slice(
-    (invitedPage - 1) * INVITED_PER_PAGE,
-    invitedPage * INVITED_PER_PAGE
-  );
-
-  const CEIT_DEPARTMENT = 'College of Engineering and Information Technology';
-
-  const CEIT_ROLES = ['Dean', 'CEIT Official', 'Coordinator', 'Faculty Member'];
-  const OTHER_DEPT_ROLES = ['Chairperson', 'GAD Coordinator', 'Extension Coordinator', 'Research Coordinator', 'Faculty Member'];
-
-  const availableDepartments = [...new Set(members.map(m => m.department).filter(Boolean))];
-
-  // Compute role options based on selected department
-  const availableRoles = (() => {
-    const allRoles = [...new Set(members.map(m => m.role).filter(Boolean))];
-
-    if (filterDepartment === CEIT_DEPARTMENT) {
-      return allRoles.filter(r => CEIT_ROLES.includes(r));
-    }
-    if (filterDepartment !== 'all') {
-      return allRoles.filter(r => OTHER_DEPT_ROLES.includes(r));
-    }
-    return allRoles;
-  })()
-    // Always hide Dean option from the dropdown when current user is Dean
-    .filter(role => !(currentUser?.role === 'Dean' && role === 'Dean'));
-
-  // Reset to page 1 whenever filters or search change
-  // Also reset role filter if it's no longer valid for the selected department
-  useEffect(() => {
-    setMembersPage(1);
-    if (filterRole !== 'all' && !availableRoles.includes(filterRole)) {
-      setFilterRole('all');
-    }
-  }, [searchMember, filterDepartment, filterRole]);
-
-  const totalMembersPages = Math.ceil(searchFilteredMembers.length / MEMBERS_PER_PAGE);
-  const pagedMembers = searchFilteredMembers.slice(
-    (membersPage - 1) * MEMBERS_PER_PAGE,
-    membersPage * MEMBERS_PER_PAGE
-  );
-=======
     .sort((a, b) => {
       // Sort selected members first
       const aSelected = selectedMembers.includes(a.id);
@@ -408,7 +333,6 @@ export default function EventForm({ members, onEventCreated, editingEvent, onCan
 
   const availableDepartments = [...new Set(members.map(m => m.department).filter(Boolean))];
   const availableRoles = [...new Set(members.map(m => m.role).filter(Boolean))];
->>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
 
   return (
     <div className="animate-fade-in">
@@ -685,24 +609,6 @@ export default function EventForm({ members, onEventCreated, editingEvent, onCan
                   </div>
                   <h3 className="text-base font-bold text-gray-900">Invite Members</h3>
                 </div>
-<<<<<<< HEAD
-                <button
-                  type="button"
-                  onClick={() => { setShowInvitedModal(true); setInvitedSearch(''); }}
-                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${
-                    selectedMembers.length > 0
-                      ? 'bg-green-600 text-white hover:bg-green-700'
-                      : 'bg-gray-100 text-gray-400 cursor-default'
-                  }`}
-                  disabled={selectedMembers.length === 0}
-                >
-                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
-                  </svg>
-                  {selectedMembers.length} Invited
-                </button>
-              </div>
-=======
                 {selectedMembers.length > 0 && (
                   <span className="text-xs font-semibold text-green-700 bg-green-50 px-2.5 py-1 rounded-full">
                     {selectedMembers.length} selected
@@ -712,7 +618,6 @@ export default function EventForm({ members, onEventCreated, editingEvent, onCan
 
 
 
->>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
               {/* Search Bar */}
               <div className="mb-3">
                 <div className="relative">
@@ -768,10 +673,7 @@ export default function EventForm({ members, onEventCreated, editingEvent, onCan
                     <option key={role} value={role}>{role}</option>
                   ))}
                 </select>
-<<<<<<< HEAD
-=======
                 
->>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
                 <button
                   type="button"
                   onClick={handleSelectAll}
@@ -795,91 +697,14 @@ export default function EventForm({ members, onEventCreated, editingEvent, onCan
                   )}
                 </button>
               </div>
-<<<<<<< HEAD
-              <div className="border border-gray-200 rounded-lg bg-gray-50/50 overflow-hidden">
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide px-3 pt-3 pb-1">
-                  Browse Members
-                </p>
-                {searchFilteredMembers.length === 0 ? (
-                  <div className="h-28 flex items-center justify-center">
-=======
               <div className="border border-gray-200 rounded-lg bg-gray-50/50 h-96 overflow-y-auto">
                 {searchFilteredMembers.length === 0 ? (
                   <div className="h-full flex items-center justify-center">
->>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
                     <p className="text-sm text-gray-400">
                       {searchMember ? 'No members found' : 'No members available'}
                     </p>
                   </div>
                 ) : (
-<<<<<<< HEAD
-                  <>
-                    <div className="p-2 space-y-1">
-                      {pagedMembers.map(member => (
-                        <label
-                          key={member.id}
-                          className={`flex items-center p-2.5 rounded-lg cursor-pointer transition-colors ${
-                            selectedMembers.includes(member.id)
-                              ? 'bg-green-100 border border-green-300'
-                              : 'hover:bg-white border border-transparent'
-                          }`}
-                        >
-                          <input
-                            type="checkbox"
-                            checked={selectedMembers.includes(member.id)}
-                            onChange={() => toggleMember(member.id)}
-                            className="h-4 w-4 text-green-700 focus:ring-green-600 border-gray-300 rounded"
-                          />
-                          <span className="ml-2.5 text-sm text-gray-700 font-medium">
-                            {member.username}
-                            <div className="flex items-center gap-2 mt-0.5">
-                              {member.role && (
-                                <span className="text-xs font-semibold text-green-700 bg-green-100 px-2 py-0.5 rounded-full">
-                                  {member.role}
-                                </span>
-                              )}
-                              {member.department && (
-                                <span className="text-xs text-gray-500 font-normal">
-                                  {member.department}
-                                </span>
-                              )}
-                            </div>
-                          </span>
-                        </label>
-                      ))}
-                    </div>
-                    {totalMembersPages > 1 && (
-                      <div className="flex items-center justify-between px-3 py-2 border-t border-gray-200 bg-white">
-                        <span className="text-xs text-gray-400">
-                          {(membersPage - 1) * MEMBERS_PER_PAGE + 1}–{Math.min(membersPage * MEMBERS_PER_PAGE, searchFilteredMembers.length)} of {searchFilteredMembers.length}
-                        </span>
-                        <div className="flex items-center gap-1">
-                          <button
-                            type="button"
-                            onClick={() => setMembersPage(p => Math.max(1, p - 1))}
-                            disabled={membersPage === 1}
-                            className="p-1 rounded text-gray-400 hover:text-gray-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                          >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
-                            </svg>
-                          </button>
-                          <span className="text-xs text-gray-600 px-1">{membersPage} / {totalMembersPages}</span>
-                          <button
-                            type="button"
-                            onClick={() => setMembersPage(p => Math.min(totalMembersPages, p + 1))}
-                            disabled={membersPage === totalMembersPages}
-                            className="p-1 rounded text-gray-400 hover:text-gray-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                          >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
-                            </svg>
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                  </>
-=======
                   <div className="p-2 space-y-1">
                     {searchFilteredMembers.map(member => (
                       <label
@@ -913,7 +738,6 @@ export default function EventForm({ members, onEventCreated, editingEvent, onCan
                       </label>
                     ))}
                   </div>
->>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
                 )}
               </div>
             </div>
@@ -959,153 +783,6 @@ export default function EventForm({ members, onEventCreated, editingEvent, onCan
           )}
         </div>
       </form>
-<<<<<<< HEAD
-
-      {/* Invited Members Modal */}
-      {showInvitedModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-lg h-[600px] flex flex-col">
-
-            {/* Header */}
-            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between flex-shrink-0">
-              <div>
-                <h3 className="text-lg font-bold text-gray-900">Invited Members</h3>
-                <p className="text-xs text-gray-500 mt-0.5">
-                  {invitedMembers.length} member{invitedMembers.length !== 1 ? 's' : ''} invited
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowInvitedModal(false)}
-                className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-
-            {/* Search + Clear All */}
-            <div className="px-6 py-3 border-b border-gray-100 flex gap-2 flex-shrink-0">
-              <div className="relative flex-1">
-                <input
-                  type="text"
-                  placeholder="Search invited members..."
-                  value={invitedSearch}
-                  onChange={(e) => { setInvitedSearch(e.target.value); setInvitedPage(1); }}
-                  className="block w-full pl-9 pr-8 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-600/20 focus:border-green-600 transition-colors"
-                />
-                <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-                {invitedSearch && (
-                  <button type="button" onClick={() => { setInvitedSearch(''); setInvitedPage(1); }} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-                )}
-              </div>
-              <button
-                type="button"
-                onClick={() => { setSelectedMembers([]); setInvitedPage(1); }}
-                disabled={invitedMembers.length === 0}
-                className="px-3 py-2.5 text-sm font-medium text-red-600 border border-red-200 rounded-lg hover:bg-red-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap"
-              >
-                Clear All
-              </button>
-            </div>
-
-            {/* List — fixed height, no scroll jump */}
-            <div className="flex-1 overflow-y-auto">
-              {invitedMembers.length === 0 ? (
-                <div className="flex flex-col items-center justify-center h-full text-gray-400 gap-2">
-                  <svg className="w-10 h-10 text-gray-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
-                  </svg>
-                  <p className="text-sm">No members invited yet</p>
-                </div>
-              ) : filteredInvitedMembers.length === 0 ? (
-                <div className="flex items-center justify-center h-full text-sm text-gray-400">
-                  No results for "{invitedSearch}"
-                </div>
-              ) : (
-                <div className="divide-y divide-gray-50">
-                  {pagedInvitedMembers.map(member => (
-                    <div key={member.id} className="flex items-center justify-between px-6 py-3.5 hover:bg-gray-50 transition-colors">
-                      <div className="flex items-center gap-3 min-w-0">
-                        <div className="w-9 h-9 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
-                          <span className="text-green-700 text-sm font-bold">
-                            {member.username.charAt(0).toUpperCase()}
-                          </span>
-                        </div>
-                        <div className="min-w-0">
-                          <p className="text-sm font-medium text-gray-900 truncate">{member.username}</p>
-                          <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
-                            {member.role && (
-                              <span className="text-xs font-semibold text-green-700 bg-green-100 px-2 py-0.5 rounded-full">{member.role}</span>
-                            )}
-                            {member.department && (
-                              <span className="text-xs text-gray-400 truncate">{member.department}</span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => toggleMember(member.id)}
-                        className="ml-3 flex-shrink-0 p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                        title={`Remove ${member.username}`}
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Pagination footer — always visible */}
-            <div className="px-6 py-3 border-t border-gray-100 flex items-center justify-between flex-shrink-0 bg-white rounded-b-xl">
-              <span className="text-xs text-gray-400">
-                {filteredInvitedMembers.length === 0
-                  ? '0 members'
-                  : `${(invitedPage - 1) * INVITED_PER_PAGE + 1}–${Math.min(invitedPage * INVITED_PER_PAGE, filteredInvitedMembers.length)} of ${filteredInvitedMembers.length}`}
-              </span>
-              <div className="flex items-center gap-1">
-                <button
-                  type="button"
-                  onClick={() => setInvitedPage(p => Math.max(1, p - 1))}
-                  disabled={invitedPage === 1 || totalInvitedPages === 0}
-                  className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
-                  </svg>
-                </button>
-                <span className="text-xs text-gray-600 px-2 min-w-[60px] text-center">
-                  {totalInvitedPages > 0 ? `${invitedPage} / ${totalInvitedPages}` : '—'}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setInvitedPage(p => Math.min(totalInvitedPages, p + 1))}
-                  disabled={invitedPage === totalInvitedPages || totalInvitedPages === 0}
-                  className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
-                  </svg>
-                </button>
-              </div>
-            </div>
-
-          </div>
-        </div>
-      )}
-=======
->>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
     </div>
   );
 }

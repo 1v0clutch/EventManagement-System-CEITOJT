@@ -51,11 +51,8 @@ class DefaultEventControllerV2 extends Controller
                 'date' => $dateAssignment?->date?->format('Y-m-d'),
                 'end_date' => $dateAssignment?->end_date?->format('Y-m-d'),
                 'school_year' => $schoolYear,
-<<<<<<< HEAD
                 'semester' => $dateAssignment?->semester,
                 'semester_name' => $dateAssignment?->semester_name,
-=======
->>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
                 'has_date_set' => $dateAssignment !== null,
                 'date_id' => $dateAssignment?->id,
             ];

@@ -4,11 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-<<<<<<< HEAD
 return new class extends Migration 
-=======
-return new class extends Migration
->>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
 {
     public function up(): void
     {
@@ -18,14 +14,10 @@ return new class extends Migration
                 // Drop foreign key first if it exists
                 try {
                     $table->dropForeign(['approved_request_id']);
-<<<<<<< HEAD
                 }
                 catch (\Exception $e) {
                 // Foreign key may not exist, continue
-=======
-                } catch (\Exception $e) {
-                    // Foreign key may not exist, continue
->>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
+
                 }
                 $table->dropColumn('approved_request_id');
             });

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import api from '../services/api';
 import { getFixedImageUrl } from '../utils/image';
 
@@ -6,42 +6,6 @@ export default function EventList({ events, currentUser, onEdit, onRefresh }) {
   const [availability, setAvailability] = useState({});
   const [loading, setLoading] = useState({});
 
-<<<<<<< HEAD
-  // Event hierarchy priority (lower number = higher priority)
-  const getEventPriority = (event) => {
-    const isHosted = currentUser && event.host && event.host.id === currentUser.id;
-    const isPersonal = event.is_personal;
-    const isMeeting = event.event_type === 'meeting';
-    const isAcademic = event.is_default_event === true;
-
-    if (isAcademic) return 6; // Academic Event
-    if (isPersonal) return 5; // Personal Event
-    if (isMeeting && !isHosted) return 4; // Invited Meeting
-    if (isMeeting && isHosted) return 3; // Hosting Meeting
-    if (!isMeeting && !isHosted) return 2; // Invited Event
-    if (!isMeeting && isHosted) return 1; // Hosting Event - highest priority
-    
-    return 7; // Fallback
-  };
-
-  // Sort events by date, time, and priority
-  const sortedEvents = [...events].sort((a, b) => {
-    // First sort by date
-    if (a.date !== b.date) {
-      return a.date.localeCompare(b.date);
-    }
-    // Then by time
-    if (a.time !== b.time) {
-      if (!a.time) return 1;
-      if (!b.time) return -1;
-      return a.time.localeCompare(b.time);
-    }
-    // Finally by priority
-    return getEventPriority(a) - getEventPriority(b);
-  });
-
-=======
->>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
   useEffect(() => {
     // Fetch availability for all members in all events
     events.forEach(event => {
@@ -95,19 +59,11 @@ export default function EventList({ events, currentUser, onEdit, onRefresh }) {
         </button>
       </div>
 
-<<<<<<< HEAD
-      {sortedEvents.length === 0 ? (
-        <p className="text-gray-500">No events yet.</p>
-      ) : (
-        <div className="space-y-4">
-          {sortedEvents.map(event => (
-=======
       {events.length === 0 ? (
         <p className="text-gray-500">No events yet.</p>
       ) : (
         <div className="space-y-4">
           {events.map(event => (
->>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
             <div
               key={event.id}
               className={`border rounded-lg p-4 hover:shadow-md transition-shadow ${event.is_open ? 'border-green-500 bg-green-50' : 'border-gray-200'
@@ -116,7 +72,7 @@ export default function EventList({ events, currentUser, onEdit, onRefresh }) {
               <div className="flex justify-between items-start mb-3">
                 <div className="flex-1">
                   <h3 className="text-lg font-semibold text-gray-900">
-                    {event.title} — {event.date} {event.time}
+                    {event.title} ΓÇö {event.date} {event.time}
                   </h3>
                   {event.is_default_event && (
                     <span className="inline-block mt-1 px-2 py-1 text-xs font-semibold text-blue-700 bg-blue-100 rounded">
@@ -186,7 +142,7 @@ export default function EventList({ events, currentUser, onEdit, onRefresh }) {
                       key={member.id}
                       className={`text-sm ${getAvailabilityClass(event.id, member.id)}`}
                     >
-                      {member.username} — {getAvailabilityStatus(event.id, member.id)}
+                      {member.username} ΓÇö {getAvailabilityStatus(event.id, member.id)}
                     </li>
                   ))}
                 </ul>

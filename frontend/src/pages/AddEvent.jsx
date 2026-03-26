@@ -1,15 +1,11 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 import { invalidateCache } from '../services/cache';
 import EventForm from '../components/EventForm';
 import Navbar from '../components/Navbar';
-<<<<<<< HEAD
-import logo from '../assets/CvSU Logo.png';
-=======
 import logo from '../assets/CEIT-LOGO.png';
->>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
 
 export default function AddEvent() {
   const navigate = useNavigate();
@@ -29,27 +25,16 @@ export default function AddEvent() {
       navigate('/account');
       return;
     }
-<<<<<<< HEAD
-
-    // Faculty Members CAN access /add-event
-    // They can create meetings or events directly
-
-=======
     
     // Faculty Members CAN access /add-event
     // They can create meetings or events directly
     
->>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
     // Redirect personal events to personal event page
     if (editingEvent && editingEvent.is_personal) {
       navigate('/personal-event', { state: { event: editingEvent } });
       return;
     }
-<<<<<<< HEAD
-
-=======
     
->>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
     const loadData = async () => {
       await Promise.all([fetchMembers(), fetchUserSchedule()]);
     };
@@ -94,27 +79,13 @@ export default function AddEvent() {
   };
 
   const fetchMembers = async () => {
-<<<<<<< HEAD
-    const startTime = Date.now();
-=======
->>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
     try {
       const response = await api.get('/users');
       setMembers(response.data.members);
     } catch (error) {
       console.error('Error fetching members:', error);
     } finally {
-<<<<<<< HEAD
-      const elapsed = Date.now() - startTime;
-      const minDelay = 300 + Math.random() * 300; // 300-600ms
-      const remainingDelay = Math.max(0, minDelay - elapsed);
-
-      setTimeout(() => {
-        setLoading(false);
-      }, remainingDelay);
-=======
       setLoading(false);
->>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
     }
   };
 
@@ -136,11 +107,7 @@ export default function AddEvent() {
           <div className="w-full px-4 sm:px-6 lg:px-8">
             <div className="flex justify-between items-center h-16">
               <div className="flex items-center space-x-3">
-<<<<<<< HEAD
-                <button
-=======
                 <button 
->>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
                   onClick={() => navigate('/dashboard')}
                   className="focus:outline-none focus:ring-2 focus:ring-white/50 rounded-lg transition-all hover:opacity-80"
                   aria-label="Go to dashboard"

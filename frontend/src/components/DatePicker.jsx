@@ -1,48 +1,9 @@
-import { useState, useEffect, useRef } from 'react';
+﻿import { useState, useEffect, useRef } from 'react';
 
-<<<<<<< HEAD
-export default function DatePicker({ 
-  selectedDate, 
-  onDateSelect, 
-  minDate, 
-  maxDate, 
-  className = '', 
-  excludeSundays = true,
-  size = 'medium', // 'small', 'medium', 'large'
-  showQuickActions = true,
-  highlightedDates = [], // Array of {date: string, color: string, label: string}
-  initialMonth = null // Optional: Date object or date string to set initial month
-}) {
-  const [isOpen, setIsOpen] = useState(false);
-  
-  // Initialize currentMonth based on initialMonth, selectedDate, or current date
-  const getInitialMonth = () => {
-    if (initialMonth) {
-      return typeof initialMonth === 'string' ? new Date(initialMonth) : initialMonth;
-    }
-    if (selectedDate) {
-      return new Date(selectedDate);
-    }
-    return new Date();
-  };
-  
-  const [currentMonth, setCurrentMonth] = useState(getInitialMonth());
-  const datePickerRef = useRef(null);
-  const [focusedDate, setFocusedDate] = useState(null);
-
-  // Update currentMonth when initialMonth changes
-  useEffect(() => {
-    if (initialMonth) {
-      const month = typeof initialMonth === 'string' ? new Date(initialMonth) : initialMonth;
-      setCurrentMonth(month);
-    }
-  }, [initialMonth]);
-=======
 export default function DatePicker({ selectedDate, onDateSelect, minDate, maxDate, className = '', excludeSundays = true }) {
   const [isOpen, setIsOpen] = useState(false);
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const datePickerRef = useRef(null);
->>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
 
   const monthNames = [
     'January', 'February', 'March', 'April', 'May', 'June',
@@ -60,60 +21,6 @@ export default function DatePicker({ selectedDate, onDateSelect, minDate, maxDat
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-<<<<<<< HEAD
-  // Keyboard navigation
-  useEffect(() => {
-    if (!isOpen || !focusedDate) return;
-
-    const handleKeyDown = (e) => {
-      const currentDate = new Date(focusedDate);
-      let newDate = new Date(currentDate);
-
-      switch (e.key) {
-        case 'ArrowLeft':
-          e.preventDefault();
-          newDate.setDate(currentDate.getDate() - 1);
-          break;
-        case 'ArrowRight':
-          e.preventDefault();
-          newDate.setDate(currentDate.getDate() + 1);
-          break;
-        case 'ArrowUp':
-          e.preventDefault();
-          newDate.setDate(currentDate.getDate() - 7);
-          break;
-        case 'ArrowDown':
-          e.preventDefault();
-          newDate.setDate(currentDate.getDate() + 7);
-          break;
-        case 'Enter':
-          e.preventDefault();
-          const dateString = formatDateString(newDate.getFullYear(), newDate.getMonth(), newDate.getDate());
-          if (!isDateDisable(newDate.getFullYear(), newDate.getMonth(), newDate.getDate())) {
-            handleDateClick(dateString);
-          }
-          return;
-        case 'Escape':
-          e.preventDefault();
-          setIsOpen(false);
-          return;
-        default:
-          return;
-      }
-
-      // Update focused date and current month if needed
-      setFocusedDate(formatDateString(newDate.getFullYear(), newDate.getMonth(), newDate.getDate()));
-      if (newDate.getMonth() !== currentMonth.getMonth() || newDate.getFullYear() !== currentMonth.getFullYear()) {
-        setCurrentMonth(newDate);
-      }
-    };
-
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, focusedDate, currentMonth]);
-
-=======
->>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
   // Format date to YYYY-MM-DD without timezone conversion
   const formatDateString = (year, month, day) => {
     const yyyy = year;
@@ -175,54 +82,9 @@ export default function DatePicker({ selectedDate, onDateSelect, minDate, maxDat
 
   const handleDateClick = (dateString) => {
     onDateSelect(dateString);
-<<<<<<< HEAD
-    setFocusedDate(dateString);
     setIsOpen(false);
   };
 
-  // Initialize focused date when opening
-  useEffect(() => {
-    if (isOpen) {
-      setFocusedDate(selectedDate || formatDateString(new Date().getFullYear(), new Date().getMonth(), new Date().getDate()));
-    }
-  }, [isOpen]);
-
-  // Check if date is highlighted
-  const getHighlightInfo = (dateString) => {
-    return highlightedDates.find(h => h.date === dateString);
-  };
-
-  // Get size-specific classes
-  const getSizeClasses = () => {
-    switch (size) {
-      case 'small':
-        return {
-          cell: 'h-8 w-8 text-xs',
-          calendar: 'max-w-xs',
-          padding: 'p-3'
-        };
-      case 'large':
-        return {
-          cell: 'h-12 w-12 text-base',
-          calendar: 'max-w-lg',
-          padding: 'p-6'
-        };
-      default: // medium
-        return {
-          cell: 'h-10 w-10 text-sm',
-          calendar: 'max-w-md',
-          padding: 'p-4'
-        };
-    }
-  };
-
-  const sizeClasses = getSizeClasses();
-
-=======
-    setIsOpen(false);
-  };
-
->>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
   const navigateMonth = (direction) => {
     setCurrentMonth(prev => {
       const newMonth = new Date(prev);
@@ -264,20 +126,6 @@ export default function DatePicker({ selectedDate, onDateSelect, minDate, maxDat
 
       {/* Calendar Dropdown */}
       {isOpen && (
-<<<<<<< HEAD
-        <div 
-          className={`absolute z-50 mt-1 bg-white rounded-xl shadow-2xl border border-gray-200 p-4 w-80 animate-fade-in`}
-          role="dialog"
-          aria-label="Date picker calendar"
-        >
-          {/* Month Navigation */}
-          <div className="flex items-center justify-between mb-3">
-            <button
-              type="button"
-              onClick={() => navigateMonth(-1)}
-              className="p-1.5 hover:bg-gray-100 rounded-lg transition-all duration-200"
-              aria-label="Previous month"
-=======
         <div className="absolute z-50 mt-1 bg-white rounded-lg shadow-xl border border-gray-200 p-4 w-full max-w-md">
           {/* Month Navigation */}
           <div className="flex items-center justify-between mb-4">
@@ -285,30 +133,20 @@ export default function DatePicker({ selectedDate, onDateSelect, minDate, maxDat
               type="button"
               onClick={() => navigateMonth(-1)}
               className="p-1 hover:bg-gray-100 rounded transition-colors"
->>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
             >
               <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
               </svg>
             </button>
 
-<<<<<<< HEAD
-            <h3 className="text-sm font-bold text-gray-900" aria-live="polite">
-=======
             <h3 className="text-sm font-semibold text-gray-900">
->>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
               {monthNames[currentMonth.getMonth()]} {currentMonth.getFullYear()}
             </h3>
 
             <button
               type="button"
               onClick={() => navigateMonth(1)}
-<<<<<<< HEAD
-              className="p-1.5 hover:bg-gray-100 rounded-lg transition-all duration-200"
-              aria-label="Next month"
-=======
               className="p-1 hover:bg-gray-100 rounded transition-colors"
->>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
             >
               <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
@@ -317,71 +155,14 @@ export default function DatePicker({ selectedDate, onDateSelect, minDate, maxDat
           </div>
 
           {/* Day Headers */}
-<<<<<<< HEAD
-          <div className="grid grid-cols-7 gap-1 mb-1">
-            {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map((day, idx) => (
-              <div 
-                key={day} 
-                className={`text-xs font-bold text-center py-1 ${idx === 0 || idx === 6 ? 'text-amber-600' : 'text-gray-600'}`}
-                aria-label={['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][idx]}
-              >
-=======
           <div className="grid grid-cols-7 gap-1 mb-2">
             {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map(day => (
               <div key={day} className="text-xs font-medium text-gray-500 text-center py-2">
->>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
                 {day}
               </div>
             ))}
           </div>
 
-<<<<<<< HEAD
-          {/* Calendar Grid - Fixed 6 rows */}
-          <div className="grid grid-cols-7 gap-1" role="grid">
-            {days.map((dayObj, index) => {
-              const highlight = getHighlightInfo(dayObj.dateString);
-              const isFocused = focusedDate === dayObj.dateString;
-              const isWeekend = dayObj.date.getDay() === 0 || dayObj.date.getDay() === 6;
-              
-              return (
-                <button
-                  key={index}
-                  type="button"
-                  onClick={() => !dayObj.isDisabled && dayObj.isCurrentMonth && handleDateClick(dayObj.dateString)}
-                  disabled={dayObj.isDisabled || !dayObj.isCurrentMonth}
-                  onMouseEnter={() => dayObj.isCurrentMonth && setFocusedDate(dayObj.dateString)}
-                  className={`
-                    h-9 w-9 text-xs rounded-lg transition-all duration-200 font-medium relative
-                    ${dayObj.isCurrentMonth
-                      ? dayObj.isDisabled
-                        ? 'text-gray-300 cursor-not-allowed bg-gray-50 line-through'
-                        : dayObj.isSelected
-                          ? 'bg-green-600 text-white font-bold shadow-md ring-2 ring-green-300'
-                          : dayObj.isToday
-                            ? 'bg-blue-500 text-white font-bold shadow-sm ring-2 ring-blue-300'
-                            : isFocused
-                              ? 'bg-green-100 text-green-900 font-semibold ring-2 ring-green-400'
-                              : isWeekend
-                                ? 'text-gray-700 hover:bg-amber-50'
-                                : 'text-gray-700 hover:bg-gray-100'
-                      : 'text-gray-300 cursor-default'
-                    }
-                    ${highlight ? 'ring-2' : ''}
-                  `}
-                  style={highlight ? { backgroundColor: highlight.color + '40', borderColor: highlight.color } : {}}
-                  aria-label={`${dayObj.date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}${dayObj.isSelected ? ', selected' : ''}${dayObj.isToday ? ', today' : ''}${dayObj.isDisabled ? ', unavailable' : ''}`}
-                  aria-selected={dayObj.isSelected}
-                  role="gridcell"
-                  tabIndex={isFocused ? 0 : -1}
-                >
-                  {dayObj.day}
-                  {highlight && (
-                    <div className="absolute -bottom-0.5 left-1/2 transform -translate-x-1/2 w-1 h-1 rounded-full bg-current"></div>
-                  )}
-                </button>
-              );
-            })}
-=======
           {/* Calendar Grid */}
           <div className="grid grid-cols-7 gap-1">
             {days.map((dayObj, index) => (
@@ -438,7 +219,6 @@ export default function DatePicker({ selectedDate, onDateSelect, minDate, maxDat
                 <span>{excludeSundays ? 'Unavailable dates' : 'Past dates unavailable'}</span>
               </div>
             </div>
->>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
           </div>
         </div>
       )}

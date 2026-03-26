@@ -5,11 +5,7 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\DB;
 
-<<<<<<< HEAD
 return new class extends Migration 
-=======
-return new class extends Migration
->>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
 {
     /**
      * Run the migrations.
@@ -20,17 +16,12 @@ return new class extends Migration
         if (Schema::hasColumn('users', 'position')) {
             // First, update the role column to use the position values where position is not null
             DB::statement("UPDATE users SET role = position WHERE position IS NOT NULL");
-<<<<<<< HEAD
 
-=======
-            
->>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
             // Drop the position column
             Schema::table('users', function (Blueprint $table) {
                 $table->dropColumn('position');
             });
         }
-<<<<<<< HEAD
 
         // Now modify the role column to include all the position enum values
         Schema::table('users', function (Blueprint $table) {
@@ -38,15 +29,6 @@ return new class extends Migration
             $table->string('role')
                 ->default('Faculty Member')
                 ->change();
-=======
-        
-        // Now modify the role column to include all the position enum values
-        Schema::table('users', function (Blueprint $table) {
-            // Change role column to include all position values
-            $table->enum('role', ['Admin', 'Dean', 'Chairperson', 'Coordinator', 'Faculty Member'])
-                  ->default('Faculty Member')
-                  ->change();
->>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
         });
     }
 
@@ -58,7 +40,6 @@ return new class extends Migration
         // Add back the position column
         Schema::table('users', function (Blueprint $table) {
             $table->enum('position', ['Admin', 'Dean', 'Chairperson', 'Coordinator', 'Faculty Member'])
-<<<<<<< HEAD
                 ->nullable()
                 ->after('role');
         });
@@ -73,22 +54,6 @@ return new class extends Migration
                 ->change();
         });
 
-=======
-                  ->nullable()
-                  ->after('role');
-        });
-        
-        // Copy role values to position column
-        DB::statement("UPDATE users SET position = role WHERE role IN ('Admin', 'Dean', 'Chairperson', 'Coordinator', 'Faculty Member')");
-        
-        // Revert role column to original values
-        Schema::table('users', function (Blueprint $table) {
-            $table->enum('role', ['admin', 'teacher'])
-                  ->default('teacher')
-                  ->change();
-        });
-        
->>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
         // Set role back to 'admin' for Admin position, 'teacher' for others
         DB::statement("UPDATE users SET role = 'admin' WHERE position = 'Admin'");
         DB::statement("UPDATE users SET role = 'teacher' WHERE position != 'Admin'");

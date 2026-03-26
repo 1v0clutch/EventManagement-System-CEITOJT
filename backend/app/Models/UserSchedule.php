@@ -12,13 +12,10 @@ class UserSchedule extends Model
         'start_time',
         'end_time',
         'description',
-<<<<<<< HEAD
         'color',
         'semester',
         'school_year'
-=======
-        'color'
->>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
+
     ];
 
     public function user()

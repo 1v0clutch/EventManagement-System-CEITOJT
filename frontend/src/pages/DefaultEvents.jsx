@@ -1,12 +1,8 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import Navbar from '../components/Navbar';
-<<<<<<< HEAD
-import DateSettingModal from '../components/DateSettingModal';
-=======
 import DatePicker from '../components/DatePicker';
->>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
 import api from '../services/api';
 
 const DefaultEvents = () => {
@@ -17,14 +13,9 @@ const DefaultEvents = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [isAccountDropdownOpen, setIsAccountDropdownOpen] = useState(false);
-<<<<<<< HEAD
-  const [editingEvent, setEditingEvent] = useState(null); // Changed to store full event object
-  const [isModalOpen, setIsModalOpen] = useState(false);
-=======
   const [editingEventId, setEditingEventId] = useState(null);
   const [selectedDate, setSelectedDate] = useState('');
   const [selectedEndDate, setSelectedEndDate] = useState('');
->>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
   const [saving, setSaving] = useState(false);
   const [currentSchoolYear, setCurrentSchoolYear] = useState('');
   const [startYear, setStartYear] = useState('');
@@ -41,20 +32,6 @@ const DefaultEvents = () => {
     }
   }, [user, navigate]);
 
-<<<<<<< HEAD
-  // Lock body scroll when modal is open
-  useEffect(() => {
-    if (isModalOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = 'unset';
-    }
-
-    return () => {
-      document.body.style.overflow = 'unset';
-    };
-  }, [isModalOpen]);
-=======
   // Lock body scroll when editing dates
   useEffect(() => {
     if (editingEventId !== null) {
@@ -70,7 +47,6 @@ const DefaultEvents = () => {
       document.body.style.overflow = 'unset';
     };
   }, [editingEventId]);
->>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
 
   const monthNames = [
     'January', 'February', 'March', 'April', 'May', 'June',
@@ -194,10 +170,6 @@ const DefaultEvents = () => {
   }, [isAccountDropdownOpen]);
 
   const fetchDefaultEvents = async () => {
-<<<<<<< HEAD
-    const startTime = Date.now();
-=======
->>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
     try {
       setLoading(true);
       const response = await api.get(`/default-events?school_year=${currentSchoolYear}`);
@@ -207,17 +179,7 @@ const DefaultEvents = () => {
       setError('Failed to load default events');
       console.error('Error fetching default events:', err);
     } finally {
-<<<<<<< HEAD
-      const elapsed = Date.now() - startTime;
-      const minDelay = 300 + Math.random() * 300; // 300-600ms
-      const remainingDelay = Math.max(0, minDelay - elapsed);
-      
-      setTimeout(() => {
-        setLoading(false);
-      }, remainingDelay);
-=======
       setLoading(false);
->>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
     }
   };
 
@@ -236,49 +198,6 @@ const DefaultEvents = () => {
   };
 
   const handleEditDate = (event) => {
-<<<<<<< HEAD
-    setEditingEvent(event);
-    setIsModalOpen(true);
-  };
-
-  const handleCloseModal = () => {
-    setIsModalOpen(false);
-    setEditingEvent(null);
-    setError('');
-  };
-
-  const handleSaveDate = async (startDate, endDate) => {
-    if (!editingEvent) return;
-
-    try {
-      setSaving(true);
-      
-      // Check if this is a created academic event or a default event
-      if (editingEvent.is_created) {
-        // Use the created-academic-events endpoint
-        await api.put(`/created-academic-events/${editingEvent.actual_id}/date`, {
-          date: startDate,
-          end_date: endDate
-        });
-      } else {
-        // Use the default-events endpoint
-        await api.put(`/default-events/${editingEvent.id}/date`, {
-          date: startDate,
-          end_date: endDate,
-          school_year: currentSchoolYear
-        });
-      }
-      
-      // Refresh the events list
-      await fetchDefaultEvents();
-      
-      setError('');
-      return Promise.resolve();
-    } catch (err) {
-      const errorMessage = err.response?.data?.error || 'Failed to update date';
-      setError(errorMessage);
-      return Promise.reject(new Error(errorMessage));
-=======
     setEditingEventId(event.id);
     // If event has a date, use it; otherwise default to first day of the event's month
     if (event.date) {
@@ -360,7 +279,6 @@ const DefaultEvents = () => {
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to update date');
       console.error('Error updating date:', err);
->>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
     } finally {
       setSaving(false);
     }
@@ -446,12 +364,7 @@ const DefaultEvents = () => {
 
     try {
       setSaving(true);
-<<<<<<< HEAD
-      // Use the new created-academic-events endpoint
-      const response = await api.post('/created-academic-events', {
-=======
       const response = await api.post('/default-events/create-empty', {
->>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
         name: newEventName.trim(),
         month: monthNumber,
         school_year: currentSchoolYear
@@ -463,25 +376,12 @@ const DefaultEvents = () => {
       // Reset form and immediately open date editor for the new event
       setCreatingEventMonth(null);
       setNewEventName('');
-<<<<<<< HEAD
-      setTempEventId('created_' + response.data.event.id); // Use prefixed ID
-=======
       setTempEventId(response.data.event.id);
->>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
       setError('');
       
       // Auto-open the date editor for the newly created event
       setTimeout(() => {
-<<<<<<< HEAD
-        const newEvent = {
-          ...response.data.event,
-          id: 'created_' + response.data.event.id,
-          actual_id: response.data.event.id,
-          is_created: true
-        };
-=======
         const newEvent = response.data.event;
->>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
         handleEditDate(newEvent);
       }, 100);
     } catch (err) {
@@ -562,11 +462,7 @@ const DefaultEvents = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-green-100 to-gray-50">
-<<<<<<< HEAD
-      <Navbar isLoading={loading} pageTitle="Academic Calendar" />
-=======
       <Navbar isLoading={loading} />
->>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
 
       {/* Main Content */}
       <main className="w-full py-8 sm:px-6 lg:px-8">
@@ -761,27 +657,6 @@ const DefaultEvents = () => {
                                   </span>
                                 </td>
                                 <td className="px-6 py-4 w-80">
-<<<<<<< HEAD
-                                  <div className="flex items-center gap-2">
-                                    <svg className="w-4 h-4 text-green-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                    </svg>
-                                    <span className={`text-sm font-semibold ${event.date ? 'text-green-700' : 'text-gray-500'}`}>
-                                      {formatDate(event.date, event.end_date)}
-                                    </span>
-                                  </div>
-                                </td>
-                                <td className="px-6 py-4 text-center w-32">
-                                  <button
-                                    onClick={() => handleEditDate(event)}
-                                    className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-green-700 hover:text-white bg-green-100 hover:bg-green-700 rounded-lg transition-all duration-200 shadow-sm hover:shadow-md"
-                                  >
-                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                    </svg>
-                                    {event.date ? 'Edit' : 'Set'}
-                                  </button>
-=======
                                   {editingEventId === event.id ? (
                                     <div className="space-y-2">
                                       <div>
@@ -866,7 +741,6 @@ const DefaultEvents = () => {
                                       {event.date ? 'Edit' : 'Set'}
                                     </button>
                                   )}
->>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
                                 </td>
                               </tr>
                             ))}
@@ -1025,22 +899,6 @@ const DefaultEvents = () => {
           </div>
         </div>
       </main>
-<<<<<<< HEAD
-
-      {/* Date Setting Modal */}
-      <DateSettingModal
-        isOpen={isModalOpen}
-        onClose={handleCloseModal}
-        onSave={handleSaveDate}
-        event={editingEvent}
-        initialStartDate={editingEvent?.date || (editingEvent ? `${getYearForMonth(editingEvent.month)}-${String(editingEvent.month).padStart(2, '0')}-01` : '')}
-        initialEndDate={editingEvent?.end_date || ''}
-        minDate={`${currentSchoolYear.split('-')[0]}-09-01`}
-        maxDate={`${currentSchoolYear.split('-')[1]}-08-31`}
-        schoolYear={currentSchoolYear}
-      />
-=======
->>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
     </div>
   );
 };
