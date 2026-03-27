@@ -1,2 +1,16 @@
 mdFiles/
 *.md
+
+# Environment files — never commit credentials
+backend/.env
+frontend/.env
+
+# Dependencies
+backend/vendor/
+frontend/node_modules/
+
+# Build output
+frontend/dist/
+
+# Logs
+*.log
