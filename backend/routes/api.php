@@ -7,6 +7,7 @@ use App\Http\Controllers\EventController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\ScheduleController;
 use App\Http\Controllers\ArchiveController;
+use App\Http\Controllers\OrganizationalChartController;
 use Illuminate\Support\Facades\Route;
 
 // Public routes with login attempt throttling
@@ -104,4 +105,11 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('/messages/{id}', [App\Http\Controllers\MessageController::class , 'destroy']);
 
         // Activity History
-        Route::get('/activities', [App\Http\Controllers\ActivityController::class , 'index']);    });
+        Route::get('/activities', [App\Http\Controllers\ActivityController::class , 'index']);
+        
+        // Organizational Chart
+        Route::get('/organizational-chart/departments', [OrganizationalChartController::class, 'departments']);
+        Route::get('/organizational-chart', [OrganizationalChartController::class, 'index']);
+        Route::put('/organizational-chart/{id}', [OrganizationalChartController::class, 'update']);
+        Route::delete('/organizational-chart/{id}', [OrganizationalChartController::class, 'destroy']);
+    });
