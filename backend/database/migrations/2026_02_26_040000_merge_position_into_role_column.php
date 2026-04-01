@@ -24,12 +24,15 @@ return new class extends Migration
         }
 
         // Now modify the role column to include all the position enum values
-        Schema::table('users', function (Blueprint $table) {
-            // Change role column to string to support all position values (compatible with pgsql)
-            $table->string('role')
-                ->default('Faculty Member')
-                ->change();
-        });
+        // SQLite doesn't support column modification — skip on SQLite
+        if (DB::getDriverName() !== 'sqlite') {
+            Schema::table('users', function (Blueprint $table) {
+                // Change role column to string to support all position values (compatible with pgsql)
+                $table->string('role')
+                    ->default('Faculty Member')
+                    ->change();
+            });
+        }
     }
 
     /**
@@ -48,11 +51,13 @@ return new class extends Migration
         DB::statement("UPDATE users SET position = role WHERE role IN ('Admin', 'Dean', 'Chairperson', 'Coordinator', 'Faculty Member')");
 
         // Revert role column to original values
-        Schema::table('users', function (Blueprint $table) {
-            $table->string('role')
-                ->default('teacher')
-                ->change();
-        });
+        if (DB::getDriverName() !== 'sqlite') {
+            Schema::table('users', function (Blueprint $table) {
+                $table->string('role')
+                    ->default('teacher')
+                    ->change();
+            });
+        }
 
         // Set role back to 'admin' for Admin position, 'teacher' for others
         DB::statement("UPDATE users SET role = 'admin' WHERE position = 'Admin'");

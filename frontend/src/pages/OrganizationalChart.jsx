@@ -5,7 +5,7 @@ import api from '../services/api';
 
 export default function OrganizationalChart() {
   const { user } = useAuth();
-  const [hierarchy, setHierarchy] = useState({ dean: null, ceitStaff: [], facultyMembers: [], chairpersons: [], departments: [] });
+  const [hierarchy, setHierarchy] = useState({ dean: null, ceitStaff: [], ceitCoordinators: [], facultyMembers: [], chairpersons: [], departments: [] });
   const [departments, setDepartments] = useState([]);
   const [selectedDepartment, setSelectedDepartment] = useState('');
   const [loading, setLoading] = useState(true);
@@ -272,7 +272,20 @@ export default function OrganizationalChart() {
               </div>
             )}
             
-            {/* Faculty Members Level (Below CEIT Official) - Medium - 1 on mobile, 2 on tablet, 3 on desktop */}
+            {/* CEIT Coordinators Level (Below CEIT Official) - Medium - 1 on mobile, 2 on tablet, 3 on desktop */}
+            {hierarchy.ceitCoordinators && hierarchy.ceitCoordinators.length > 0 && (
+              <div className="flex flex-col items-center mb-10 md:mb-14">
+                <div className="flex flex-wrap justify-center gap-x-4 md:gap-x-5 gap-y-10 md:gap-y-12 w-full max-w-[840px] px-4">
+                  {hierarchy.ceitCoordinators.map((coordinator) => (
+                    <div key={coordinator.id} className="w-full max-w-[280px] sm:w-[calc(50%-0.5rem)] sm:max-w-xs md:w-56">
+                      <MemberCard member={coordinator} size="medium" />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            
+            {/* Faculty Members Level (Below CEIT Official/Coordinator) - Medium - 1 on mobile, 2 on tablet, 3 on desktop */}
             {hierarchy.facultyMembers && hierarchy.facultyMembers.length > 0 && (
               <div className="flex flex-col items-center mb-10 md:mb-14">
                 <div className="flex flex-wrap justify-center gap-x-4 md:gap-x-5 gap-y-10 md:gap-y-12 w-full max-w-[840px] px-4">
@@ -422,6 +435,7 @@ export default function OrganizationalChart() {
                   <option value="Research Coordinator">Research Coordinator</option>
                   <option value="Extension Coordinator">Extension Coordinator</option>
                   <option value="GAD Coordinator">GAD Coordinator</option>
+                  <option value="Coordinator">Coordinator</option>
                   <option value="Faculty Member">Faculty Member</option>
                 </select>
               </div>

@@ -29,7 +29,9 @@ return new class extends Migration
             }
             
             // Ensure password is not nullable if it was changed by legacy migration
-            $table->string('password')->nullable(false)->change();
+            if (\DB::getDriverName() !== 'sqlite') {
+                $table->string('password')->nullable(false)->change();
+            }
         });
     }
 
@@ -42,7 +44,9 @@ return new class extends Migration
             $table->string('supabase_id')->nullable()->unique()->after('id');
             $table->boolean('mfa_enabled')->default(false)->after('schedule_initialized');
             $table->string('mfa_factor_id')->nullable()->after('mfa_enabled');
-            $table->string('password')->nullable()->change();
+            if (\DB::getDriverName() !== 'sqlite') {
+                $table->string('password')->nullable()->change();
+            }
         });
     }
 };
