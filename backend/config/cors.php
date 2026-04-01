@@ -19,7 +19,7 @@ return [
 
     'allowed_methods' => ['*'],
 
-    'allowed_origins' => array_filter(array_merge(
+    'allowed_origins' => array_filter(array_unique(array_merge(
     // Local development origins
     [
         'http://localhost:5173',
@@ -31,7 +31,7 @@ return [
     ],
     // Production origin from env (e.g. https://your-app.vercel.app)
     env('FRONTEND_URL') ? [env('FRONTEND_URL')] : []
-)),
+))),
 
     'allowed_origins_patterns' => [],
 

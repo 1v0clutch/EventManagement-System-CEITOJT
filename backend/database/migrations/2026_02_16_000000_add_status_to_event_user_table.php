@@ -11,6 +11,7 @@ return new class extends Migration
         if (!Schema::hasColumn('event_user', 'status')) {
             Schema::table('event_user', function (Blueprint $table) {
                 $table->string('status')->default('pending')->after('user_id');
+
             });
         }
     }

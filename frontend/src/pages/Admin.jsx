@@ -1,9 +1,9 @@
-import { useState, useEffect, useRef } from 'react';
+﻿import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 import { getCache, setCache, invalidateCache } from '../services/cache';
-import logo from "../assets/CvSU Logo.png";
+import logo from "../assets/CEIT-LOGO.png";
 import Navbar from '../components/Navbar';
 import CreateUserModal from '../components/CreateUserModal';
 import CreateDeanModal from '../components/CreateDeanModal';
@@ -101,20 +101,12 @@ export default function Admin() {
   }, [isAccountDropdownOpen]);
 
   const fetchUsers = async () => {
-    const startTime = Date.now();
     const cacheKey = `admin-users`;
     const cached = getCache(cacheKey);
 
     if (cached) {
-      const elapsed = Date.now() - startTime;
-      const minDelay = 300 + Math.random() * 300; // 300-600ms
-      const remainingDelay = Math.max(0, minDelay - elapsed);
-      
-      setTimeout(() => {
-        setUsers(cached);
-        setLoading(false);
-      }, remainingDelay);
-      
+      setUsers(cached);
+      setLoading(false);
       // Background refresh
       try {
         const response = await api.get('/users/all');
@@ -131,13 +123,7 @@ export default function Admin() {
     } catch (error) {
       console.error('Error fetching users:', error);
     } finally {
-      const elapsed = Date.now() - startTime;
-      const minDelay = 300 + Math.random() * 300; // 300-600ms
-      const remainingDelay = Math.max(0, minDelay - elapsed);
-      
-      setTimeout(() => {
-        setLoading(false);
-      }, remainingDelay);
+      setLoading(false);
     }
   };
 
@@ -636,7 +622,7 @@ export default function Admin() {
             {/* Pagination */}
             <div className="mt-6 pt-4 border-t border-gray-200 flex flex-col sm:flex-row items-center justify-between gap-3">
               <p className="text-sm text-gray-600 font-medium">
-                Showing {filteredUsers.length === 0 ? 0 : (currentPage - 1) * usersPerPage + 1}–{Math.min(currentPage * usersPerPage, filteredUsers.length)} of {filteredUsers.length} users
+                Showing {filteredUsers.length === 0 ? 0 : (currentPage - 1) * usersPerPage + 1}ΓÇô{Math.min(currentPage * usersPerPage, filteredUsers.length)} of {filteredUsers.length} users
                 {filteredUsers.length !== users.length && ` (filtered from ${users.length} total)`}
               </p>
               {totalPages > 1 && (
@@ -646,14 +632,14 @@ export default function Admin() {
                     disabled={currentPage === 1}
                     className="px-3 py-1.5 rounded-lg text-sm font-medium border border-gray-300 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors"
                   >
-                    «
+                    ┬½
                   </button>
                   <button
                     onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                     disabled={currentPage === 1}
                     className="px-3 py-1.5 rounded-lg text-sm font-medium border border-gray-300 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors"
                   >
-                    ‹
+                    ΓÇ╣
                   </button>
                   {Array.from({ length: totalPages }, (_, i) => i + 1)
                     .filter(p => p === 1 || p === totalPages || Math.abs(p - currentPage) <= 1)
@@ -664,7 +650,7 @@ export default function Admin() {
                     }, [])
                     .map((item, idx) =>
                       item === '...' ? (
-                        <span key={`ellipsis-${idx}`} className="px-2 text-gray-400">…</span>
+                        <span key={`ellipsis-${idx}`} className="px-2 text-gray-400">ΓÇª</span>
                       ) : (
                         <button
                           key={item}
@@ -684,14 +670,14 @@ export default function Admin() {
                     disabled={currentPage === totalPages}
                     className="px-3 py-1.5 rounded-lg text-sm font-medium border border-gray-300 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors"
                   >
-                    ›
+                    ΓÇ║
                   </button>
                   <button
                     onClick={() => setCurrentPage(totalPages)}
                     disabled={currentPage === totalPages}
                     className="px-3 py-1.5 rounded-lg text-sm font-medium border border-gray-300 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors"
                   >
-                    »
+                    ┬╗
                   </button>
                 </div>
               )}

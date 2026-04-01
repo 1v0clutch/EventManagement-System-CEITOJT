@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import api from '../services/api';
 import AuthBackground from '../components/AuthBackground';
@@ -177,7 +177,7 @@ export default function EmailVerification() {
               </button>
             </div>
 
-            <div className="text-center space-y-2">
+            <div className="text-center">
               <p className="text-sm text-gray-600">
                 Didn't receive the code?{' '}
                 <button

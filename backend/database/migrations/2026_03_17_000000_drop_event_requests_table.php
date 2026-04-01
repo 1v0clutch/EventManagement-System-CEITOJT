@@ -17,6 +17,7 @@ return new class extends Migration
                 }
                 catch (\Exception $e) {
                 // Foreign key may not exist, continue
+
                 }
                 $table->dropColumn('approved_request_id');
             });

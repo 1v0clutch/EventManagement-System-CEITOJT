@@ -1,10 +1,10 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 import { invalidateCache } from '../services/cache';
 import Navbar from '../components/Navbar';
-import logo from '../assets/CvSU Logo.png';
+import logo from '../assets/CEIT-LOGO.png';
 
 export default function PersonalEvent() {
   const navigate = useNavigate();

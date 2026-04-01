@@ -18,9 +18,12 @@ class DashboardController extends Controller
     {
         $month = (int)$date->format('m');
 
-        if ($month >= 9 || $month <= 1) return 'first';
-        if ($month >= 2 && $month <= 6)  return 'second';
-        if ($month >= 7 && $month <= 8)  return 'midyear';
+        if ($month >= 9 || $month <= 1)
+            return 'first';
+        if ($month >= 2 && $month <= 6)
+            return 'second';
+        if ($month >= 7 && $month <= 8)
+            return 'midyear';
 
         return null;
     }
@@ -33,8 +36,8 @@ class DashboardController extends Controller
         $user = $request->user();
 
         // School year calculation
-        $now          = new \DateTime();
-        $currentYear  = (int)$now->format('Y');
+        $now = new \DateTime();
+        $currentYear = (int)$now->format('Y');
         $currentMonth = (int)$now->format('m');
 
         $schoolYear = $currentMonth >= 9
@@ -47,10 +50,10 @@ class DashboardController extends Controller
 
         // ── Events hosted by the user ──────────────────────────────────────
         $events = Event::with([
-                'host:id,name,email',
-                'members:id,name,email',
-                'images:id,event_id,image_path,original_filename,order',
-            ])
+            'host:id,name,email',
+            'members:id,name,email',
+            'images:id,event_id,image_path,original_filename,order',
+        ])
             ->where('host_id', $user->id)
             ->where('date', '>=', now()->subMonths(3)->format('Y-m-d')) // Only last 3 months
             ->orderBy('date', 'desc')
@@ -60,10 +63,10 @@ class DashboardController extends Controller
 
         // ── Events where the user is a member (non-personal only) ──────────
         $memberEvents = Event::with([
-                'host:id,name,email',
-                'members:id,name,email',
-                'images:id,event_id,image_path,original_filename,order',
-            ])
+            'host:id,name,email',
+            'members:id,name,email',
+            'images:id,event_id,image_path,original_filename,order',
+        ])
             ->whereHas('members', fn($q) => $q->where('users.id', $user->id))
             ->where('is_personal', false)
             ->where('date', '>=', now()->subMonths(3)->format('Y-m-d'))
@@ -77,10 +80,10 @@ class DashboardController extends Controller
         // ── Members list (cached) ──────────────────────────────────────────
         $members = Cache::remember('users_list', 600, function () {
             return User::select('id', 'name', 'email', 'role', 'department')
-                ->where('is_validated', true)
-                ->orderBy('name')
-                ->limit(500)
-                ->get();
+            ->where('is_validated', true)
+            ->orderBy('name')
+            ->limit(500)
+            ->get();
         });
 
         // ── Default / academic events ──────────────────────────────────────
@@ -95,9 +98,9 @@ class DashboardController extends Controller
         // Also get legacy events from DefaultEvent table (for backward compatibility)
         $legacyDefaultEvents = DefaultEvent::whereNotNull('date')
             ->where(function ($q) use ($schoolYear, $nextSchoolYear) {
-                $q->whereIn('school_year', [$schoolYear, $nextSchoolYear])
-                  ->orWhereNull('school_year');
-            })
+            $q->whereIn('school_year', [$schoolYear, $nextSchoolYear])
+                ->orWhereNull('school_year');
+        })
             ->orderBy('date')
             ->limit(100)
             ->get();
@@ -107,58 +110,48 @@ class DashboardController extends Controller
             $date = $event->date;
             if ($date instanceof \DateTime) {
                 $date = $date->format('Y-m-d');
-            } elseif (is_string($date) && strlen($date) > 10) {
+            }
+            elseif (is_string($date) && strlen($date) > 10) {
                 $date = substr($date, 0, 10);
             }
 
             return [
-                'id'          => $event->id,
-                'title'       => $event->title,
-                'description' => $event->description,
-                'location'    => $event->location,
-                'event_type'  => $event->event_type ?? 'event',
-                'images'      => $event->images->map(fn($img) => [
-                    'url'               => asset('storage/' . $img->image_path),
-                    'original_filename' => $img->original_filename,
-                ]),
-                'date'        => $date,
-                'time'        => $event->time,
-                'school_year' => $event->school_year,
-                'host'        => [
-                    'id'       => $event->host->id,
-                    'username' => $event->host->name,
-                    'email'    => $event->host->email,
-                ],
-                'members'          => $event->members->map(fn($m) => [
-                    'id'       => $m->id,
-                    'username' => $m->name,
-                    'email'    => $m->email,
-                    'status'   => $m->pivot->status,
-                ]),
-                'is_default_event' => false,
-                'is_personal'      => $event->is_personal ?? false,
-                'personal_color'   => $event->personal_color,
+            'id' => $event->id,
+            'title' => $event->title,
+            'description' => $event->description,
+            'location' => $event->location,
+            'event_type' => $event->event_type ?? 'event',
+            'images' => $event->images->map(fn($img) => [
+            'url' => asset('storage/' . $img->image_path),
+            'original_filename' => $img->original_filename,
+            ]),
+            'date' => $date,
+            'time' => $event->time,
+            'school_year' => $event->school_year,
+            'host' => [
+            'id' => $event->host->id,
+            'username' => $event->host->name,
+            'email' => $event->host->email,
+            ],
+            'members' => $event->members->map(fn($m) => [
+            'id' => $m->id,
+            'username' => $m->name,
+            'email' => $m->email,
+            'status' => $m->pivot->status,
+            ]),
+            'is_default_event' => false,
+            'is_personal' => $event->is_personal ?? false,
+            'personal_color' => $event->personal_color,
             ];
         });
 
         // ── Transform default events ───────────────────────────────────────
-        // Transform events from DefaultEventDate table
-        $transformedDefaultEventDates = $defaultEventDates->map(fn($eventDate) => [
-            'id'          => 'default-date-' . $eventDate->id,
-            'name'        => $eventDate->defaultEvent->name,
-            'date'        => $eventDate->date ? $eventDate->date->format('Y-m-d') : null,
-            'end_date'    => $eventDate->end_date ? $eventDate->end_date->format('Y-m-d') : null,
-            'school_year' => $eventDate->school_year,
-            'semester'    => $eventDate->semester,
-        ]);
-        
-        // Transform legacy events from DefaultEvent table
-        $transformedLegacyEvents = $legacyDefaultEvents->map(fn($event) => [
-            'id'          => 'default-' . $event->id,
-            'name'        => $event->name,
-            'date'        => $event->date ? $event->date->format('Y-m-d') : null,
-            'end_date'    => $event->end_date ? $event->end_date->format('Y-m-d') : null,
-            'school_year' => $event->school_year,
+        $transformedDefaultEvents = $defaultEvents->map(fn($event) => [
+        'id' => 'default-' . $event->id,
+        'name' => $event->name,
+        'date' => $event->date ? $event->date->format('Y-m-d') : null,
+        'end_date' => $event->end_date ? $event->end_date->format('Y-m-d') : null,
+        'school_year' => $event->school_year,
         ]);
         
         // Merge both collections
@@ -177,30 +170,30 @@ class DashboardController extends Controller
 
         $transformedSchedules = $userSchedules->map(function ($schedule) use ($currentSemester) {
             $startTime = substr($schedule->start_time, 0, 5);
-            $endTime   = substr($schedule->end_time,   0, 5);
+            $endTime = substr($schedule->end_time, 0, 5);
 
             return [
-                'id'          => 'schedule-' . $schedule->id,
-                'title'       => $schedule->description ?: 'Class',
-                'description' => $schedule->description,
-                'day'         => $schedule->day,
-                'start_time'  => $startTime,
-                'end_time'    => $endTime,
-                'time'        => $startTime . ' - ' . $endTime,
-                'color'       => $schedule->color,
-                'is_schedule' => true,
-                'type'        => 'schedule',
-                'semester'    => $schedule->semester,
-                'school_year' => $schedule->school_year,
+            'id' => 'schedule-' . $schedule->id,
+            'title' => $schedule->description ?: 'Class',
+            'description' => $schedule->description,
+            'day' => $schedule->day,
+            'start_time' => $startTime,
+            'end_time' => $endTime,
+            'time' => $startTime . ' - ' . $endTime,
+            'color' => $schedule->color,
+            'is_schedule' => true,
+            'type' => 'schedule',
+            'semester' => $schedule->semester,
+            'school_year' => $schedule->school_year,
             ];
         });
 
         return response()->json([
-            'events'        => $transformedEvents,
+            'events' => $transformedEvents,
             'defaultEvents' => $transformedDefaultEvents,
             'userSchedules' => $transformedSchedules,
-            'members'       => $members,
-            'schoolYear'    => $schoolYear,
+            'members' => $members,
+            'schoolYear' => $schoolYear,
             'nextSchoolYear' => $nextSchoolYear,
         ]);
     }

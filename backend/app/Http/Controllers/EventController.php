@@ -14,59 +14,62 @@ class EventController extends Controller
 
         // Optimized query with proper eager loading and subquery for pending reschedule requests
         $events = Event::with([
-                'host:id,name,email',
-                'members:id,name,email',
-                'images:id,event_id,image_path,original_filename,order'
-            ])
+            'host:id,name,email',
+            'members:id,name,email',
+            'images:id,event_id,image_path,original_filename,order'
+        ])
             ->where(function ($query) use ($user) {
-                // User is the host
-                $query->where('host_id', $user->id)
-                    // Or user is a member/invited
-                    ->orWhereHas('members', function ($q) use ($user) {
-                        $q->where('users.id', $user->id);
-                    });
-            })
+            // User is the host
+            $query->where('host_id', $user->id)
+                // Or user is a member/invited
+                ->orWhereHas('members', function ($q) use ($user) {
+                $q->where('users.id', $user->id);
+            }
+            );
+        })
             // Exclude personal events from other users
             ->where(function ($query) use ($user) {
-                $query->where('is_personal', false)
-                    ->orWhere(function ($q) use ($user) {
-                        $q->where('is_personal', true)
-                          ->where('host_id', $user->id);
-                    });
-            })
-            ->orderBy('date')
-            ->orderBy('time')
+            $query->where('is_personal', false)
+                ->orWhere(function ($q) use ($user) {
+                $q->where('is_personal', true)
+                    ->where('host_id', $user->id);
+            }
+            );
+        })
+            ->orderBy('date', 'desc')
+            ->orderBy('time', 'desc')
+            ->limit(100)
             ->get();
 
         // Transform regular events
         $transformedEvents = $events->map(function ($event) {
             return [
-                'id' => $event->id,
-                'title' => $event->title,
-                'description' => $event->description,
-                'location' => $event->location,
-                'event_type' => $event->event_type ?? 'event',
-                'images' => $event->images->map(fn($img) => [
-                    'url' => asset('storage/' . $img->image_path),
-                    'original_filename' => $img->original_filename,
-                ]),
-                'date' => $event->date,
-                'time' => $event->time,
-                'school_year' => $event->school_year,
-                'host' => [
-                    'id' => $event->host->id,
-                    'username' => $event->host->name,
-                    'email' => $event->host->email,
-                ],
-                'members' => $event->members->map(fn($m) => [
-                    'id' => $m->id,
-                    'username' => $m->name,
-                    'email' => $m->email,
-                    'status' => $m->pivot->status,
-                ]),
-                'is_default_event' => false,
-                'is_personal' => $event->is_personal ?? false,
-                'personal_color' => $event->personal_color,
+            'id' => $event->id,
+            'title' => $event->title,
+            'description' => $event->description,
+            'location' => $event->location,
+            'event_type' => $event->event_type ?? 'event',
+            'images' => $event->images->map(fn($img) => [
+            'url' => asset('storage/' . $img->image_path),
+            'original_filename' => $img->original_filename,
+            ]),
+            'date' => $event->date,
+            'time' => $event->time,
+            'school_year' => $event->school_year,
+            'host' => [
+            'id' => $event->host->id,
+            'username' => $event->host->name,
+            'email' => $event->host->email,
+            ],
+            'members' => $event->members->map(fn($m) => [
+            'id' => $m->id,
+            'username' => $m->name,
+            'email' => $m->email,
+            'status' => $m->pivot->status,
+            ]),
+            'is_default_event' => false,
+            'is_personal' => $event->is_personal ?? false,
+            'personal_color' => $event->personal_color,
             ];
         });
 
@@ -83,7 +86,7 @@ class EventController extends Controller
     public function store(Request $request)
     {
         $user = $request->user();
-        
+
         $request->validate([
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
@@ -107,7 +110,7 @@ class EventController extends Controller
         // Validate that date/time is not in the past
         $eventDateTime = new \DateTime($request->date . ' ' . $request->time);
         $now = new \DateTime();
-        
+
         if ($eventDateTime < $now) {
             return response()->json([
                 'error' => 'Event date and time cannot be in the past.'
@@ -131,9 +134,9 @@ class EventController extends Controller
 
         // Only authorized roles can create events
         if (!in_array($user->role, [
-            'Admin', 'Dean', 'Chairperson', 'Coordinator',
-            'Research Coordinator', 'Extension Coordinator', 'GAD Coordinator',
-            'CEIT Official', 'Faculty Member',
+        'Admin', 'Dean', 'Chairperson', 'Coordinator',
+        'Research Coordinator', 'Extension Coordinator', 'GAD Coordinator',
+        'CEIT Official', 'Faculty Member',
         ])) {
             return response()->json([
                 'error' => 'Unauthorized to create events.'
@@ -170,17 +173,17 @@ class EventController extends Controller
                         'error' => 'Invalid file type. Only JPG, PNG, GIF, WebP, and PDF files are allowed.'
                     ], 400);
                 }
-                
+
                 // Check file size (25MB)
                 if ($image->getSize() > 25600 * 1024) {
                     return response()->json([
                         'error' => 'File size must not exceed 25MB.'
                     ], 400);
                 }
-                
+
                 $imagePath = $image->store('events', 'public');
                 $originalFilename = $image->getClientOriginalName();
-                
+
                 $event->images()->create([
                     'image_path' => $imagePath,
                     'original_filename' => $originalFilename,
@@ -236,7 +239,7 @@ class EventController extends Controller
         if ($request->has('date') && $request->has('time')) {
             $eventDateTime = new \DateTime($request->date . ' ' . $request->time);
             $now = new \DateTime();
-            
+
             if ($eventDateTime < $now) {
                 return response()->json([
                     'error' => 'Event date and time cannot be in the past.'
@@ -264,14 +267,14 @@ class EventController extends Controller
                         'error' => 'Invalid file type. Only JPG, PNG, GIF, WebP, and PDF files are allowed.'
                     ], 400);
                 }
-                
+
                 if ($image->getSize() > 25600 * 1024) {
                     return response()->json([
                         'error' => 'File size must not exceed 25MB.'
                     ], 400);
                 }
             }
-            
+
             // Delete old images
             foreach ($event->images as $oldImage) {
                 \Storage::disk('public')->delete($oldImage->image_path);
@@ -282,7 +285,7 @@ class EventController extends Controller
             foreach ($request->file('images') as $index => $image) {
                 $imagePath = $image->store('events', 'public');
                 $originalFilename = $image->getClientOriginalName();
-                
+
                 $event->images()->create([
                     'image_path' => $imagePath,
                     'original_filename' => $originalFilename,
@@ -297,7 +300,7 @@ class EventController extends Controller
                 ->filter(fn($id) => $id != $request->user()->id)
                 ->unique()
                 ->values();
-            
+
             // Keep existing statuses for members that remain, set 'pending' for new ones
             $existingMembers = $event->members()->pluck('status', 'users.id')->all();
             $syncData = $memberIds->mapWithKeys(function ($id) use ($existingMembers) {
@@ -340,6 +343,7 @@ class EventController extends Controller
 
         $request->validate([
             'status' => 'required|in:accepted,declined,pending',
+
         ]);
 
         $event->members()->updateExistingPivot($user->id, [
@@ -359,7 +363,7 @@ class EventController extends Controller
     private function checkScheduleConflicts(array $userIds, string $date, string $time)
     {
         $conflicts = [];
-        
+
         // Get day of week
         $dateObj = new \DateTime($date);
         $days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -369,14 +373,15 @@ class EventController extends Controller
         $timeParts = explode(':', $time);
         $eventHour = (int)$timeParts[0];
         $eventMinute = isset($timeParts[1]) ? (int)$timeParts[1] : 0;
-        
+
         // Handle AM/PM
         if (stripos($time, 'pm') !== false && $eventHour < 12) {
             $eventHour += 12;
-        } elseif (stripos($time, 'am') !== false && $eventHour === 12) {
+        }
+        elseif (stripos($time, 'am') !== false && $eventHour === 12) {
             $eventHour = 0;
         }
-        
+
         $eventTimeStr = sprintf('%02d:%02d', $eventHour, $eventMinute);
 
         // 1. Check class schedule conflicts
@@ -403,14 +408,14 @@ class EventController extends Controller
         // 2. Check existing event conflicts (event-to-event)
         $existingEvents = Event::where('date', $date)
             ->where('time', $time)
-            ->whereHas('members', function($query) use ($userIds) {
-                $query->whereIn('users.id', $userIds);
-            })
-            ->orWhere(function($query) use ($date, $time, $userIds) {
-                $query->where('date', $date)
-                    ->where('time', $time)
-                    ->whereIn('host_id', $userIds);
-            })
+            ->whereHas('members', function ($query) use ($userIds) {
+            $query->whereIn('users.id', $userIds);
+        })
+            ->orWhere(function ($query) use ($date, $time, $userIds) {
+            $query->where('date', $date)
+                ->where('time', $time)
+                ->whereIn('host_id', $userIds);
+        })
             ->with(['host:id,name,email', 'members:id,name,email'])
             ->get();
 

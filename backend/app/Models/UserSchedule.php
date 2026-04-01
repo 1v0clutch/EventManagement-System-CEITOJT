@@ -15,6 +15,7 @@ class UserSchedule extends Model
         'color',
         'semester',
         'school_year'
+
     ];
 
     public function user()

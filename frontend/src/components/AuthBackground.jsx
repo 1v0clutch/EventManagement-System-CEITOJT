@@ -3,6 +3,8 @@ import cvsu from '../assets/CVSU.jpg';
 import cvsu1 from '../assets/cvsu1.png';
 
 // Configuration: Background images
+//gh
+//g
 export const BACKGROUND_IMAGES = [
   cvsu,
   cvsu1,
@@ -20,7 +22,7 @@ export default function AuthBackground() {
     if (BACKGROUND_IMAGES.length === 0) return;
 
     const interval = setInterval(() => {
-      setCurrentImageIndex((prevIndex) => 
+      setCurrentImageIndex((prevIndex) =>
         (prevIndex + 1) % BACKGROUND_IMAGES.length
       );
     }, SLIDESHOW_INTERVAL);

@@ -211,6 +211,7 @@ class DefaultEventController extends Controller
         $validator = Validator::make($request->all(), [
             'name' => 'nullable|string|max:255',
             'month' => 'required|integer|min:1|max:12',
+
         ]);
 
         if ($validator->fails()) {
@@ -220,6 +221,7 @@ class DefaultEventController extends Controller
             ], 422);
         }
 
+        $month = $request->month;
         $month = $request->month;
         $name = $request->name ?? 'New Event';
 
@@ -272,6 +274,7 @@ class DefaultEventController extends Controller
         $name = $request->name;
         $date = \Carbon\Carbon::parse($request->date);
 
+
         // Validate that the date is within the school year
         list($startYear, $endYear) = explode('-', $schoolYear);
         
@@ -322,6 +325,7 @@ class DefaultEventController extends Controller
             'end_date' => $request->end_date,
             'month' => $date->month,
             'created_by' => $request->user()?->id,
+        ]);
         ]);
 
         return response()->json([

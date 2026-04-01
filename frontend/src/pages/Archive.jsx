@@ -38,7 +38,7 @@ export default function Archive() {
             const elapsed = Date.now() - startTime;
             const minDelay = 300 + Math.random() * 300; // 300-600ms
             const remainingDelay = Math.max(0, minDelay - elapsed);
-            
+
             setTimeout(() => {
                 setLoading(false);
             }, remainingDelay);

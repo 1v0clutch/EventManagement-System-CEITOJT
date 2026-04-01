@@ -11,6 +11,7 @@ class DefaultEventDate extends Model
         'default_event_id',
         'school_year',
         'semester',
+
         'date',
         'end_date',
         'month',
@@ -22,6 +23,7 @@ class DefaultEventDate extends Model
         'end_date' => 'date',
         'month' => 'integer',
         'semester' => 'integer',
+
     ];
 
     /**
@@ -37,7 +39,7 @@ class DefaultEventDate extends Model
      */
     public function creator(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'created_by');
+        return $this->belongsTo(User::class , 'created_by');
     }
 
     /**
@@ -71,7 +73,6 @@ class DefaultEventDate extends Model
     {
         return $query->orderBy('date');
     }
-
     /**
      * Determine the semester based on the month.
      * 
@@ -99,11 +100,12 @@ class DefaultEventDate extends Model
      */
     public function getSemesterNameAttribute(): string
     {
-        return match($this->semester) {
-            1 => 'First Semester',
-            2 => 'Second Semester',
-            3 => 'Mid-Year',
-            default => 'Unknown',
-        };
+        return match ($this->semester) {
+                1 => 'First Semester',
+                2 => 'Second Semester',
+                3 => 'Mid-Year',
+                default => 'Unknown',
+            };
     }
+
 }

@@ -40,20 +40,20 @@ export default function Register() {
 
   const strength = getStrength();
   const isStrongEnough = passedChecks >= 4;
-  
+
   const navigate = useNavigate();
 
   // Generate preview of full name
   const generateFullName = () => {
     if (!formData.first_name && !formData.last_name) return '';
-    
+
     let middleInitial = '';
     if (formData.middle_initial) {
       const middleWords = formData.middle_initial.split(' ').filter(word => word.trim());
       const initials = middleWords.map(word => word.trim().charAt(0).toUpperCase() + '.');
       middleInitial = ' ' + initials.join(' ');
     }
-    
+
     // Capitalize first letter of each word
     const capitalizeWords = (text) => {
       return text.split(' ')
@@ -62,10 +62,10 @@ export default function Register() {
         .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
         .join(' ');
     };
-    
+
     const firstName = capitalizeWords(formData.first_name);
     const lastName = capitalizeWords(formData.last_name);
-    
+
     return (firstName + middleInitial + ' ' + lastName).trim();
   };
 
@@ -94,7 +94,7 @@ export default function Register() {
         .filter(word => word.length > 0)
         .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
         .join(' ');
-      
+
       setFormData(prev => ({
         ...prev,
         [name]: capitalizedValue
@@ -120,23 +120,10 @@ export default function Register() {
         email: formData.email.trim()
       });
 
-      if (response.data.requires_verification) {
-        setSuccess('Registration successful! Please check your email for verification code.');
-
-        // Redirect to email verification after 2 seconds
-        setTimeout(() => {
-          navigate('/verify-email', {
-            state: { email: formData.email }
-          });
-        }, 2000);
-      } else {
-        setSuccess('Registration successful! You can now sign in with your account.');
-
-        // Redirect to login after 2 seconds
-        setTimeout(() => {
-          navigate('/login');
-        }, 2000);
-      }
+      setSuccess('Registration successful! You can now sign in with your account.');
+      setTimeout(() => {
+        navigate('/login');
+      }, 2000);
 
     } catch (err) {
       if (err.response?.data?.errors) {

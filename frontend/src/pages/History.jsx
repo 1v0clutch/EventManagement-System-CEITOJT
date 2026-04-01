@@ -69,7 +69,6 @@ export default function History() {
     }
   };
 
-
   const handleLogout = async () => {
     try {
       await logout();
@@ -518,80 +517,6 @@ export default function History() {
                           </span>
                         </div>
                       </div>
-                    </div>
-                  </div>
-                )}
-
-                {selectedActivity.type === 'hierarchy_approval_requested' && selectedActivity.details && (
-                  <div>
-                    <h3 className="text-sm font-semibold text-gray-700 mb-2">Approval Status</h3>
-                    <div className="space-y-2">
-                      {selectedActivity.details.approvers?.map((approver, index) => (
-                        <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                          <div>
-                            <p className="font-medium text-gray-900">{approver.name}</p>
-                            <p className="text-xs text-gray-500">{approver.role}</p>
-                          </div>
-                          <div className="text-right">
-                            <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
-                              approver.status === 'approved' ? 'bg-green-100 text-green-700' :
-                              approver.status === 'rejected' ? 'bg-red-100 text-red-700' :
-                              'bg-yellow-100 text-yellow-700'
-                            }`}>
-                              {approver.status?.charAt(0).toUpperCase() + approver.status?.slice(1)}
-                            </span>
-                            {approver.decided_at && (
-                              <p className="text-xs text-gray-500 mt-1">
-                                {formatDate(approver.decided_at)}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                    <div className="mt-3 grid grid-cols-3 gap-4">
-                      <div className="text-center p-2 bg-yellow-50 rounded">
-                        <div className="text-sm font-bold text-yellow-700">{selectedActivity.details.pending_count}</div>
-                        <div className="text-xs text-gray-500">Pending</div>
-                      </div>
-                      <div className="text-center p-2 bg-green-50 rounded">
-                        <div className="text-sm font-bold text-green-700">{selectedActivity.details.approved_count}</div>
-                        <div className="text-xs text-gray-500">Approved</div>
-                      </div>
-                      <div className="text-center p-2 bg-red-50 rounded">
-                        <div className="text-sm font-bold text-red-700">{selectedActivity.details.rejected_count}</div>
-                        <div className="text-xs text-gray-500">Rejected</div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {selectedActivity.type === 'hierarchy_approval_decision' && selectedActivity.details && (
-                  <div>
-                    <h3 className="text-sm font-semibold text-gray-700 mb-2">Your Decision</h3>
-                    <div className="bg-gray-50 rounded-lg p-4">
-                      <div className="flex items-center justify-between mb-3">
-                        <div>
-                          <p className="text-sm text-gray-600">Event requested by</p>
-                          <p className="font-medium text-gray-900">{selectedActivity.details.host?.name}</p>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-sm text-gray-600">Your Decision</p>
-                          <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
-                            selectedActivity.details.decision === 'approved' ? 'bg-green-100 text-green-700' :
-                            selectedActivity.details.decision === 'rejected' ? 'bg-red-100 text-red-700' :
-                            'bg-yellow-100 text-yellow-700'
-                          }`}>
-                            {selectedActivity.details.decision?.charAt(0).toUpperCase() + selectedActivity.details.decision?.slice(1)}
-                          </span>
-                        </div>
-                      </div>
-                      {selectedActivity.details.decision_reason && (
-                        <div>
-                          <p className="text-xs text-gray-600 mb-1">Reason</p>
-                          <p className="text-sm text-gray-700">{selectedActivity.details.decision_reason}</p>
-                        </div>
-                      )}
                     </div>
                   </div>
                 )}

@@ -4,4 +4,8 @@
 11:00 - 12:00 : Lunch break
 12:00 - 2:00 : Determining security risks, Reviewing System Implementation
 2:00 - 3:00 : Merging All Changes to teammates / Fixing issues on Admin modals and implementation of new users
+<<<<<<< HEAD
 3:00 - 5:00 : Fixing bugs on /account time, Adding a new feature on the calendar to show schedule as well
+=======
+3:00 - 5:00 : Fixing bugs on /account time
+>>>>>>> 1369ecc084243a8b0b992cae321ce869b016898d
