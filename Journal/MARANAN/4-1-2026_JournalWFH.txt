@@ -1,3 +1,11 @@
-7:00 - Time in 
+7:00 - Time in WFH
+
+7:00 - 8:00 : merged processes to the other deployed repository
+8:00 - 10:00 : Fixing CORS Policy blocking requests of Add-event and Personal events in Hosted website
+10:00 - 11:00 : Fixing ui on the event/meeting modal on calendar 
+11:00 - 12:00 : Lunch break
+12:00 - 1:00 : Improving the visibility of the images and the pdfs in events modal
+1:00 - 2:00 : Improving the notification bell inconsistent with the accept decline features
+2:00 - 5:00 : On progress on fixing the add-event, personal event not showing on the hosted dashboard but everything is implemented now
 
 
