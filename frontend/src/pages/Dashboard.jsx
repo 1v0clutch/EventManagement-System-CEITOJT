@@ -402,6 +402,7 @@ export default function Dashboard() {
         }}
         editingEvent={editingPersonalEvent}
         selectedDate={personalEventSelectedDate}
+        userSchedules={userSchedules}
       />
 
       {/* Schedule Required Modal */}

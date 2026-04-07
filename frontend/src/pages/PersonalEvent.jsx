@@ -4,53 +4,48 @@ import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 import { invalidateCache } from '../services/cache';
 import Navbar from '../components/Navbar';
-import logo from '../assets/CEIT-LOGO.png';
 
 export default function PersonalEvent() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, logout } = useAuth();
-  const [events, setEvents] = useState([]);
+  const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
-  const [isAccountDropdownOpen, setIsAccountDropdownOpen] = useState(false);
+  const [userSchedules, setUserSchedules] = useState([]);
   const editingEvent = location.state?.event || null;
   const selectedDate = location.state?.selectedDate || '';
+  const today = new Date().toISOString().split('T')[0];
 
   const [formData, setFormData] = useState({
     title: editingEvent?.title || '',
     description: editingEvent?.description || '',
-    date: editingEvent?.date || selectedDate,
+    date: editingEvent?.date || selectedDate || today,
     time: editingEvent?.time || ''
   });
 
   useEffect(() => {
-    if (user && !user.is_validated) {
-      navigate('/account');
-      return;
-    }
-    fetchEvents();
+    if (user && !user.is_validated) { navigate('/account'); return; }
+    api.get('/schedules').then(r => setUserSchedules(r.data.schedules || [])).catch(() => {});
   }, []);
 
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (isAccountDropdownOpen && !event.target.closest('.account-dropdown-container')) {
-        setIsAccountDropdownOpen(false);
-      }
-    };
+  const parseMin = (t) => { if (!t) return null; const [h, m] = t.split(':'); return parseInt(h) * 60 + parseInt(m || 0); };
+  const fmtTime = (t) => { if (!t) return ''; const [h, m] = t.split(':'); const hour = parseInt(h); return `${hour % 12 || 12}:${m || '00'} ${hour >= 12 ? 'PM' : 'AM'}`; };
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [isAccountDropdownOpen]);
-
-  const fetchEvents = async () => {
-    try {
-      const response = await api.get('/events');
-      setEvents(response.data.events);
-    } catch (error) {
-      console.error('Error fetching events:', error);
-    }
-  };
+  const conflictingSchedules = (() => {
+    if (!formData.date || !formData.time) return [];
+    const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const dayName = dayNames[new Date(formData.date).getDay()];
+    const evStart = parseMin(formData.time);
+    if (evStart === null) return [];
+    const evEnd = evStart + 60;
+    return userSchedules.filter(s => {
+      if (s.day !== dayName) return false;
+      const sStart = parseMin(s.start_time);
+      const sEnd = parseMin(s.end_time);
+      if (sStart === null || sEnd === null) return false;
+      return evStart < sEnd && sStart < evEnd;
+    });
+  })();
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -203,6 +198,30 @@ export default function PersonalEvent() {
                 />
               </div>
 
+              {/* Schedule Conflict Banner */}
+              {conflictingSchedules.length > 0 && (
+                <div className="bg-red-50 border border-red-200 rounded-xl p-3 sm:p-4">
+                  <div className="flex items-start gap-2.5">
+                    <svg className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                    </svg>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-red-800 mb-1">Schedule Conflict — This personal event overlaps with your class</p>
+                      <div className="space-y-1">
+                        {conflictingSchedules.map((s, i) => (
+                          <div key={i} className="flex items-center gap-2 text-xs text-red-700">
+                            <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: s.color || '#f97316' }} />
+                            <span className="font-medium">{s.description || s.title || 'Class'}</span>
+                            <span className="text-red-400">·</span>
+                            <span>{fmtTime(s.start_time)} – {fmtTime(s.end_time)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label htmlFor="date" className="block text-sm font-semibold text-gray-900 mb-2">
@@ -215,6 +234,7 @@ export default function PersonalEvent() {
                     value={formData.date}
                     onChange={handleInputChange}
                     required
+                    min={today}
                     className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-green-600 transition-all duration-300"
                   />
                 </div>

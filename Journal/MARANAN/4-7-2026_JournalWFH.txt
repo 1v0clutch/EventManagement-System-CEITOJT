@@ -7,3 +7,6 @@
 -improving the pillboxes events ui presentation on the dashboard
 -Removing the redundant class schedule showing up on the modal on the dashboard
 -fixing merge conflicts on the repull between 2 repositories
+-redeployed new implementations to the hosted interface
+-fixed personal events issue inconsistent like the events pillbox
+-fixed issue again on the dashboard calendar overloading on a day with more than 5 events in a single day 

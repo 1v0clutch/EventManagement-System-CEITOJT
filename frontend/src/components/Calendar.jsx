@@ -339,12 +339,13 @@ export default function Calendar({ events, defaultEvents = [], userSchedules = [
       const allEvents = [...academicEvents, ...regularEvents];
       const nonScheduleEvents = allEvents;
 
-      // Dynamic display limit based on cell height:
-      // ~18px per pill + 14px date row + 14px "view all" button
+      // Dynamic display limit based on cell height, capped at 3 max.
+      // If total events > 3, always show "View All" regardless of screen size.
+      const MAX_PILLS = 3;
       const pillHeight = 18;
-      const reservedPx = 28; // date number row + view-all button
+      const reservedPx = 28;
       const dynamicLimit = cellHeight > 0
-        ? Math.max(1, Math.floor((cellHeight - reservedPx) / pillHeight))
+        ? Math.min(MAX_PILLS, Math.max(1, Math.floor((cellHeight - reservedPx) / pillHeight)))
         : 1;
       const displayLimit = dynamicLimit;
       const eventsToDisplay = nonScheduleEvents.slice(0, displayLimit);
