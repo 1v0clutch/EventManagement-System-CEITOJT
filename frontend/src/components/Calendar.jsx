@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from 'react';
+﻿import { useState, useEffect, useRef } from 'react';
 import ConfirmDeleteModal from './ConfirmDeleteModal';
 
 export default function Calendar({ events, defaultEvents = [], userSchedules = [], onDateSelect, highlightedDate, currentUser, onEditEvent, onDeleteEvent, onEventClick }) {
@@ -12,6 +12,8 @@ export default function Calendar({ events, defaultEvents = [], userSchedules = [
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [eventToDelete, setEventToDelete] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [cellHeight, setCellHeight] = useState(0);
+  const gridRef = useRef(null);
 
   // File viewer state
   const [currentFileIndex, setCurrentFileIndex] = useState(0);
@@ -215,7 +217,7 @@ export default function Calendar({ events, defaultEvents = [], userSchedules = [
     }] : [];
     
     setMoreModalDate(dateStr);
-    setMoreModalEvents([...academicEvents, ...groupedSchedules, ...regularEvents]);
+    setMoreModalEvents([...academicEvents, ...regularEvents]);
     setShowMoreModal(true);
   };
 
@@ -315,6 +317,44 @@ export default function Calendar({ events, defaultEvents = [], userSchedules = [
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [showEventDetailModal, selectedEvent?.images?.length]);
 
+  // Measure cell height to compute dynamic pill limit
+  useEffect(() => {
+    if (!gridRef.current) return;
+    const observer = new ResizeObserver(() => {
+      const grid = gridRef.current;
+      if (!grid) return;
+      // Each row is 1fr — total height / rows gives cell height
+      const totalHeight = grid.clientHeight;
+      const rowsNeeded = Math.ceil((firstDayOfMonth + daysInMonth) / 7);
+      const rows = Math.max(rowsNeeded, 5);
+      setCellHeight(Math.floor(totalHeight / rows));
+    });
+    observer.observe(gridRef.current);
+    return () => observer.disconnect();
+  }, [firstDayOfMonth, daysInMonth]);
+
+  // Check if a specific event conflicts with the schedule on a given date
+  const eventConflictsWithSchedule = (event, dateStr) => {
+    const scheduleEvents = getScheduleEventsForDate(dateStr);
+    if (!scheduleEvents.length || !event.time || event.time === 'All Day') return false;
+
+    const parseTimeToMinutes = (t) => {
+      if (!t) return null;
+      const [h, m] = t.split(':');
+      return parseInt(h) * 60 + parseInt(m || 0);
+    };
+
+    const evStart = parseTimeToMinutes(event.time);
+    const evEnd = evStart + 60;
+
+    return scheduleEvents.some(s => {
+      const sStart = parseTimeToMinutes(s.start_time);
+      const sEnd = parseTimeToMinutes(s.end_time);
+      if (sStart === null || sEnd === null) return false;
+      return evStart < sEnd && sStart < evEnd;
+    });
+  };
+
   const renderCalendarDays = () => {
     const days = [];
     const today = new Date();
@@ -369,26 +409,21 @@ export default function Calendar({ events, defaultEvents = [], userSchedules = [
 
       // Get events for this date (only for current month to avoid confusion)
       const academicEvents = isCurrentMonth ? getDefaultEventsForDate(dateStr) : [];
-      const scheduleEvents = isCurrentMonth ? getScheduleEventsForDate(dateStr) : [];
       const regularEvents = isCurrentMonth ? getEventsForDate(dateStr) : [];
-      
-      // Group all schedules into a single entry for display
-      const groupedSchedules = scheduleEvents.length > 0 ? [{
-        is_schedule: true,
-        type: 'schedule',
-        day: scheduleEvents[0].day,
-        allSchedules: scheduleEvents,
-        isScheduleGroup: true,
-        clickedDate: dateStr
-      }] : [];
-      
-      // allEvents includes schedules for "View All" modal, but eventsToDisplay excludes them
-      // so regular/academic events are never displaced by the schedule indicator
-      const allEvents = [...academicEvents, ...groupedSchedules, ...regularEvents];
-      const nonScheduleEvents = [...academicEvents, ...regularEvents];
 
-      // Display limit: show first 1 non-schedule event to prevent text cutoff
-      const displayLimit = 1;
+      // allEvents for "View All" only includes non-schedule events
+      // Schedules are shown via the green tint/border only — not as clickable pills
+      const allEvents = [...academicEvents, ...regularEvents];
+      const nonScheduleEvents = allEvents;
+
+      // Dynamic display limit based on cell height:
+      // ~18px per pill + 14px date row + 14px "view all" button
+      const pillHeight = 18;
+      const reservedPx = 28; // date number row + view-all button
+      const dynamicLimit = cellHeight > 0
+        ? Math.max(1, Math.floor((cellHeight - reservedPx) / pillHeight))
+        : 1;
+      const displayLimit = dynamicLimit;
       const eventsToDisplay = nonScheduleEvents.slice(0, displayLimit);
 
       // Check if this cell will show "View More" button
@@ -420,7 +455,7 @@ export default function Calendar({ events, defaultEvents = [], userSchedules = [
           `}
           style={hasWeeklySchedule && isCurrentMonth ? { backgroundColor: isPastDate ? 'rgba(20,83,45,0.07)' : 'rgba(22,163,74,0.1)' } : undefined}
         >
-          {/* Date Number and Conflict Indicator */}
+          {/* Date Number */}
           <div className="flex justify-between items-start mb-0.5 flex-shrink-0">
             <div className="flex items-center gap-1 flex-wrap">
               <span className={`text-[9px] sm:text-xs font-semibold px-1 py-0.5 rounded-full transition-colors leading-none
@@ -430,29 +465,6 @@ export default function Calendar({ events, defaultEvents = [], userSchedules = [
               `}>
                 {cellDay}
               </span>
-              {dateHasConflicts && (
-                <>
-                  <div className="relative group/conflict flex-shrink-0">
-                    <svg 
-                      className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-red-600 cursor-help drop-shadow-sm" 
-                      fill="currentColor" 
-                      viewBox="0 0 20 20"
-                    >
-                      <path 
-                        fillRule="evenodd" 
-                        d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" 
-                        clipRule="evenodd" 
-                      />
-                    </svg>
-                    {/* Tooltip */}
-                    <div className="absolute left-0 top-full mt-1.5 hidden group-hover/conflict:block z-50">
-                      <div className="bg-gray-900 text-white text-xs px-2.5 py-1.5 rounded-md shadow-lg whitespace-nowrap">
-                        <span className="font-medium">Schedule Conflict</span>
-                      </div>
-                    </div>
-                  </div>
-                </>
-              )}
             </div>
           </div>
 
@@ -482,10 +494,11 @@ export default function Calendar({ events, defaultEvents = [], userSchedules = [
                     </div>
                   );
                 } else {
+                  const hasConflict = !isPastDate && eventConflictsWithSchedule(event, dateStr);
                   return (
                     <div
                       key={`regular-${idx}`}
-                      className={`text-[8px] sm:text-xs px-1 py-0.5 text-white rounded-sm truncate font-normal shadow-sm transition-all ${
+                      className={`text-[8px] sm:text-xs px-1 py-0.5 text-white rounded-sm truncate font-normal shadow-sm transition-all flex items-center gap-0.5 ${
                         isPastDate
                           ? 'bg-gray-400 opacity-75'
                           : isPersonal
@@ -499,10 +512,15 @@ export default function Calendar({ events, defaultEvents = [], userSchedules = [
                         isPersonal ? '(Personal)' : 
                         isMeeting ? (isHosted ? '(Hosting Meeting)' : '(Invited to Meeting)') : 
                         (isHosted ? '(Hosting Event)' : '(Invited to Event)')
-                      }`}
+                      }${hasConflict ? ' ⚠ Conflicts with class schedule' : ''}`}
                       onClick={(e) => !isPastDate && handleEventClick(event, e)}
                     >
-                      {event.title}
+                      {hasConflict && (
+                        <svg className="w-2 h-2 sm:w-2.5 sm:h-2.5 flex-shrink-0 text-yellow-300" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                        </svg>
+                      )}
+                      <span className="truncate">{event.title}</span>
                     </div>
                   );
                 }
@@ -577,7 +595,7 @@ export default function Calendar({ events, defaultEvents = [], userSchedules = [
         </div>
 
         {/* Calendar Grid */}
-        <div className="grid grid-cols-7 gap-0 flex-1 min-h-0 overflow-hidden" style={{ gridAutoRows: '1fr' }}>
+        <div ref={gridRef} className="grid grid-cols-7 gap-0 flex-1 min-h-0 overflow-hidden" style={{ gridAutoRows: '1fr' }}>
           {renderCalendarDays()}
         </div>
 
@@ -696,9 +714,19 @@ export default function Calendar({ events, defaultEvents = [], userSchedules = [
                               : (isHosted ? 'bg-red-500' : 'bg-green-500')
                           }`}></div>
                           <div className="flex-1 min-w-0">
-                            <p className="font-medium text-gray-900 text-sm">
-                              {event.title || '(No title)'}
-                            </p>
+                            <div className="flex items-center gap-1.5">
+                              <p className="font-medium text-gray-900 text-sm truncate">
+                                {event.title || '(No title)'}
+                              </p>
+                              {eventConflictsWithSchedule(event, moreModalDate) && (
+                                <span className="flex-shrink-0 inline-flex items-center gap-0.5 text-xs font-semibold text-red-600 bg-red-50 border border-red-200 px-1.5 py-0.5 rounded-full">
+                                  <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                                  </svg>
+                                  Conflict
+                                </span>
+                              )}
+                            </div>
                             <div className="flex items-center gap-2 mt-1">
                               <span className="text-xs text-gray-600">{formatTime(event.time)}</span>
                               <span className="text-xs text-gray-500">

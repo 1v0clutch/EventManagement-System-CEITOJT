@@ -4,7 +4,7 @@ import api from '../services/api';
 
 const MEMBERS_PER_PAGE = 5;
 
-export default function EventDetailModal({ isOpen, onClose, event, currentUser, onEdit, onDelete, onRespond }) {
+export default function EventDetailModal({ isOpen, onClose, event, currentUser, userSchedules = [], onEdit, onDelete, onRespond }) {
   const [isMembersDropdownOpen, setIsMembersDropdownOpen] = useState(false);
   const [membersPage, setMembersPage] = useState(1);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -101,6 +101,42 @@ export default function EventDetailModal({ isOpen, onClose, event, currentUser, 
   const totalPages = Math.ceil(totalMembers / MEMBERS_PER_PAGE);
   const pagedMembers = event.members?.slice((membersPage - 1) * MEMBERS_PER_PAGE, membersPage * MEMBERS_PER_PAGE) || [];
 
+  // Compute schedule conflicts for this event
+  const conflictingSchedules = (() => {
+    if (!event.date || !event.time || event.time === 'All Day' || event.is_personal || event.is_default_event) return [];
+    if (!userSchedules.length) return [];
+
+    const eventDate = new Date(event.date);
+    const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const dayName = dayNames[eventDate.getDay()];
+
+    const parseMin = (t) => {
+      if (!t) return null;
+      const [h, m] = t.split(':');
+      return parseInt(h) * 60 + parseInt(m || 0);
+    };
+
+    const evStart = parseMin(event.time);
+    if (evStart === null) return [];
+    const evEnd = evStart + 60;
+
+    return userSchedules.filter(s => {
+      if (s.day !== dayName) return false;
+      const sStart = parseMin(s.start_time);
+      const sEnd = parseMin(s.end_time);
+      if (sStart === null || sEnd === null) return false;
+      return evStart < sEnd && sStart < evEnd;
+    });
+  })();
+
+  const fmtTime = (t) => {
+    if (!t) return '';
+    const [h, m] = t.split(':');
+    const hour = parseInt(h);
+    const ampm = hour >= 12 ? 'PM' : 'AM';
+    return `${hour % 12 || 12}:${m || '00'} ${ampm}`;
+  };
+
   const colorDot = event.is_default_event || !event.time ? 'bg-blue-500'
     : event.is_personal ? 'bg-purple-500'
     : event.event_type === 'meeting'
@@ -155,6 +191,32 @@ export default function EventDetailModal({ isOpen, onClose, event, currentUser, 
               </span>
             </p>
           </div>
+
+          {/* Schedule Conflict Banner */}
+          {conflictingSchedules.length > 0 && (
+            <div className="bg-red-50 border border-red-200 rounded-xl p-3 sm:p-4">
+              <div className="flex items-start gap-2.5">
+                <svg className="w-4 h-4 sm:w-5 sm:h-5 text-red-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                </svg>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-red-800 mb-1">
+                    Schedule Conflict — {isHost ? 'You are hosting this' : 'You are invited to this'} {event.event_type === 'meeting' ? 'meeting' : 'event'} during your class
+                  </p>
+                  <div className="space-y-1">
+                    {conflictingSchedules.map((s, i) => (
+                      <div key={i} className="flex items-center gap-2 text-xs text-red-700">
+                        <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: s.color || '#f97316' }} />
+                        <span className="font-medium">{s.description || s.title || 'Class'}</span>
+                        <span className="text-red-500">·</span>
+                        <span>{fmtTime(s.start_time)} – {fmtTime(s.end_time)}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Location */}
           {event.location && (

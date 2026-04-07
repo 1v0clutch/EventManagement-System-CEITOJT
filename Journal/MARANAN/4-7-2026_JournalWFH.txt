@@ -1,0 +1,8 @@
+7:00 - Time in
+
+-fixing an issue on scheduling class not showing up on dashboard
+-fixing an issue where the schedule is inconsistently showing up on the dashboard
+-Testing implementations on the hosted interface and also 
+-schedule conflicts fix not showing on the modal itself
+-improving the pillboxes events ui presentation on the dashboard
+-Removing the redundant class schedule showing up on the modal on the dashboard

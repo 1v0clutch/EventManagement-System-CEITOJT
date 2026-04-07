@@ -1,4 +1,4 @@
-7:00 - Time in
+7:00 - Time in WFH
 
 7:00 - 9:00 : Updated Progress Report status
 9:00 - 10:00 : Repulling copied repository that is deployed

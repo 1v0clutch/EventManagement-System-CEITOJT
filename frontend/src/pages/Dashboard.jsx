@@ -55,10 +55,23 @@ export default function Dashboard() {
   useEffect(() => {
     if (location.state?.refresh) {
       fetchData();
-      // Clear the state to prevent re-fetching on every render
       navigate(location.pathname, { replace: true, state: {} });
     }
   }, [location.state]);
+
+  // Listen for schedule changes from AccountDashboard
+  useEffect(() => {
+    const handleScheduleChanged = () => {
+      invalidateCache(`dashboard:${user?.id}`);
+      fetchData();
+    };
+    window.addEventListener('scheduleChanged', handleScheduleChanged);
+    window.addEventListener('scheduleUpdated', handleScheduleChanged);
+    return () => {
+      window.removeEventListener('scheduleChanged', handleScheduleChanged);
+      window.removeEventListener('scheduleUpdated', handleScheduleChanged);
+    };
+  }, [user?.id]);
 
   // Close account dropdown when clicking outside
   useEffect(() => {
@@ -368,6 +381,7 @@ export default function Dashboard() {
         onClose={handleCloseModal}
         event={selectedEvent}
         currentUser={user}
+        userSchedules={userSchedules}
         onEdit={handleEdit}
         onDelete={handleDelete}
         onRespond={() => {
