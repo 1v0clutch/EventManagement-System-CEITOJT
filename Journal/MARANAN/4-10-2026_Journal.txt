@@ -1,0 +1,8 @@
+7:00 - Time in WFH
+
+7:00 - 11:00 : Tested all implementations on Hosted/Local Website
+11:00 - 12:00 : Lunch break
+12:00 - 1:00 : adding schedule conflicts again for a more ease of use
+1:00 - 2:00 : fixing inconsistencies on the notificationbell due to 1 event still shows up even after accepting 
+2:00 - 3:00 : Tested forget password features on the hosted website
+3:00 - 5:00 : fixing cors policy again tampering with hosted system
