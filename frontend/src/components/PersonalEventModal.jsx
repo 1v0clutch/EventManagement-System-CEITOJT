@@ -4,7 +4,7 @@ import api from '../services/api';
 import { invalidateCache } from '../services/cache';
 import DatePicker from './DatePicker';
 
-export default function PersonalEventModal({ isOpen, onClose, onSuccess, editingEvent = null, selectedDate = '', userSchedules = [] }) {
+export default function PersonalEventModal({ isOpen, onClose, onSuccess, editingEvent = null, selectedDate = '', userSchedules = [], allEvents = [] }) {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
@@ -115,6 +115,22 @@ export default function PersonalEventModal({ isOpen, onClose, onSuccess, editing
     return `${hour % 12 || 12}:${m || '00'} ${hour >= 12 ? 'PM' : 'AM'}`;
   };
 
+  // Event-vs-event conflicts for this personal event
+  const conflictingEvents = (() => {
+    if (!formData.date || !formData.time) return [];
+    const evStart = parseMin(formData.time);
+    if (evStart === null) return [];
+    const evEnd = evStart + 60;
+    return allEvents.filter(other => {
+      if (editingEvent && other.id === editingEvent.id) return false;
+      if (other.date !== formData.date) return false;
+      if (!other.time || other.time === 'All Day') return false;
+      const oStart = parseMin(other.time);
+      if (oStart === null) return false;
+      return evStart < oStart + 60 && oStart < evEnd;
+    });
+  })();
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className={`bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden ${isDatePickerOpen ? '' : 'overflow-y-auto'}`}>
@@ -208,6 +224,37 @@ export default function PersonalEventModal({ isOpen, onClose, onSuccess, editing
                         <span>{fmtTime(s.start_time)} – {fmtTime(s.end_time)}</span>
                       </div>
                     ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Event-vs-Event Conflict Banner */}
+          {conflictingEvents.length > 0 && (
+            <div className="bg-orange-50 border border-orange-200 rounded-xl p-3 sm:p-4">
+              <div className="flex items-start gap-2.5">
+                <svg className="w-4 h-4 sm:w-5 sm:h-5 text-orange-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                </svg>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-orange-800 mb-1">
+                    Event Conflict — Overlaps with {conflictingEvents.length} other {conflictingEvents.length === 1 ? 'event' : 'events'} on the same day
+                  </p>
+                  <div className="space-y-1">
+                    {conflictingEvents.map((other, i) => {
+                      const typeLabel = other.is_personal ? 'Personal' : other.event_type === 'meeting' ? 'Meeting' : 'Event';
+                      return (
+                        <div key={i} className="flex items-center gap-2 text-xs text-orange-700">
+                          <div className={`w-2 h-2 rounded-full flex-shrink-0 ${other.is_personal ? 'bg-purple-500' : other.event_type === 'meeting' ? 'bg-yellow-500' : 'bg-green-500'}`} />
+                          <span className="font-medium truncate">{other.title}</span>
+                          <span className="text-orange-400">·</span>
+                          <span className="flex-shrink-0">{fmtTime(other.time)}</span>
+                          <span className="text-orange-400">·</span>
+                          <span className="flex-shrink-0 text-orange-600">{typeLabel}</span>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               </div>

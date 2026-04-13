@@ -35,10 +35,13 @@ export default function NotificationBell({ events, user, onNotificationClick }) 
     return 'Event';
   };
 
-  // Pending invitations — show regardless of date
-  const pendingInvitations = events.filter(event =>
-    event.members?.some(m => m.id === user?.id && m.status === 'pending')
-  );
+  // Pending invitations — show regardless of date, EXCEPT if the event date has already passed
+  const pendingInvitations = events.filter(event => {
+    if (!event.members?.some(m => m.id === user?.id && m.status === 'pending')) return false;
+    // Expire if the event date is in the past
+    if (event.date && event.date < todayStr) return false;
+    return true;
+  });
 
   // Accepted invitations — only show on the day of the event
   const acceptedInvitations = events.filter(event => {

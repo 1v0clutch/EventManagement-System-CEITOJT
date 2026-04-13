@@ -398,12 +398,11 @@ export default function Dashboard() {
           setIsPersonalEventModalOpen(false);
           setEditingPersonalEvent(null);
         }}
-        onSuccess={() => {
-          fetchData();
-        }}
+        onSuccess={() => { fetchData(); }}
         editingEvent={editingPersonalEvent}
         selectedDate={personalEventSelectedDate}
         userSchedules={userSchedules}
+        allEvents={events}
       />
 
       {/* Schedule Required Modal */}
