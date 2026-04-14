@@ -7,6 +7,7 @@ import Calendar from '../components/Calendar';
 import Navbar from '../components/Navbar';
 import Modal from '../components/Modal';
 import PersonalEventModal from '../components/PersonalEventModal';
+import ConfirmDeleteModal from '../components/ConfirmDeleteModal';
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -28,6 +29,11 @@ export default function Dashboard() {
   // Personal Event Modal States
   const [isPersonalEventModalOpen, setIsPersonalEventModalOpen] = useState(false);
   const [editingPersonalEvent, setEditingPersonalEvent] = useState(null);
+
+  // Delete Confirmation Modal States
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [eventToDelete, setEventToDelete] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [personalEventSelectedDate, setPersonalEventSelectedDate] = useState('');
 
   // Event to open directly in Calendar popup (from notification click)
@@ -177,10 +183,6 @@ export default function Dashboard() {
   const handleDelete = async (event) => {
     if (!event || !event.id) {
       console.error('Invalid event provided to handleDelete');
-      return;
-    }
-    
-    if (!confirm(`Are you sure you want to delete "${event.title}"?`)) {
       return;
     }
 
@@ -495,8 +497,8 @@ export default function Dashboard() {
                     </button>
                     <button
                       onClick={() => {
-                        handleCloseModal();
-                        handleDelete(selectedEvent);
+                        setEventToDelete(selectedEvent);
+                        setShowDeleteConfirm(true);
                       }}
                       className="p-1.5 sm:p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                       title="Delete Event"
@@ -777,6 +779,30 @@ export default function Dashboard() {
         }}
         editingEvent={editingPersonalEvent}
         selectedDate={personalEventSelectedDate}
+      />
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmDeleteModal
+        isOpen={showDeleteConfirm}
+        onClose={() => {
+          setShowDeleteConfirm(false);
+          setEventToDelete(null);
+        }}
+        onConfirm={async () => {
+          try {
+            setIsDeleting(true);
+            await handleDelete(eventToDelete);
+            setShowDeleteConfirm(false);
+            setEventToDelete(null);
+            handleCloseModal();
+          } catch (error) {
+            console.error('Error deleting event:', error);
+          } finally {
+            setIsDeleting(false);
+          }
+        }}
+        itemName={eventToDelete?.title || 'Event'}
+        isDeleting={isDeleting}
       />
 
     </div>

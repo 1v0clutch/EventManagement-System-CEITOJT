@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import Navbar from '../components/Navbar';
+import ConfirmDeleteModal from '../components/ConfirmDeleteModal';
 import api from '../services/api';
 
 export default function OrganizationalChart() {
@@ -11,6 +12,9 @@ export default function OrganizationalChart() {
   const [loading, setLoading] = useState(true);
   const [editingUser, setEditingUser] = useState(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [memberToDelete, setMemberToDelete] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   
   const canEdit = user?.role === 'Admin' || user?.role === 'Dean';
   
@@ -58,15 +62,25 @@ export default function OrganizationalChart() {
     setIsEditModalOpen(true);
   };
   
-  const handleDelete = async (memberId) => {
-    if (!window.confirm('Are you sure you want to delete this member?')) return;
+  const handleDelete = (member) => {
+    setMemberToDelete(member);
+    setIsDeleteModalOpen(true);
+  };
+  
+  const confirmDelete = async () => {
+    if (!memberToDelete) return;
     
     try {
-      await api.delete(`/organizational-chart/${memberId}`);
+      setIsDeleting(true);
+      await api.delete(`/organizational-chart/${memberToDelete.id}`);
+      setIsDeleteModalOpen(false);
+      setMemberToDelete(null);
       fetchOrganizationalChart();
     } catch (error) {
       console.error('Error deleting member:', error);
       alert('Failed to delete member');
+    } finally {
+      setIsDeleting(false);
     }
   };
   
@@ -202,7 +216,7 @@ export default function OrganizationalChart() {
                 </svg>
               </button>
               <button
-                onClick={() => handleDelete(member.id)}
+                onClick={() => handleDelete(member)}
                 className="p-1 md:p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                 title="Delete"
               >
@@ -447,6 +461,19 @@ export default function OrganizationalChart() {
           </div>
         </div>
       )}
+      
+      {/* Delete Confirmation Modal */}
+      <ConfirmDeleteModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => {
+          setIsDeleteModalOpen(false);
+          setMemberToDelete(null);
+        }}
+        onConfirm={confirmDelete}
+        eventTitle={memberToDelete?.name || ''}
+        eventType="Member"
+        isDeleting={isDeleting}
+      />
     </div>
   );
 }

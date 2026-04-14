@@ -1232,10 +1232,10 @@ export default function Calendar({ events, defaultEvents = [], userSchedules = [
 
           setIsDeleting(true);
           try {
-            setShowEventDetailModal(false);
             await onDeleteEvent(eventToDelete);
             setShowDeleteConfirm(false);
             setEventToDelete(null);
+            setShowEventDetailModal(false);
           } catch (error) {
             console.error('Error deleting event:', error);
           } finally {
