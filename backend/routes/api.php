@@ -44,6 +44,10 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Events
     Route::get('/dashboard', [App\Http\Controllers\DashboardController::class , 'index']);
+
+    // Admin-only comprehensive event fetching
+    Route::get('/events/all', [EventController::class , 'getAllEvents'])->middleware('admin');
+
     Route::get('/events', [EventController::class , 'index']);
     Route::post('/events', [EventController::class , 'store']);
 
