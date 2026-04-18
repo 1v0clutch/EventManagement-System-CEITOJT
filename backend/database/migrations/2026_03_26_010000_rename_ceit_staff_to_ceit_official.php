@@ -15,12 +15,13 @@ return new class extends Migration
             ->where('role', 'CEIT Staff')
             ->update(['role' => 'CEIT Official']);
 
-        // Remove 'CEIT Staff' from the role enum
+        // Remove 'CEIT Staff' from the role enum — keep Coordinator and Program Coordinator
         DB::statement("ALTER TABLE users MODIFY COLUMN role ENUM(
             'Admin',
             'Dean',
             'CEIT Official',
             'Chairperson',
+            'Coordinator',
             'Program Coordinator',
             'Research Coordinator',
             'Extension Coordinator',

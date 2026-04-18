@@ -12,20 +12,23 @@ class TestUsersSeeder extends Seeder
 {
     /**
      * Structure:
-     * - College of Engineering and Information Technology: 1 Dean, 10 CEIT Officials, 10 Coordinators
-     * - Per Department (5 departments): 1 Chairperson, 10 Faculty Members
+     * - College of Engineering and Information Technology (CEIT):
+     *     1 Dean, 10 CEIT Officials, 10 Coordinators
+     * - Per Department (5 departments):
+     *     1 Chairperson
+     *     1 Research Coordinator
+     *     1 Extension Coordinator
+     *     1 GAD Coordinator
+     *     10 Faculty Members
      *
-     * Email format: firstname.lastname.role[n].dept@cvsu.edu.ph (no spaces anywhere)
+     * Valid roles: Admin, Dean, CEIT Official, Chairperson,
+     *              Coordinator, Research Coordinator, Extension Coordinator,
+     *              GAD Coordinator, Faculty Member
      */
 
-    /**
-     * Generate a unique schedule for a user based on their pattern type and a seed index.
-     * The seed index shifts start times and rotates subject labels so every user differs.
-     */
     private function generateSchedule(string $pattern, int $seed): array
     {
-        // Time offset pool: 0, 30, 60 minutes — cycles through based on seed
-        $offsets = [0, 30, 60]; // minutes
+        $offsets = [0, 30, 60];
         $offset  = $offsets[$seed % count($offsets)];
 
         $addMinutes = function (string $time, int $mins): string {
@@ -34,70 +37,67 @@ class TestUsersSeeder extends Seeder
             return sprintf('%02d:%02d', intdiv($total, 60), $total % 60);
         };
 
-        // Rotate label variants so descriptions differ per user
-        $lectureLabels = ['Class - Lecture', 'Class - Discussion', 'Class - Recitation', 'Class - Review', 'Class - Seminar'];
-        $labLabels     = ['Class - Lab', 'Class - Workshop', 'Class - Practicum', 'Class - Studio', 'Class - Simulation'];
-        $consultLabels = ['Consultation Hours', 'Student Advising', 'Office Consultation', 'Academic Advising', 'Student Mentoring'];
-        $researchLabels= ['Research / Prep', 'Research Work', 'Module Preparation', 'Curriculum Dev', 'Academic Research'];
-        $adminLabels   = ['Administrative Meeting', 'Admin Coordination', 'Staff Meeting', 'Admin Review', 'Planning Session'];
-        $officeLabels  = ['Office Hours', 'Open Office Hours', 'Faculty Office Hours', 'Student Drop-in', 'Office Consultation'];
-        $deptLabels    = ['Department Meeting', 'Dept. Coordination', 'Dept. Review', 'Dept. Planning', 'Dept. Assembly'];
-        $coordLabels   = ['Program Coordination', 'Program Review', 'Coordination Meeting', 'Program Planning', 'Coord. Session'];
-        $currLabels    = ['Curriculum Review', 'Curriculum Planning', 'Accreditation Tasks', 'Program Assessment', 'Curriculum Dev'];
-        $weeklyLabels  = ['Weekly Review', 'Weekly Wrap-up', 'End-of-Week Meeting', 'Weekly Summary', 'Weekly Planning'];
+        $lectureLabels  = ['Class - Lecture', 'Class - Discussion', 'Class - Recitation', 'Class - Review', 'Class - Seminar'];
+        $labLabels      = ['Class - Lab', 'Class - Workshop', 'Class - Practicum', 'Class - Studio', 'Class - Simulation'];
+        $consultLabels  = ['Consultation Hours', 'Student Advising', 'Office Consultation', 'Academic Advising', 'Student Mentoring'];
+        $researchLabels = ['Research / Prep', 'Research Work', 'Module Preparation', 'Curriculum Dev', 'Academic Research'];
+        $adminLabels    = ['Administrative Meeting', 'Admin Coordination', 'Staff Meeting', 'Admin Review', 'Planning Session'];
+        $officeLabels   = ['Office Hours', 'Open Office Hours', 'Faculty Office Hours', 'Student Drop-in', 'Office Consultation'];
+        $deptLabels     = ['Department Meeting', 'Dept. Coordination', 'Dept. Review', 'Dept. Planning', 'Dept. Assembly'];
+        $coordLabels    = ['Program Coordination', 'Program Review', 'Coordination Meeting', 'Program Planning', 'Coord. Session'];
+        $currLabels     = ['Curriculum Review', 'Curriculum Planning', 'Accreditation Tasks', 'Program Assessment', 'Curriculum Dev'];
+        $weeklyLabels   = ['Weekly Review', 'Weekly Wrap-up', 'End-of-Week Meeting', 'Weekly Summary', 'Weekly Planning'];
 
         $pick = fn(array $arr) => $arr[$seed % count($arr)];
 
-        // Day rotation: shift the day set by (seed % 2) to vary Mon/Tue/Wed/Thu/Fri combos
-        // We keep the same 5 working days but vary which slots land on which days
         $dayRotations = [
-            [0 => 'Monday', 1 => 'Tuesday', 2 => 'Wednesday', 3 => 'Thursday', 4 => 'Friday'],
-            [0 => 'Monday', 1 => 'Wednesday', 2 => 'Tuesday', 3 => 'Friday', 4 => 'Thursday'],
-            [0 => 'Tuesday', 1 => 'Monday', 2 => 'Thursday', 3 => 'Wednesday', 4 => 'Friday'],
-            [0 => 'Wednesday', 1 => 'Monday', 2 => 'Friday', 3 => 'Tuesday', 4 => 'Thursday'],
-            [0 => 'Thursday', 1 => 'Tuesday', 2 => 'Monday', 3 => 'Friday', 4 => 'Wednesday'],
+            [0 => 'Monday', 1 => 'Tuesday',   2 => 'Wednesday', 3 => 'Thursday', 4 => 'Friday'],
+            [0 => 'Monday', 1 => 'Wednesday',  2 => 'Tuesday',   3 => 'Friday',   4 => 'Thursday'],
+            [0 => 'Tuesday', 1 => 'Monday',    2 => 'Thursday',  3 => 'Wednesday', 4 => 'Friday'],
+            [0 => 'Wednesday', 1 => 'Monday',  2 => 'Friday',    3 => 'Tuesday',  4 => 'Thursday'],
+            [0 => 'Thursday', 1 => 'Tuesday',  2 => 'Monday',    3 => 'Friday',   4 => 'Wednesday'],
         ];
         $days = $dayRotations[$seed % count($dayRotations)];
 
         if ($pattern === 'heavy') {
             return [
-                ['day' => $days[0], 'start' => $addMinutes('07:30', $offset),      'end' => $addMinutes('09:00', $offset),  'desc' => $pick($adminLabels)],
-                ['day' => $days[0], 'start' => $addMinutes('10:00', $offset),      'end' => $addMinutes('12:00', $offset),  'desc' => $pick($officeLabels)],
-                ['day' => $days[1], 'start' => $addMinutes('08:00', $offset),      'end' => $addMinutes('10:00', $offset),  'desc' => $pick($deptLabels)],
-                ['day' => $days[1], 'start' => $addMinutes('13:00', $offset),      'end' => $addMinutes('15:00', $offset),  'desc' => $pick($consultLabels)],
-                ['day' => $days[2], 'start' => $addMinutes('07:30', $offset),      'end' => $addMinutes('09:30', $offset),  'desc' => 'Faculty Meeting'],
-                ['day' => $days[2], 'start' => $addMinutes('10:00', $offset),      'end' => $addMinutes('12:00', $offset),  'desc' => $pick($officeLabels)],
-                ['day' => $days[3], 'start' => $addMinutes('08:00', $offset),      'end' => $addMinutes('10:00', $offset),  'desc' => 'Administrative Tasks'],
-                ['day' => $days[3], 'start' => $addMinutes('13:00', $offset),      'end' => $addMinutes('15:00', $offset),  'desc' => $pick($consultLabels)],
-                ['day' => $days[4], 'start' => $addMinutes('07:30', $offset),      'end' => $addMinutes('09:00', $offset),  'desc' => $pick($weeklyLabels)],
-                ['day' => $days[4], 'start' => $addMinutes('10:00', $offset),      'end' => $addMinutes('12:00', $offset),  'desc' => $pick($officeLabels)],
+                ['day' => $days[0], 'start' => $addMinutes('07:30', $offset), 'end' => $addMinutes('09:00', $offset), 'desc' => $pick($adminLabels)],
+                ['day' => $days[0], 'start' => $addMinutes('10:00', $offset), 'end' => $addMinutes('12:00', $offset), 'desc' => $pick($officeLabels)],
+                ['day' => $days[1], 'start' => $addMinutes('08:00', $offset), 'end' => $addMinutes('10:00', $offset), 'desc' => $pick($deptLabels)],
+                ['day' => $days[1], 'start' => $addMinutes('13:00', $offset), 'end' => $addMinutes('15:00', $offset), 'desc' => $pick($consultLabels)],
+                ['day' => $days[2], 'start' => $addMinutes('07:30', $offset), 'end' => $addMinutes('09:30', $offset), 'desc' => 'Faculty Meeting'],
+                ['day' => $days[2], 'start' => $addMinutes('10:00', $offset), 'end' => $addMinutes('12:00', $offset), 'desc' => $pick($officeLabels)],
+                ['day' => $days[3], 'start' => $addMinutes('08:00', $offset), 'end' => $addMinutes('10:00', $offset), 'desc' => 'Administrative Tasks'],
+                ['day' => $days[3], 'start' => $addMinutes('13:00', $offset), 'end' => $addMinutes('15:00', $offset), 'desc' => $pick($consultLabels)],
+                ['day' => $days[4], 'start' => $addMinutes('07:30', $offset), 'end' => $addMinutes('09:00', $offset), 'desc' => $pick($weeklyLabels)],
+                ['day' => $days[4], 'start' => $addMinutes('10:00', $offset), 'end' => $addMinutes('12:00', $offset), 'desc' => $pick($officeLabels)],
             ];
         }
 
         if ($pattern === 'faculty') {
             return [
-                ['day' => $days[0], 'start' => $addMinutes('07:30', $offset),  'end' => $addMinutes('09:00', $offset),  'desc' => $pick($lectureLabels)],
-                ['day' => $days[0], 'start' => $addMinutes('10:30', $offset),  'end' => $addMinutes('12:00', $offset),  'desc' => $pick($labLabels)],
-                ['day' => $days[1], 'start' => $addMinutes('08:00', $offset),  'end' => $addMinutes('09:30', $offset),  'desc' => $pick($lectureLabels)],
-                ['day' => $days[1], 'start' => $addMinutes('13:00', $offset),  'end' => $addMinutes('14:30', $offset),  'desc' => $pick($lectureLabels)],
-                ['day' => $days[2], 'start' => $addMinutes('07:30', $offset),  'end' => $addMinutes('09:00', $offset),  'desc' => $pick($lectureLabels)],
-                ['day' => $days[2], 'start' => $addMinutes('10:30', $offset),  'end' => $addMinutes('12:00', $offset),  'desc' => $pick($labLabels)],
-                ['day' => $days[3], 'start' => $addMinutes('08:00', $offset),  'end' => $addMinutes('09:30', $offset),  'desc' => $pick($lectureLabels)],
-                ['day' => $days[3], 'start' => $addMinutes('13:00', $offset),  'end' => $addMinutes('14:30', $offset),  'desc' => $pick($consultLabels)],
-                ['day' => $days[4], 'start' => $addMinutes('07:30', $offset),  'end' => $addMinutes('09:00', $offset),  'desc' => $pick($lectureLabels)],
-                ['day' => $days[4], 'start' => $addMinutes('10:00', $offset),  'end' => $addMinutes('11:30', $offset),  'desc' => $pick($researchLabels)],
+                ['day' => $days[0], 'start' => $addMinutes('07:30', $offset), 'end' => $addMinutes('09:00', $offset), 'desc' => $pick($lectureLabels)],
+                ['day' => $days[0], 'start' => $addMinutes('10:30', $offset), 'end' => $addMinutes('12:00', $offset), 'desc' => $pick($labLabels)],
+                ['day' => $days[1], 'start' => $addMinutes('08:00', $offset), 'end' => $addMinutes('09:30', $offset), 'desc' => $pick($lectureLabels)],
+                ['day' => $days[1], 'start' => $addMinutes('13:00', $offset), 'end' => $addMinutes('14:30', $offset), 'desc' => $pick($lectureLabels)],
+                ['day' => $days[2], 'start' => $addMinutes('07:30', $offset), 'end' => $addMinutes('09:00', $offset), 'desc' => $pick($lectureLabels)],
+                ['day' => $days[2], 'start' => $addMinutes('10:30', $offset), 'end' => $addMinutes('12:00', $offset), 'desc' => $pick($labLabels)],
+                ['day' => $days[3], 'start' => $addMinutes('08:00', $offset), 'end' => $addMinutes('09:30', $offset), 'desc' => $pick($lectureLabels)],
+                ['day' => $days[3], 'start' => $addMinutes('13:00', $offset), 'end' => $addMinutes('14:30', $offset), 'desc' => $pick($consultLabels)],
+                ['day' => $days[4], 'start' => $addMinutes('07:30', $offset), 'end' => $addMinutes('09:00', $offset), 'desc' => $pick($lectureLabels)],
+                ['day' => $days[4], 'start' => $addMinutes('10:00', $offset), 'end' => $addMinutes('11:30', $offset), 'desc' => $pick($researchLabels)],
             ];
         }
 
         // coordinator
         return [
-            ['day' => $days[0], 'start' => $addMinutes('08:00', $offset),  'end' => $addMinutes('10:00', $offset),  'desc' => $pick($coordLabels)],
-            ['day' => $days[0], 'start' => $addMinutes('13:00', $offset),  'end' => $addMinutes('15:00', $offset),  'desc' => $pick($officeLabels)],
-            ['day' => $days[1], 'start' => $addMinutes('09:00', $offset),  'end' => $addMinutes('11:00', $offset),  'desc' => $pick($currLabels)],
-            ['day' => $days[2], 'start' => $addMinutes('08:00', $offset),  'end' => $addMinutes('10:00', $offset),  'desc' => $pick($coordLabels)],
-            ['day' => $days[2], 'start' => $addMinutes('13:00', $offset),  'end' => $addMinutes('15:00', $offset),  'desc' => $pick($officeLabels)],
-            ['day' => $days[3], 'start' => $addMinutes('09:00', $offset),  'end' => $addMinutes('11:00', $offset),  'desc' => $pick($currLabels)],
-            ['day' => $days[4], 'start' => $addMinutes('08:00', $offset),  'end' => $addMinutes('10:00', $offset),  'desc' => $pick($weeklyLabels)],
+            ['day' => $days[0], 'start' => $addMinutes('08:00', $offset), 'end' => $addMinutes('10:00', $offset), 'desc' => $pick($coordLabels)],
+            ['day' => $days[0], 'start' => $addMinutes('13:00', $offset), 'end' => $addMinutes('15:00', $offset), 'desc' => $pick($officeLabels)],
+            ['day' => $days[1], 'start' => $addMinutes('09:00', $offset), 'end' => $addMinutes('11:00', $offset), 'desc' => $pick($currLabels)],
+            ['day' => $days[2], 'start' => $addMinutes('08:00', $offset), 'end' => $addMinutes('10:00', $offset), 'desc' => $pick($coordLabels)],
+            ['day' => $days[2], 'start' => $addMinutes('13:00', $offset), 'end' => $addMinutes('15:00', $offset), 'desc' => $pick($officeLabels)],
+            ['day' => $days[3], 'start' => $addMinutes('09:00', $offset), 'end' => $addMinutes('11:00', $offset), 'desc' => $pick($currLabels)],
+            ['day' => $days[4], 'start' => $addMinutes('08:00', $offset), 'end' => $addMinutes('10:00', $offset), 'desc' => $pick($weeklyLabels)],
         ];
     }
 
@@ -132,7 +132,7 @@ class TestUsersSeeder extends Seeder
         ];
 
         // ========================================
-        // 2. DEAN
+        // 2. DEAN (1 - College level)
         // ========================================
         $testUsers[] = [
             'name' => 'Roberto Santos Rodriguez',
@@ -184,7 +184,7 @@ class TestUsersSeeder extends Seeder
         }
 
         // ========================================
-        // 4. COORDINATORS (10 - College level)
+        // 4. COORDINATORS (10 - College level, role = 'Coordinator')
         // ========================================
         $coordinators = [
             ['first' => 'Carlos',    'middle' => 'Miguel', 'last' => 'Aquino'],
@@ -218,8 +218,41 @@ class TestUsersSeeder extends Seeder
         }
 
         // ========================================
-        // 8. CHAIRPERSONS (1 per department = 5 total)
-        // Each chairperson is ONLY a Chairperson — not also a faculty member
+        // 4.5. CEIT FACULTY MEMBERS (10 - College level, role = 'Faculty Member')
+        // ========================================
+        $ceitFaculty = [
+            ['first' => 'Luzviminda', 'middle' => 'Perez',  'last' => 'Rivera'],
+            ['first' => 'Arturo',     'middle' => 'Luis',   'last' => 'Gomez'],
+            ['first' => 'Teresa',     'middle' => 'Ann',    'last' => 'Salvador'],
+            ['first' => 'Enrique',    'middle' => 'Jose',   'last' => 'Villanueva'],
+            ['first' => 'Josefina',   'middle' => 'Marie',  'last' => 'Mendoza'],
+            ['first' => 'Rogelio',    'middle' => 'Pedro',  'last' => 'Cabrera'],
+            ['first' => 'Beatrice',   'middle' => 'Mae',    'last' => 'Ramos'],
+            ['first' => 'Guillermo',  'middle' => 'Juan',   'last' => 'Tolentino'],
+            ['first' => 'Clarissa',   'middle' => 'Joy',    'last' => 'Navarro'],
+            ['first' => 'Victor',     'middle' => 'Manuel', 'last' => 'Bautista'],
+        ];
+
+        foreach ($ceitFaculty as $index => $faculty) {
+            $n = $index + 1;
+            $testUsers[] = [
+                'name' => "{$faculty['first']} {$faculty['middle']} {$faculty['last']}",
+                'first_name' => $faculty['first'],
+                'middle_name' => $faculty['middle'],
+                'last_name' => $faculty['last'],
+                'email' => strtolower("{$faculty['first']}.{$faculty['last']}.ceitfac{$n}@cvsu.edu.ph"),
+                'password' => Hash::make('11111111'),
+                'department' => 'College of Engineering and Information Technology',
+                'role' => 'Faculty Member',
+                'is_validated' => true,
+                'email_verified_at' => now(),
+                'schedule_initialized' => true,
+                'schedule_pattern' => 'faculty',
+            ];
+        }
+
+        // ========================================
+        // 5. CHAIRPERSONS (1 per department = 5 total)
         // ========================================
         $chairpersons = [
             'DAFE'  => ['first' => 'Maria',   'middle' => 'Santos', 'last' => 'Garcia'],
@@ -247,62 +280,40 @@ class TestUsersSeeder extends Seeder
         }
 
         // ========================================
-        // 6. CEIT FACULTY MEMBERS (10 - College level)
-        // ========================================
-        $ceitFaculty = [
-            ['first' => 'Bernard',   'middle' => 'Luis',    'last' => 'Castillo'],
-            ['first' => 'Rowena',    'middle' => 'Grace',   'last' => 'Dela Rosa'],
-            ['first' => 'Nestor',    'middle' => 'Jose',    'last' => 'Evangelista'],
-            ['first' => 'Maribel',   'middle' => 'Anne',    'last' => 'Fajardo'],
-            ['first' => 'Gregorio',  'middle' => 'Pablo',   'last' => 'Gutierrez'],
-            ['first' => 'Leonora',   'middle' => 'Mae',     'last' => 'Hidalgo'],
-            ['first' => 'Arsenio',   'middle' => 'Carlos',  'last' => 'Ignacio'],
-            ['first' => 'Perpetua',  'middle' => 'Rosa',    'last' => 'Jacinto'],
-            ['first' => 'Wilfredo',  'middle' => 'Angel',   'last' => 'Lacson'],
-            ['first' => 'Consolacion','middle' => 'Isabel', 'last' => 'Macapagal'],
-        ];
-
-        foreach ($ceitFaculty as $index => $faculty) {
-            $n = $index + 1;
-            $testUsers[] = [
-                'name' => "{$faculty['first']} {$faculty['middle']} {$faculty['last']}",
-                'first_name' => $faculty['first'],
-                'middle_name' => $faculty['middle'],
-                'last_name' => $faculty['last'],
-                'email' => strtolower("{$faculty['first']}.{$faculty['last']}.fac{$n}.CEIT@cvsu.edu.ph"),
-                'password' => Hash::make('11111111'),
-                'department' => 'College of Engineering and Information Technology',
-                'role' => 'Faculty Member',
-                'is_validated' => true,
-                'email_verified_at' => now(),
-                'schedule_initialized' => true,
-                'schedule_pattern' => 'faculty',
-            ];
-        }
-
-        // ========================================
-        // 7. DEPARTMENT COORDINATORS (3 types × 5 departments = 15 total)
-        // Research Coordinator, Extension Coordinator, GAD Coordinator
+        // 6. DEPARTMENT COORDINATORS
+        //    1 Research Coordinator per department (5 total)
+        //    1 Extension Coordinator per department (5 total)
+        //    1 GAD Coordinator per department (5 total)
         // ========================================
         $deptCoordinators = [
+            'Program Coordinator' => [
+                'abbrev' => 'progcoord',
+                'people' => [
+                    'DAFE'  => ['first' => 'Herminia',  'middle' => 'Cruz',   'last' => 'Buenaventura'],
+                    'DCEEE' => ['first' => 'Simplicio', 'middle' => 'Reyes',  'last' => 'Catalan'],
+                    'DCEA'  => ['first' => 'Adoracion', 'middle' => 'Santos', 'last' => 'Delos Reyes'],
+                    'DIET'  => ['first' => 'Prudencio', 'middle' => 'Garcia', 'last' => 'Enriquez'],
+                    'DIT'   => ['first' => 'Filomena',  'middle' => 'Lopez',  'last' => 'Fuentes'],
+                ],
+            ],
             'Research Coordinator' => [
                 'abbrev' => 'rescoord',
                 'people' => [
-                    'DAFE'  => ['first' => 'Jose',     'middle' => 'Ramon',   'last' => 'Santos'],
-                    'DCEEE' => ['first' => 'Maricel',  'middle' => 'Grace',   'last' => 'Flores'],
-                    'DCEA'  => ['first' => 'Renato',   'middle' => 'Luis',    'last' => 'Aguilar'],
-                    'DIET'  => ['first' => 'Teresita', 'middle' => 'Joy',     'last' => 'Domingo'],
-                    'DIT'   => ['first' => 'Danilo',   'middle' => 'Miguel',  'last' => 'Pascual'],
+                    'DAFE'  => ['first' => 'Jose',     'middle' => 'Ramon',  'last' => 'Santos'],
+                    'DCEEE' => ['first' => 'Maricel',  'middle' => 'Grace',  'last' => 'Flores'],
+                    'DCEA'  => ['first' => 'Renato',   'middle' => 'Luis',   'last' => 'Aguilar'],
+                    'DIET'  => ['first' => 'Teresita', 'middle' => 'Joy',    'last' => 'Domingo'],
+                    'DIT'   => ['first' => 'Danilo',   'middle' => 'Miguel', 'last' => 'Pascual'],
                 ],
             ],
             'Extension Coordinator' => [
                 'abbrev' => 'extcoord',
                 'people' => [
-                    'DAFE'  => ['first' => 'Rosario',  'middle' => 'Elena',   'last' => 'Cabrera'],
-                    'DCEEE' => ['first' => 'Ernesto',  'middle' => 'Pablo',   'last' => 'Salazar'],
-                    'DCEA'  => ['first' => 'Lourdes',  'middle' => 'Mae',     'last' => 'Vargas'],
-                    'DIET'  => ['first' => 'Rodrigo',  'middle' => 'Jose',    'last' => 'Medina'],
-                    'DIT'   => ['first' => 'Corazon',  'middle' => 'Isabel',  'last' => 'Espinosa'],
+                    'DAFE'  => ['first' => 'Rosario', 'middle' => 'Elena',  'last' => 'Cabrera'],
+                    'DCEEE' => ['first' => 'Ernesto', 'middle' => 'Pablo',  'last' => 'Salazar'],
+                    'DCEA'  => ['first' => 'Lourdes', 'middle' => 'Mae',    'last' => 'Vargas'],
+                    'DIET'  => ['first' => 'Rodrigo', 'middle' => 'Jose',   'last' => 'Medina'],
+                    'DIT'   => ['first' => 'Corazon', 'middle' => 'Isabel', 'last' => 'Espinosa'],
                 ],
             ],
             'GAD Coordinator' => [
@@ -337,8 +348,7 @@ class TestUsersSeeder extends Seeder
         }
 
         // ========================================
-        // 9. FACULTY MEMBERS (10 per department = 50 total)
-        // These are SEPARATE people from the chairpersons
+        // 7. FACULTY MEMBERS (10 per department = 50 total)
         // ========================================
         $facultyNames = [
             ['first' => 'Jennifer',  'middle' => 'Mae',    'last' => 'Lopez'],
@@ -381,10 +391,7 @@ class TestUsersSeeder extends Seeder
         $schedulesCreated = 0;
         $now = now();
 
-        DB::transaction(function () use (
-            $testUsers,
-            &$created, &$existing, &$schedulesCreated, $now
-        ) {
+        DB::transaction(function () use ($testUsers, &$created, &$existing, &$schedulesCreated, $now) {
             foreach ($testUsers as $userIndex => $userData) {
                 $pattern = $userData['schedule_pattern'];
                 unset($userData['schedule_pattern']);
@@ -398,11 +405,8 @@ class TestUsersSeeder extends Seeder
                     $existing++;
                 }
 
-                // Seed schedules if a pattern is defined and user has none yet
-                // Each user gets a unique schedule via their index as the seed
                 if ($pattern && UserSchedule::where('user_id', $user->id)->doesntExist()) {
                     $slots = $this->generateSchedule($pattern, $userIndex);
-                    // Determine current semester and school year for seeded schedules
                     $seedMonth = (int)$now->format('m');
                     $seedYear  = (int)$now->format('Y');
                     $seedSchoolYear = $seedMonth >= 9 ? "{$seedYear}-" . ($seedYear + 1) : ($seedYear - 1) . "-{$seedYear}";
@@ -428,52 +432,28 @@ class TestUsersSeeder extends Seeder
         });
 
         // ========================================
-        // SUMMARY OUTPUT
+        // SUMMARY
         // ========================================
-        $this->command->info("\n╔════════════════════════════════════════════════════════════════╗");
-        $this->command->info("║          TEST USERS SEEDER - SUMMARY                           ║");
-        $this->command->info("╚════════════════════════════════════════════════════════════════╝");
-        $this->command->info("\n📊 STATISTICS:");
-        $this->command->info("   • Users Created:    {$created}");
-        $this->command->info("   • Already Existing: {$existing}");
-        $this->command->info("   • Total Users:      " . count($testUsers));
-        $this->command->info("   • Schedule Slots:   {$schedulesCreated}");
-        $this->command->info("   • Default Password: 11111111");
-
-        $this->command->info("\n🏛️  COLLEGE LEVEL:");
-        $this->command->info("   • 1 Dean:            dean.rodriguez@cvsu.edu.ph");
-        $this->command->info("   • 10 CEIT Officials: [firstname].[lastname].ceit[1-10]@cvsu.edu.ph");
-        $this->command->info("   • 10 Coordinators:   [firstname].[lastname].coord[1-10]@cvsu.edu.ph");
-        $this->command->info("   • 10 CEIT Faculty:   [firstname].[lastname].fac[1-10].CEIT@cvsu.edu.ph");
-
-        $this->command->info("\n🏢 DEPARTMENT LEVEL (5 Departments):");
-        foreach ($departments as $code => $name) {
-            $this->command->info("   • {$code}: {$name}");
-        }
-
-        $this->command->info("\n   Per Department:");
-        $this->command->info("   • 1 Chairperson:           [firstname].[lastname].chair.[DEPT]@cvsu.edu.ph");
-        $this->command->info("   • 1 Research Coordinator:  [firstname].[lastname].rescoord.[DEPT]@cvsu.edu.ph");
-        $this->command->info("   • 1 Extension Coordinator: [firstname].[lastname].extcoord.[DEPT]@cvsu.edu.ph");
-        $this->command->info("   • 1 GAD Coordinator:       [firstname].[lastname].gadcoord.[DEPT]@cvsu.edu.ph");
-        $this->command->info("   • 10 Faculty Members:      [firstname].[lastname].fac[1-10].[DEPT]@cvsu.edu.ph");
-
-        $this->command->info("\n📧 SAMPLE ACCOUNTS:");
-        $this->command->info("   Admin:            admin@cvsu.edu.ph");
-        $this->command->info("   Dean:             dean.rodriguez@cvsu.edu.ph");
-        $this->command->info("   CEIT Official:    maria.santos.ceit1@cvsu.edu.ph");
-        $this->command->info("   Coordinator:      carlos.aquino.coord1@cvsu.edu.ph");
-        $this->command->info("   Chair (DIT):      anna.delacruz.chair.DIT@cvsu.edu.ph");
-        $this->command->info("   Res. Coord (DIT): danilo.pascual.rescoord.DIT@cvsu.edu.ph");
-        $this->command->info("   Ext. Coord (DIT): corazon.espinosa.extcoord.DIT@cvsu.edu.ph");
-        $this->command->info("   GAD Coord (DIT):  felicidad.ocampo.gadcoord.DIT@cvsu.edu.ph");
-        $this->command->info("   CEIT Faculty:     bernard.castillo.fac1.CEIT@cvsu.edu.ph");
-
-        $this->command->info("\n📅 SCHEDULE PATTERNS:");
-        $this->command->info("   • Dean / Chairpersons: 10 slots/week (admin-heavy, unique per user)");
-        $this->command->info("   • CEIT Officials / All Coordinators: 7 slots/week (unique per user)");
-        $this->command->info("   • Faculty Members: 10 slots/week (class schedule, unique per user)");
-
-        $this->command->info("\n✅ Seeding completed successfully!\n");
+        $total = count($testUsers);
+        $this->command->info("\n╔══════════════════════════════════════════════╗");
+        $this->command->info("║       TEST USERS SEEDER - SUMMARY            ║");
+        $this->command->info("╚══════════════════════════════════════════════╝");
+        $this->command->info("  Users Created:    {$created}");
+        $this->command->info("  Already Existing: {$existing}");
+        $this->command->info("  Total Users:      {$total}");
+        $this->command->info("  Schedule Slots:   {$schedulesCreated}");
+        $this->command->info("  Default Password: 11111111");
+        $this->command->info("\n  CEIT Level:");
+        $this->command->info("    1 Dean, 10 CEIT Officials, 10 Coordinators, 10 Faculty Members");
+        $this->command->info("\n  Per Department (5 depts):");
+        $this->command->info("    1 Chairperson, 1 Program Coord, 1 Research Coord, 1 Extension Coord, 1 GAD Coord, 10 Faculty");
+        $this->command->info("\n  Sample accounts (password: 11111111):");
+        $this->command->info("    admin@cvsu.edu.ph");
+        $this->command->info("    dean.rodriguez@cvsu.edu.ph");
+        $this->command->info("    carlos.aquino.coord1@cvsu.edu.ph  (Coordinator)");
+        $this->command->info("    anna.delacruz.chair.DIT@cvsu.edu.ph  (Chairperson)");
+        $this->command->info("    danilo.pascual.rescoord.DIT@cvsu.edu.ph  (Research Coordinator)");
+        $this->command->info("    jennifer.lopez.fac1.DIT@cvsu.edu.ph  (Faculty Member)");
+        $this->command->info("\n✅ Done!\n");
     }
 }

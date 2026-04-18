@@ -17,20 +17,34 @@ export default function NotificationBell({ events, user, onNotificationClick }) 
     event.members.some(member => member.id === user?.id && member.status === 'pending')
   );
 
-  // Fetch messages with debouncing
-  useEffect(() => {
-    if (user) {
-      const timer = setTimeout(() => {
-        fetchMessages();
-        // Fetch pending validations if user is admin
-        if (user.role === 'Admin') {
-          fetchPendingValidations();
-        }
-      }, 500); // Debounce by 500ms
-      
-      return () => clearTimeout(timer);
+  // Fetch all notifications reliably
+  const fetchAllNotifications = () => {
+    if (!user?.id) return;
+    fetchMessages();
+    if (user.role === 'Admin') {
+      fetchPendingValidations();
     }
-  }, [user]);
+  };
+
+  // Initial load and 60-second background polling
+  useEffect(() => {
+    if (user?.id) {
+      fetchAllNotifications();
+      
+      const interval = setInterval(() => {
+        fetchAllNotifications();
+      }, 60000);
+      
+      return () => clearInterval(interval);
+    }
+  }, [user?.id, user?.role]);
+
+  // Ensure fresh data immediately upon opening the notification bell
+  useEffect(() => {
+    if (isOpen && user?.id) {
+      fetchAllNotifications();
+    }
+  }, [isOpen, user?.id, user?.role]);
 
   const fetchMessages = async () => {
     try {
