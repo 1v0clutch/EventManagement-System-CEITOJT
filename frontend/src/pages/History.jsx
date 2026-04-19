@@ -27,34 +27,75 @@ export default function History() {
       navigate('/account');
       return;
     }
-    fetchActivities();
-  }, [filterType, filterStatus]);
-
-  const fetchActivities = async (page = 1) => {
-    const startTime = Date.now();
-    const cacheKey = `activities:${user?.id}:${filterType}:${filterStatus}:${page}`;
+    // Check if we have cache for the new filter — if not, clear stale data immediately
+    const cacheKey = `activities:${user?.id}:${filterType}:${filterStatus}:1`;
     const cached = getCache(cacheKey);
+    if (!cached) {
+      setActivities([]);
+      setLoading(true);
+    }
 
-    if (cached) {
-      setActivities(cached.activities);
-      setPagination(cached.pagination);
-      setLoading(false);
-      
-      // Background refresh
+    let cancelled = false;
+
+    const run = async () => {
+      const page = 1;
+      const key = `activities:${user?.id}:${filterType}:${filterStatus}:${page}`;
+      const hit = getCache(key);
+
+      if (hit) {
+        if (!cancelled) {
+          setActivities(hit.activities);
+          setPagination(hit.pagination);
+          setLoading(false);
+        }
+        // Background refresh — only apply if this filter is still active
+        try {
+          const params = { page, per_page: 20 };
+          if (filterType !== 'all') params.type = filterType;
+          if (filterStatus !== 'all') params.status = filterStatus;
+          const response = await api.get('/activities', { params });
+          if (!cancelled) {
+            setCache(key, response.data);
+            setActivities(response.data.activities);
+            setPagination(response.data.pagination);
+          }
+        } catch { /* silently fail */ }
+        return;
+      }
+
       try {
         const params = { page, per_page: 20 };
         if (filterType !== 'all') params.type = filterType;
         if (filterStatus !== 'all') params.status = filterStatus;
         const response = await api.get('/activities', { params });
-        setCache(cacheKey, response.data);
-        setActivities(response.data.activities);
-        setPagination(response.data.pagination);
-      } catch { /* silently fail */ }
+        if (!cancelled) {
+          setCache(key, response.data);
+          setActivities(response.data.activities);
+          setPagination(response.data.pagination);
+        }
+      } catch (error) {
+        if (!cancelled) console.error('Error fetching activities:', error);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+
+    run();
+
+    return () => { cancelled = true; };
+  }, [filterType, filterStatus]);
+
+  const fetchActivities = async (page = 1) => {
+    const cacheKey = `activities:${user?.id}:${filterType}:${filterStatus}:${page}`;
+    const cached = getCache(cacheKey);
+    if (cached) {
+      setActivities(cached.activities);
+      setPagination(cached.pagination);
+      setLoading(false);
       return;
     }
-
+    setLoading(true);
     try {
-      setLoading(true);
       const params = { page, per_page: 20 };
       if (filterType !== 'all') params.type = filterType;
       if (filterStatus !== 'all') params.status = filterStatus;
@@ -175,6 +216,19 @@ export default function History() {
     if (type === 'event_invited') {
       if (status === 'accepted') return <span className="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-700">Accepted</span>;
       if (status === 'declined') return <span className="px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-700">Declined</span>;
+      // Pending — check if the event date has already passed
+      const today = new Date().toISOString().split('T')[0];
+      const isExpired = activity?.date && activity.date < today;
+      if (isExpired) {
+        return (
+          <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-500">
+            <svg className="w-3 h-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
+            </svg>
+            Expired
+          </span>
+        );
+      }
       return <span className="px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-700">Pending</span>;
     }
 
@@ -247,7 +301,7 @@ export default function History() {
               <button
                 onClick={() => { setFilterType('event_hosted'); setFilterStatus('all'); }}
                 className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                  filterType === 'event_hosted'
+                  filterType === 'event_hosted' && filterStatus === 'all'
                     ? 'bg-red-500 text-white'
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}
@@ -267,7 +321,7 @@ export default function History() {
               <button
                 onClick={() => { setFilterType('event_invited'); setFilterStatus('accepted'); }}
                 className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                  filterStatus === 'accepted'
+                  filterType === 'event_invited' && filterStatus === 'accepted'
                     ? 'bg-green-600 text-white'
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}
@@ -277,7 +331,7 @@ export default function History() {
               <button
                 onClick={() => { setFilterType('event_invited'); setFilterStatus('declined'); }}
                 className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                  filterStatus === 'declined'
+                  filterType === 'event_invited' && filterStatus === 'declined'
                     ? 'bg-red-500 text-white'
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}
@@ -287,7 +341,7 @@ export default function History() {
               <button
                 onClick={() => { setFilterType('event_invited'); setFilterStatus('pending'); }}
                 className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                  filterStatus === 'pending'
+                  filterType === 'event_invited' && filterStatus === 'pending'
                     ? 'bg-yellow-500 text-white'
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}

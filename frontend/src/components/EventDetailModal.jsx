@@ -14,6 +14,8 @@ export default function EventDetailModal({ isOpen, onClose, event, currentUser, 
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const dragRef = useRef({ startX: 0, startY: 0, panX: 0, panY: 0 });
+  const [membersPanelStyle, setMembersPanelStyle] = useState({});
+  const mainModalRef = useRef(null);
 
   useEffect(() => {
     setLocalStatus(null);
@@ -29,6 +31,41 @@ export default function EventDetailModal({ isOpen, onClose, event, currentUser, 
     setZoom(1);
     setPan({ x: 0, y: 0 });
   }, [currentImageIndex]);
+
+  // Compute members panel position — parallel on large screens, inline on small
+  useEffect(() => {
+    if (!isMembersDropdownOpen) return;
+
+    const compute = () => {
+      // max-w-7xl = 1280px. Modal has ~32px padding on each side from Modal component.
+      // On screens wider than 1280+380+24 (panel+gap), show parallel to the left.
+      const MODAL_HALF = 640; // half of max-w-7xl
+      const PANEL_W = 360;
+      const GAP = 16;
+      const spaceNeeded = MODAL_HALF + PANEL_W + GAP;
+
+      if (window.innerWidth / 2 >= spaceNeeded) {
+        // Large screen — parallel to the left of the main modal
+        setMembersPanelStyle({
+          position: 'fixed',
+          width: `${PANEL_W}px`,
+          maxHeight: '80vh',
+          top: '50%',
+          left: `calc(50% - ${MODAL_HALF + PANEL_W + GAP}px)`,
+          transform: 'translateY(-50%)',
+          zIndex: 60,
+          animation: 'membersSlideIn 0.18s ease-out',
+        });
+      } else {
+        // Small/medium screen — show as inline expanded section inside modal (no fixed)
+        setMembersPanelStyle({ inline: true });
+      }
+    };
+
+    compute();
+    window.addEventListener('resize', compute);
+    return () => window.removeEventListener('resize', compute);
+  }, [isMembersDropdownOpen]);
 
   const getFixedImageUrl = (url) => {
     if (!url) return '';
@@ -171,21 +208,20 @@ export default function EventDetailModal({ isOpen, onClose, event, currentUser, 
 
   const colorDot = event.is_default_event || !event.time ? 'bg-blue-500'
     : event.is_personal ? 'bg-purple-500'
-    : event.event_type === 'meeting'
-      ? (isHost ? 'bg-amber-800' : 'bg-yellow-500')
-      : (isHost ? 'bg-red-500' : 'bg-green-500');
+    : isHost ? 'bg-red-500'
+    : 'bg-green-500';
 
   const currentFile = event.images?.[currentImageIndex];
   const currentFileUrl = currentFile ? getImageUrl(currentFile) : '';
   const isPdf = currentFileUrl.toLowerCase().endsWith('.pdf');
 
   return (
-    <Modal isOpen={isOpen} onClose={handleClose} title="Event Details" maxWidth="max-w-5xl">
-      {/* Two-col when images, single col otherwise */}
-      <div className={hasImages
-        ? 'flex flex-col lg:flex-row lg:gap-8'
-        : 'max-w-2xl mx-auto space-y-5'
-      }>
+    <Modal isOpen={isOpen} onClose={handleClose} title="Event Details" maxWidth="max-w-7xl">
+      <div ref={mainModalRef}>
+        <div className={hasImages
+          ? 'flex flex-col lg:flex-row lg:gap-8'
+          : 'max-w-2xl mx-auto space-y-5'
+        }>
 
         {/* ── Details column ── */}
         <div className={`space-y-5 ${hasImages ? 'lg:w-[42%] flex-shrink-0' : ''}`}>
@@ -222,6 +258,37 @@ export default function EventDetailModal({ isOpen, onClose, event, currentUser, 
                   : `${event.date} at ${event.time}`}
               </span>
             </p>
+            {/* Event/Meeting type badge */}
+            {!event.is_default_event && !event.is_personal && (
+              <div className="flex items-center justify-center mt-2 gap-2">
+                <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold ${
+                  event.event_type === 'meeting'
+                    ? 'bg-amber-100 text-amber-800'
+                    : 'bg-blue-100 text-blue-800'
+                }`}>
+                  {event.event_type === 'meeting' ? (
+                    <>
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                      Meeting
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                      Event
+                    </>
+                  )}
+                </span>
+                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${
+                  isHost ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'
+                }`}>
+                  {isHost ? 'Hosting' : 'Invited'}
+                </span>
+              </div>
+            )}
           </div>
 
           {/* Schedule Conflict Banner */}
@@ -327,7 +394,7 @@ export default function EventDetailModal({ isOpen, onClose, event, currentUser, 
           {/* Members dropdown */}
           {event.members && event.members.length > 0 && (
             <div>
-              <button onClick={() => setIsMembersDropdownOpen(!isMembersDropdownOpen)}
+              <button onClick={() => { setIsMembersDropdownOpen(!isMembersDropdownOpen); setMembersPage(1); }}
                 className="w-full flex items-center justify-between bg-gray-50 hover:bg-gray-100 rounded-xl p-3 sm:p-4 transition-colors touch-manipulation">
                 <div className="flex items-center gap-3 min-w-0 flex-1">
                   <div className="bg-green-100 rounded-lg p-2 flex-shrink-0">
@@ -358,44 +425,6 @@ export default function EventDetailModal({ isOpen, onClose, event, currentUser, 
                   </svg>
                 </div>
               </button>
-
-              {isMembersDropdownOpen && (
-                <div className="mt-2 space-y-1.5">
-                  {pagedMembers.map((member) => (
-                    <div key={member.id} className="flex items-center justify-between bg-white rounded-xl px-3 py-2.5 border border-gray-100 hover:border-gray-200 transition-colors">
-                      <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                        <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center text-green-700 font-bold text-xs flex-shrink-0">
-                          {(member.username || member.name || '?').charAt(0).toUpperCase()}
-                        </div>
-                        <div className="min-w-0">
-                          <p className="text-sm font-medium text-gray-900 truncate">{member.username || member.name}</p>
-                          <p className="text-xs text-gray-500 truncate">{member.email}</p>
-                        </div>
-                      </div>
-                      <span className={`ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold flex-shrink-0 ${
-                        member.status === 'accepted' ? 'bg-green-100 text-green-800'
-                        : member.status === 'declined' ? 'bg-red-100 text-red-800'
-                        : 'bg-yellow-100 text-yellow-800'
-                      }`}>
-                        {member.status === 'accepted' ? '✔ Accepted' : member.status === 'declined' ? '✘ Declined' : '⏳ Pending'}
-                      </span>
-                    </div>
-                  ))}
-                  {totalPages > 1 && (
-                    <div className="flex items-center justify-between pt-1 px-1">
-                      <button onClick={() => setMembersPage(p => Math.max(1, p - 1))} disabled={membersPage === 1}
-                        className="px-3 py-1 text-xs font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
-                        ← Prev
-                      </button>
-                      <span className="text-xs text-gray-500">{membersPage} / {totalPages}</span>
-                      <button onClick={() => setMembersPage(p => Math.min(totalPages, p + 1))} disabled={membersPage === totalPages}
-                        className="px-3 py-1 text-xs font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
-                        Next →
-                      </button>
-                    </div>
-                  )}
-                </div>
-              )}
             </div>
           )}
 
@@ -430,6 +459,74 @@ export default function EventDetailModal({ isOpen, onClose, event, currentUser, 
           )}
         </div>
 
+        {/* ── Members panel — parallel on large screens, inline on small ── */}
+        {isMembersDropdownOpen && event.members && event.members.length > 0 && (() => {
+          const panelContent = (
+            <>
+              <style>{`@keyframes membersSlideIn{from{opacity:0;transform:translateY(-50%) translateX(12px)}to{opacity:1;transform:translateY(-50%) translateX(0)}}`}</style>
+              <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 bg-green-50 flex-shrink-0">
+                <div>
+                  <p className="text-sm font-semibold text-gray-900">Invited Members</p>
+                  <p className="text-xs text-gray-500">{event.members.length} member{event.members.length !== 1 ? 's' : ''}</p>
+                </div>
+                <button onClick={() => setIsMembersDropdownOpen(false)}
+                  className="p-1 text-gray-400 hover:text-gray-600 hover:bg-white rounded-lg transition-colors">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              <div className="flex-1 overflow-y-auto p-3 space-y-1.5">
+                {pagedMembers.map((member) => (
+                  <div key={member.id} className="flex items-center justify-between bg-gray-50 rounded-xl px-3 py-2.5 border border-gray-100 hover:border-gray-200 transition-colors">
+                    <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                      <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center text-green-700 font-bold text-xs flex-shrink-0">
+                        {(member.username || member.name || '?').charAt(0).toUpperCase()}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-gray-900 truncate">{member.username || member.name}</p>
+                        <p className="text-xs text-gray-500 truncate">{member.email}</p>
+                      </div>
+                    </div>
+                    <span className={`ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold flex-shrink-0 ${
+                      member.status === 'accepted' ? 'bg-green-100 text-green-800'
+                      : member.status === 'declined' ? 'bg-red-100 text-red-800'
+                      : 'bg-yellow-100 text-yellow-800'
+                    }`}>
+                      {member.status === 'accepted' ? '✔ Accepted' : member.status === 'declined' ? '✘ Declined' : '⏳ Pending'}
+                    </span>
+                  </div>
+                ))}
+              </div>
+              {totalPages > 1 && (
+                <div className="flex items-center justify-between px-4 py-2.5 border-t border-gray-100 bg-gray-50 flex-shrink-0">
+                  <button onClick={() => setMembersPage(p => Math.max(1, p - 1))} disabled={membersPage === 1}
+                    className="px-3 py-1 text-xs font-medium text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
+                    ← Prev
+                  </button>
+                  <span className="text-xs text-gray-500">{membersPage} / {totalPages}</span>
+                  <button onClick={() => setMembersPage(p => Math.min(totalPages, p + 1))} disabled={membersPage === totalPages}
+                    className="px-3 py-1 text-xs font-medium text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
+                    Next →
+                  </button>
+                </div>
+              )}
+            </>
+          );
+
+          return membersPanelStyle.inline ? (
+            // Small screen — inline inside the modal
+            <div className="mt-3 bg-white rounded-2xl border border-gray-200 shadow-sm flex flex-col overflow-hidden max-h-80">
+              {panelContent}
+            </div>
+          ) : (
+            // Large screen — fixed parallel panel to the left
+            <div className="bg-white rounded-2xl border border-gray-200 shadow-2xl flex flex-col overflow-hidden" style={membersPanelStyle}>
+              {panelContent}
+            </div>
+          );
+        })()}
+
         {/* ── Files column (only when images exist) ── */}
         {hasImages && (
           <div className="flex-1 min-w-0 space-y-3">
@@ -438,8 +535,8 @@ export default function EventDetailModal({ isOpen, onClose, event, currentUser, 
             </p>
 
             {/* Main viewer */}
-            <div className="relative bg-gray-50 rounded-2xl border border-gray-100 overflow-hidden" style={{ minHeight: '280px' }}>
-              <div className="relative w-full h-64 sm:h-80 lg:h-96 bg-white">
+            <div className="relative bg-gray-50 rounded-2xl border border-gray-100 overflow-hidden" style={{ minHeight: '320px' }}>
+              <div className="relative w-full h-80 sm:h-[28rem] lg:h-[36rem] bg-white">
                 {isPdf ? (
                   <div className="w-full h-full flex flex-col items-center justify-center bg-red-50 p-4">
                     <svg className="w-16 h-16 sm:w-20 sm:h-20 text-red-500 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -549,6 +646,7 @@ export default function EventDetailModal({ isOpen, onClose, event, currentUser, 
             </div>
           </div>
         )}
+      </div>
       </div>
     </Modal>
   );

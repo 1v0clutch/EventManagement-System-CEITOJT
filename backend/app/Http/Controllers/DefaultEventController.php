@@ -326,7 +326,6 @@ class DefaultEventController extends Controller
             'month' => $date->month,
             'created_by' => $request->user()?->id,
         ]);
-        ]);
 
         return response()->json([
             'message' => 'Event created successfully',

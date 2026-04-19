@@ -4,3 +4,24 @@
 -added and expiry on the events no accepted/declined(pending) to the dashboard when the day has passed
 -fixed notification dynamically showing up on the dashboard
 -fixed notifications schedule conflict on the personal event blcoked
+
+-Tested Login-Logout Interfaces
+-Tested Calendar Dashboard Interfaces and Class Schedules dynamic features
+-Added an expired feature on /history tab where pending events that expired are added an indicator
+-Fixing the bug on the History filters where pending events bugging out when briefly pressing all then going back to pending filter
+
+-Testing Personal Events Features showing up on dashboard
+-Testing Events modals 
+-Testing creating an event to /dashboard
+-Improving the UI of the Invited members features on the event modals
+
+-Making the Invited members feature UI responsive to screen sizes
+-Improving the Event Files display bigger as well on Event+Meeting invitation
+-Fixing Academic Year bug on Admin/Dean
+-Tested Academic Year Adding new events feature
+-Improving the Academic Year Setting feature UI bug
+
+-Fixing the bug where the academic year event setting is inconsistently showing up on the dashboard
+-Fixed PillBoxes UI Schedule conflicts and Improved UI
+-Merged Event/meeting color coding to 1 per hosted/invited to avoid confusion on dashboard events then indicate it on the modal instead
+-Tested Add-event UIs of adding Files

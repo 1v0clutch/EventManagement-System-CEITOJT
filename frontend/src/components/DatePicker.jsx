@@ -17,6 +17,8 @@ export default function DatePicker({
   const [isOpen, setIsOpen] = useState(false);
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const datePickerRef = useRef(null);
+  const buttonRef = useRef(null);
+  const [dropdownStyle, setDropdownStyle] = useState({});
   const [focusedDate, setFocusedDate] = useState(null);
 
   // Notify parent when dropdown opens/closes
@@ -25,6 +27,27 @@ export default function DatePicker({
       onOpenChange(isOpen);
     }
   }, [isOpen, onOpenChange]);
+
+  // Compute fixed position for the dropdown to escape overflow:hidden parents
+  const computeDropdownStyle = () => {
+    if (!buttonRef.current) return;
+    const rect = buttonRef.current.getBoundingClientRect();
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const spaceAbove = rect.top;
+    const calendarH = 320; // approximate calendar height
+
+    const goUp = dropdownDirection === 'up' || (spaceBelow < calendarH && spaceAbove > spaceBelow);
+
+    setDropdownStyle({
+      position: 'fixed',
+      zIndex: 9999,
+      width: `${Math.max(rect.width, 320)}px`,
+      left: `${rect.left}px`,
+      ...(goUp
+        ? { bottom: `${window.innerHeight - rect.top + 4}px`, top: 'auto' }
+        : { top: `${rect.bottom + 4}px`, bottom: 'auto' }),
+    });
+  };
 
   // Update currentMonth when initialMonth changes
   useEffect(() => {
@@ -135,7 +158,11 @@ export default function DatePicker({
       {/* Date Input Field */}
       <button
         type="button"
-        onClick={() => setIsOpen(!isOpen)}
+        ref={buttonRef}
+        onClick={() => {
+          if (!isOpen) computeDropdownStyle();
+          setIsOpen(!isOpen);
+        }}
         className="w-full px-3 py-2.5 border border-gray-300 rounded-lg shadow-sm text-sm text-left bg-white hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-green-600/20 focus:border-green-600 transition-colors"
       >
         <div className="flex items-center justify-between">
@@ -153,10 +180,11 @@ export default function DatePicker({
         </div>
       </button>
 
-      {/* Calendar Dropdown */}
+      {/* Calendar Dropdown — fixed positioned to escape overflow:hidden parents */}
       {isOpen && (
         <div 
-          className={`absolute z-50 ${dropdownDirection === 'up' ? 'bottom-full mb-1' : 'top-full mt-1'} bg-white rounded-xl shadow-2xl border border-gray-200 p-4 w-80 animate-fade-in`}
+          style={dropdownStyle}
+          className="bg-white rounded-xl shadow-2xl border border-gray-200 p-4 w-80 animate-fade-in"
           role="dialog"
           aria-label="Date picker calendar"
         >

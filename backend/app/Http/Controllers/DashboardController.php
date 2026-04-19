@@ -163,9 +163,11 @@ class DashboardController extends Controller
             return [
                 'id' => 'default-date-' . $eventDate->id,
                 'name' => $eventDate->defaultEvent->name ?? 'Academic Event',
+                'title' => $eventDate->defaultEvent->name ?? 'Academic Event',
                 'date' => $date,
                 'end_date' => $endDate,
                 'school_year' => $eventDate->school_year,
+                'is_default_event' => true,
             ];
         });
 
@@ -186,9 +188,11 @@ class DashboardController extends Controller
             return [
                 'id' => 'default-' . $event->id,
                 'name' => $event->name,
+                'title' => $event->name,
                 'date' => $date,
                 'end_date' => $endDate,
                 'school_year' => $event->school_year,
+                'is_default_event' => true,
             ];
         });
         

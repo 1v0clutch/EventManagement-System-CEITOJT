@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import Navbar from '../components/Navbar';
 import DatePicker from '../components/DatePicker';
 import api from '../services/api';
+import { invalidateCache } from '../services/cache';
 
 const DefaultEvents = () => {
   const navigate = useNavigate();
@@ -14,6 +15,7 @@ const DefaultEvents = () => {
   const [error, setError] = useState('');
   const [isAccountDropdownOpen, setIsAccountDropdownOpen] = useState(false);
   const [editingEventId, setEditingEventId] = useState(null);
+  const [editingEvent, setEditingEvent] = useState(null);
   const [selectedDate, setSelectedDate] = useState('');
   const [selectedEndDate, setSelectedEndDate] = useState('');
   const [saving, setSaving] = useState(false);
@@ -35,17 +37,11 @@ const DefaultEvents = () => {
   // Lock body scroll when editing dates
   useEffect(() => {
     if (editingEventId !== null) {
-      // Disable scrolling
       document.body.style.overflow = 'hidden';
     } else {
-      // Re-enable scrolling
       document.body.style.overflow = 'unset';
     }
-
-    // Cleanup on unmount
-    return () => {
-      document.body.style.overflow = 'unset';
-    };
+    return () => { document.body.style.overflow = 'unset'; };
   }, [editingEventId]);
 
   const monthNames = [
@@ -199,24 +195,15 @@ const DefaultEvents = () => {
 
   const handleEditDate = (event) => {
     setEditingEventId(event.id);
-    // If event has a date, use it; otherwise default to first day of the event's month
+    setEditingEvent(event);
     if (event.date) {
-      // Ensure date is in YYYY-MM-DD format for the date input
-      const dateObj = new Date(event.date);
-      const formattedDate = dateObj.toISOString().split('T')[0];
-      setSelectedDate(formattedDate);
+      setSelectedDate(typeof event.date === 'string' ? event.date.substring(0, 10) : event.date);
     } else {
-      // Set default date to first day of the event's designated month
       const yearForMonth = getYearForMonth(event.month);
-      const defaultDate = `${yearForMonth}-${String(event.month).padStart(2, '0')}-01`;
-      setSelectedDate(defaultDate);
+      setSelectedDate(`${yearForMonth}-${String(event.month).padStart(2, '0')}-01`);
     }
-    
-    // Set end date if it exists
     if (event.end_date) {
-      const endDateObj = new Date(event.end_date);
-      const formattedEndDate = endDateObj.toISOString().split('T')[0];
-      setSelectedEndDate(formattedEndDate);
+      setSelectedEndDate(typeof event.end_date === 'string' ? event.end_date.substring(0, 10) : event.end_date);
     } else {
       setSelectedEndDate('');
     }
@@ -224,6 +211,7 @@ const DefaultEvents = () => {
 
   const handleCancelEdit = () => {
     setEditingEventId(null);
+    setEditingEvent(null);
     setSelectedDate('');
     setSelectedEndDate('');
   };
@@ -272,7 +260,14 @@ const DefaultEvents = () => {
       // Refresh the events list to show the event in the correct month
       await fetchDefaultEvents();
       
+      // Invalidate all dashboard caches so the new academic event shows up for everyone
+      // We clear the pattern by removing all cache keys that start with 'cache:dashboard:'
+      Object.keys(localStorage).forEach(key => {
+        if (key.startsWith('cache:dashboard:')) localStorage.removeItem(key);
+      });
+      
       setEditingEventId(null);
+      setEditingEvent(null);
       setSelectedDate('');
       setSelectedEndDate('');
       setError('');
@@ -657,90 +652,25 @@ const DefaultEvents = () => {
                                   </span>
                                 </td>
                                 <td className="px-6 py-4 w-80">
-                                  {editingEventId === event.id ? (
-                                    <div className="space-y-2">
-                                      <div>
-                                        <label className="block text-xs font-semibold text-gray-700 mb-1">
-                                          Start Date
-                                        </label>
-                                        <DatePicker
-                                          selectedDate={selectedDate}
-                                          onDateSelect={(date) => handleDateChange(date, setSelectedDate, 'Start date')}
-                                          minDate={`${currentSchoolYear.split('-')[0]}-09-01`}
-                                          maxDate={`${currentSchoolYear.split('-')[1]}-08-31`}
-                                          excludeSundays={true}
-                                        />
-                                      </div>
-                                      <div>
-                                        <label className="block text-xs font-semibold text-gray-700 mb-1">
-                                          End Date (Optional)
-                                        </label>
-                                        <DatePicker
-                                          selectedDate={selectedEndDate}
-                                          onDateSelect={(date) => handleDateChange(date, setSelectedEndDate, 'End date')}
-                                          minDate={selectedDate || `${currentSchoolYear.split('-')[0]}-09-01`}
-                                          maxDate={`${currentSchoolYear.split('-')[1]}-08-31`}
-                                          excludeSundays={true}
-                                        />
-                                      </div>
-                                      <div className="flex gap-2">
-                                        <button
-                                          onClick={() => handleSaveDate(event)}
-                                          disabled={saving}
-                                          className="flex-1 inline-flex items-center justify-center gap-1 px-3 py-2 text-xs font-bold text-white bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 rounded-lg transition-all duration-200 shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
-                                        >
-                                          {saving ? (
-                                            <>
-                                              <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
-                                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                              </svg>
-                                              Save
-                                            </>
-                                          ) : (
-                                            <>
-                                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-                                              </svg>
-                                              Save
-                                            </>
-                                          )}
-                                        </button>
-                                        <button
-                                          onClick={handleCancelEdit}
-                                          disabled={saving}
-                                          className="flex-1 inline-flex items-center justify-center gap-1 px-3 py-2 text-xs font-bold text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-all duration-200 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                                        >
-                                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                                          </svg>
-                                          Cancel
-                                        </button>
-                                      </div>
-                                    </div>
-                                  ) : (
-                                    <div className="flex items-center gap-2">
-                                      <svg className="w-4 h-4 text-green-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                      </svg>
-                                      <span className={`text-sm font-semibold ${event.date ? 'text-green-700' : 'text-gray-500'}`}>
-                                        {formatDate(event.date, event.end_date)}
-                                      </span>
-                                    </div>
-                                  )}
+                                  <div className="flex items-center gap-2">
+                                    <svg className="w-4 h-4 text-green-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                    </svg>
+                                    <span className={`text-sm font-semibold ${event.date ? 'text-green-700' : 'text-gray-400 italic'}`}>
+                                      {formatDate(event.date, event.end_date)}
+                                    </span>
+                                  </div>
                                 </td>
                                 <td className="px-6 py-4 text-center w-32">
-                                  {editingEventId !== event.id && (
-                                    <button
-                                      onClick={() => handleEditDate(event)}
-                                      className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-green-700 hover:text-white bg-green-100 hover:bg-green-700 rounded-lg transition-all duration-200 shadow-sm hover:shadow-md"
-                                    >
-                                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                      </svg>
-                                      {event.date ? 'Edit' : 'Set'}
-                                    </button>
-                                  )}
+                                  <button
+                                    onClick={() => handleEditDate(event)}
+                                    className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-green-700 hover:text-white bg-green-100 hover:bg-green-700 rounded-lg transition-all duration-200 shadow-sm hover:shadow-md"
+                                  >
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                    </svg>
+                                    {event.date ? 'Edit' : 'Set Date'}
+                                  </button>
                                 </td>
                               </tr>
                             ))}
@@ -899,6 +829,105 @@ const DefaultEvents = () => {
           </div>
         </div>
       </main>
+
+      {/* ── Floating Date Editor Modal ── */}
+      {editingEventId && editingEvent && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl border border-gray-200 w-full max-w-md overflow-hidden">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-green-700 via-green-600 to-green-800 px-6 py-4 flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-bold text-white">{editingEvent.date ? 'Edit Date' : 'Set Date'}</h3>
+                <p className="text-green-200 text-sm mt-0.5 truncate max-w-xs">{editingEvent.name}</p>
+              </div>
+              <button onClick={handleCancelEdit} className="text-white hover:bg-white/20 rounded-lg p-2 transition-colors">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="p-6 space-y-5">
+              {error && (
+                <div className="p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm font-medium flex items-center gap-2">
+                  <svg className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                  </svg>
+                  {error}
+                </div>
+              )}
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-800 mb-2">
+                  Start Date <span className="text-red-500">*</span>
+                </label>
+                <DatePicker
+                  selectedDate={selectedDate}
+                  onDateSelect={(date) => handleDateChange(date, setSelectedDate, 'Start date')}
+                  minDate={`${currentSchoolYear.split('-')[0]}-09-01`}
+                  maxDate={`${currentSchoolYear.split('-')[1]}-08-31`}
+                  excludeSundays={true}
+                />
+                <p className="mt-1 text-xs text-gray-500">Must be within {currentSchoolYear} school year</p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-800 mb-2">
+                  End Date <span className="text-gray-400 font-normal">(optional — for multi-day events)</span>
+                </label>
+                <DatePicker
+                  selectedDate={selectedEndDate}
+                  onDateSelect={(date) => handleDateChange(date, setSelectedEndDate, 'End date')}
+                  minDate={selectedDate || `${currentSchoolYear.split('-')[0]}-09-01`}
+                  maxDate={`${currentSchoolYear.split('-')[1]}-08-31`}
+                  excludeSundays={true}
+                />
+              </div>
+
+              {selectedDate && (
+                <div className="p-3 rounded-lg bg-green-50 border border-green-200 text-sm text-green-800">
+                  <span className="font-semibold">Preview: </span>
+                  {formatDate(selectedDate, selectedEndDate)}
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="px-6 pb-6 flex gap-3">
+              <button
+                onClick={handleCancelEdit}
+                disabled={saving}
+                className="flex-1 py-2.5 text-sm font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => handleSaveDate(editingEvent)}
+                disabled={saving || !selectedDate}
+                className="flex-1 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 rounded-xl transition-all shadow-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {saving ? (
+                  <>
+                    <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                    </svg>
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                    </svg>
+                    Save Date
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

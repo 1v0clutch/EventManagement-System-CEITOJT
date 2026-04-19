@@ -404,7 +404,7 @@ export default function Calendar({ events, defaultEvents = [], userSchedules = [
                   return (
                     <div
                       key={`academic-${idx}`}
-                      className={`text-[8px] sm:text-xs px-1 py-0.5 rounded-sm truncate font-normal shadow-sm transition-all ${isPastDate
+                      className={`text-xs px-1.5 py-1 rounded font-normal shadow-sm transition-all truncate ${isPastDate
                           ? 'bg-gray-300 text-gray-600 opacity-75'
                           : 'bg-blue-500 text-white cursor-pointer hover:bg-blue-600'
                         }`}
@@ -419,27 +419,27 @@ export default function Calendar({ events, defaultEvents = [], userSchedules = [
                   return (
                     <div
                       key={`regular-${idx}`}
-                      className={`text-[8px] sm:text-xs px-1 py-0.5 text-white rounded-sm truncate font-normal shadow-sm transition-all ${isPastDate
+                      className={`text-xs px-1.5 py-1 text-white rounded font-normal shadow-sm transition-all flex items-center justify-between gap-0.5 ${isPastDate
                           ? 'bg-gray-400 opacity-75'
                           : isPersonal
                             ? 'bg-purple-500 hover:bg-purple-600 cursor-pointer'
-                            : isMeeting
-                              ? (isHosted ? 'bg-amber-800 hover:bg-amber-900 cursor-pointer' : 'bg-yellow-500 hover:bg-yellow-600 cursor-pointer')
-                              : (isHosted ? 'bg-red-500 hover:bg-red-600 cursor-pointer' : 'bg-green-500 hover:bg-green-600 cursor-pointer')
+                            : isHosted
+                              ? 'bg-red-500 hover:bg-red-600 cursor-pointer'
+                              : 'bg-green-500 hover:bg-green-600 cursor-pointer'
                         }`}
                       title={`${event.title} ${isPastDate ? '(Past Event)' :
                           isPersonal ? '(Personal)' :
                             isMeeting ? (isHosted ? '(Hosting Meeting)' : '(Invited to Meeting)') :
                               (isHosted ? '(Hosting Event)' : '(Invited to Event)')
-                        }`}
+                        }${hasConflict ? ' ⚠ Schedule conflict' : ''}`}
                       onClick={(e) => !isPastDate && handleEventClick(event, e)}
                     >
+                      <span className="truncate min-w-0">{event.title}</span>
                       {hasConflict && (
-                        <svg className="w-2 h-2 sm:w-2.5 sm:h-2.5 flex-shrink-0 text-yellow-300" fill="currentColor" viewBox="0 0 20 20">
+                        <svg className="w-2.5 h-2.5 flex-shrink-0 text-yellow-300 ml-0.5" fill="currentColor" viewBox="0 0 20 20">
                           <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
                         </svg>
                       )}
-                      <span className="truncate">{event.title}</span>
                     </div>
                   );
                 }
@@ -538,19 +538,11 @@ export default function Calendar({ events, defaultEvents = [], userSchedules = [
             </div>
             <div className="flex items-center gap-1 sm:gap-1.5">
               <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded bg-red-500"></div>
-              <span className="text-gray-600 font-medium">Hosting Event</span>
+              <span className="text-gray-600 font-medium">Hosting</span>
             </div>
             <div className="flex items-center gap-1 sm:gap-1.5">
               <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded bg-green-500"></div>
-              <span className="text-gray-600 font-medium">Invited Event</span>
-            </div>
-            <div className="flex items-center gap-0.5 sm:gap-1 flex-shrink-0">
-              <div className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded bg-amber-800 flex-shrink-0"></div>
-              <span className="text-gray-600 font-medium">Hosting Meeting</span>
-            </div>
-            <div className="flex items-center gap-0.5 sm:gap-1 flex-shrink-0">
-              <div className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded bg-yellow-500 flex-shrink-0"></div>
-              <span className="text-gray-600 font-medium">Invited Meeting</span>
+              <span className="text-gray-600 font-medium">Invited</span>
             </div>
             <div className="flex items-center gap-0.5 sm:gap-1 flex-shrink-0">
               <div className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded bg-purple-500 flex-shrink-0"></div>
@@ -628,9 +620,7 @@ export default function Calendar({ events, defaultEvents = [], userSchedules = [
                         <div className="flex items-start gap-3">
                           <div className={`w-2.5 h-2.5 rounded-full mt-1.5 flex-shrink-0 ${isPersonal
                               ? 'bg-purple-500'
-                              : isMeeting
-                                ? (isHosted ? 'bg-amber-800' : 'bg-yellow-500')
-                                : (isHosted ? 'bg-red-500' : 'bg-green-500')
+                              : isHosted ? 'bg-red-500' : 'bg-green-500'
                             }`}></div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-1.5">
@@ -677,7 +667,7 @@ export default function Calendar({ events, defaultEvents = [], userSchedules = [
                       selectedEvent.is_personal
                         ? 'bg-purple-500'
                         : selectedEvent.event_type === 'meeting'
-                          ? (currentUser && selectedEvent.host && selectedEvent.host.id === currentUser.id ? 'bg-amber-800' : 'bg-yellow-500')
+                          ? (currentUser && selectedEvent.host && selectedEvent.host.id === currentUser.id ? 'bg-red-500' : 'bg-green-500')
                           : (currentUser && selectedEvent.host && selectedEvent.host.id === currentUser.id ? 'bg-red-500' : 'bg-green-500')
                   }`}></div>
                 <h3 className="text-lg font-semibold text-gray-900 truncate">

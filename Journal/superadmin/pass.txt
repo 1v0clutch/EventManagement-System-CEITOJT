@@ -8,3 +8,5 @@ git commit -m ""
 git push origin Integration
 git push deployed Integration:merge-ready
 git push deployed Integration:master
+
+Setup pagpull ng Integration
