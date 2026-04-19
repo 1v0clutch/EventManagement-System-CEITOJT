@@ -1,0 +1,8 @@
+7:00 - Time in WFH
+
+7:00 - 11:00 : Fixing the bug where the academic year event setting is inconsistently showing up on the dashboard
+11:00 - 12:00 : Lunch break
+12:00 - 1:00 : Fixed PillBoxes UI Schedule conflicts and Improved UI
+1:00 - 2:00 : Merged Event/meeting color coding to 1 per hosted/invited to avoid confusion on dashboard events then indicate it on the modal instead
+2:00 - 3:00 : Tested Add-event UIs of adding Files and refix UI
+3:00 - 5:00 : Tested all other implementations

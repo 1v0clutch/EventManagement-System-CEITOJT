@@ -1,0 +1,9 @@
+7:00 - Time in WFH
+
+7:00 - 11:00 : Tested Login-Logout Interfaces
+11:00 - 12:00 : Lunch break
+12:00 - 1:00 : Tested Calendar Dashboard Interfaces and Class Schedules dynamic features
+1:00 - 2:00 :  Added an expired feature on /history tab where pending events that expired are added an indicator
+2:00 - 3:00 : Fixing the bug on the History filters where pending events bugging out when briefly pressing all then going back to pending filter
+3:00 - 5:00 : Tested other implementations and buttons
+
