@@ -11,3 +11,5 @@ git push deployed Integration:master
 
 Setup pagpull sa other repo
 git fetch deployed
+
+Test
