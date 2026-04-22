@@ -76,8 +76,8 @@ return [
             'bucket' => env('SUPABASE_S3_BUCKET', 'event-files'),
             'endpoint' => env('SUPABASE_S3_ENDPOINT'),
             'use_path_style_endpoint' => true,
-            'throw' => false,
-            'report' => false,
+            'throw' => true,
+            'report' => true,
         ],
 
     ],

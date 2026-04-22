@@ -284,7 +284,17 @@ class UserController extends Controller
 
             $file = request()->file('profile_picture');
             $filename = 'profiles/profile_' . $user->id . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
-            \Illuminate\Support\Facades\Storage::disk('supabase')->put($filename, file_get_contents($file->getRealPath()), 'public');
+            try {
+                \Illuminate\Support\Facades\Storage::disk('supabase')->put($filename, file_get_contents($file->getRealPath()), 'public');
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\Log::error('Supabase profile upload failed', [
+                    'error' => $e->getMessage(),
+                    'user_id' => $user->id,
+                ]);
+                return response()->json([
+                    'message' => 'Profile picture upload failed: ' . $e->getMessage()
+                ], 500);
+            }
             $publicUrl = rtrim(env('SUPABASE_PUBLIC_URL'), '/') . '/' . env('SUPABASE_S3_BUCKET') . '/' . $filename;
 
             $validated['profile_picture'] = $publicUrl;

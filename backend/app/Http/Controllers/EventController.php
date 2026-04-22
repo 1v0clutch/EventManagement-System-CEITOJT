@@ -234,7 +234,17 @@ class EventController extends Controller
 
                 // Upload to Supabase Storage
                 $filename = 'events/' . uniqid() . '_' . $image->getClientOriginalName();
-                Storage::disk('supabase')->put($filename, file_get_contents($image->getRealPath()), 'public');
+                try {
+                    Storage::disk('supabase')->put($filename, file_get_contents($image->getRealPath()), 'public');
+                } catch (\Exception $e) {
+                    \Illuminate\Support\Facades\Log::error('Supabase upload failed', [
+                        'error' => $e->getMessage(),
+                        'filename' => $filename,
+                    ]);
+                    return response()->json([
+                        'error' => 'File upload failed: ' . $e->getMessage()
+                    ], 500);
+                }
                 $publicUrl = rtrim(env('SUPABASE_PUBLIC_URL'), '/') . '/' . env('SUPABASE_S3_BUCKET') . '/' . $filename;
 
                 $event->images()->create([
@@ -344,7 +354,17 @@ class EventController extends Controller
             // Add new images via Supabase Storage
             foreach ($request->file('images') as $index => $image) {
                 $filename = 'events/' . uniqid() . '_' . $image->getClientOriginalName();
-                Storage::disk('supabase')->put($filename, file_get_contents($image->getRealPath()), 'public');
+                try {
+                    Storage::disk('supabase')->put($filename, file_get_contents($image->getRealPath()), 'public');
+                } catch (\Exception $e) {
+                    \Illuminate\Support\Facades\Log::error('Supabase upload failed', [
+                        'error' => $e->getMessage(),
+                        'filename' => $filename,
+                    ]);
+                    return response()->json([
+                        'error' => 'File upload failed: ' . $e->getMessage()
+                    ], 500);
+                }
                 $publicUrl = rtrim(env('SUPABASE_PUBLIC_URL'), '/') . '/' . env('SUPABASE_S3_BUCKET') . '/' . $filename;
 
                 $event->images()->create([
