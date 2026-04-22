@@ -213,7 +213,8 @@ export default function EventDetailModal({ isOpen, onClose, event, currentUser, 
 
   const currentFile = event.images?.[currentImageIndex];
   const currentFileUrl = currentFile ? getImageUrl(currentFile) : '';
-  const isPdf = currentFileUrl.toLowerCase().endsWith('.pdf');
+  const isPdf = currentFileUrl.toLowerCase().includes('.pdf') || 
+    (currentFile?.original_filename || '').toLowerCase().endsWith('.pdf');
 
   return (
     <Modal isOpen={isOpen} onClose={handleClose} title="Event Details" maxWidth="max-w-7xl">
@@ -547,8 +548,19 @@ export default function EventDetailModal({ isOpen, onClose, event, currentUser, 
                       {currentFile?.original_filename || decodeURIComponent(currentFileUrl.split('/').pop())}
                     </p>
                     <div className="flex gap-2">
-                      <a href={currentFileUrl} target="_blank" rel="noopener noreferrer"
+                      <button
+                        onClick={() => window.open(currentFileUrl, '_blank', 'noopener,noreferrer')}
                         className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-xs font-medium flex items-center gap-1.5">
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+                        Open
+                      </button>
+                      <a href={currentFileUrl} download={currentFile?.original_filename || 'document.pdf'}
+                        className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-xs font-medium flex items-center gap-1.5">
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                        Download
+                      </a>
+                    </div>
+                  </div>ame="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-xs font-medium flex items-center gap-1.5">
                         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
                         Open
                       </a>
@@ -624,7 +636,8 @@ export default function EventDetailModal({ isOpen, onClose, event, currentUser, 
                 <div className="flex gap-2 p-2 overflow-x-auto bg-gray-50 border-t border-gray-100">
                   {event.images.map((image, index) => {
                     const imgUrl = getImageUrl(image);
-                    const thumbIsPdf = imgUrl.toLowerCase().endsWith('.pdf');
+                    const thumbIsPdf = imgUrl.toLowerCase().includes('.pdf') ||
+                      (image?.original_filename || '').toLowerCase().endsWith('.pdf');
                     return (
                       <button key={index} onClick={() => setCurrentImageIndex(index)}
                         className={`flex-shrink-0 w-14 h-14 rounded-lg overflow-hidden border-2 transition-colors touch-manipulation ${index === currentImageIndex ? 'border-green-500' : 'border-gray-200 hover:border-gray-400'}`}
