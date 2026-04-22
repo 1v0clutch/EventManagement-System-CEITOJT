@@ -18,8 +18,30 @@ Route::get('/reset-password/{token}', function (Request $request, string $token)
     return redirect()->away("{$frontendUrl}/reset-password?{$query}");
 })->name('password.reset');
 
-// Temporary debug route — remove after fixing
-Route::get('/debug-storage', function () {
+// Temporary cleanup route — remove after use
+Route::get('/cleanup-broken-images', function () {
+    $deleted = \Illuminate\Support\Facades\DB::table('event_images')
+        ->where(function ($q) {
+            $q->whereNull('cloudinary_url')
+              ->orWhere('cloudinary_url', 'not like', 'http%')
+              ->orWhere('cloudinary_url', 'like', '%onrender.com%');
+        })
+        ->delete();
+
+    $cleared = \Illuminate\Support\Facades\DB::table('users')
+        ->whereNotNull('profile_picture')
+        ->where(function ($q) {
+            $q->where('profile_picture', 'not like', 'http%')
+              ->orWhere('profile_picture', 'like', '%onrender.com%');
+        })
+        ->update(['profile_picture' => null, 'profile_picture_public_id' => null]);
+
+    return response()->json([
+        'deleted_broken_event_images' => $deleted,
+        'cleared_broken_profile_pictures' => $cleared,
+        'status' => 'done',
+    ]);
+});
     $output = [];
 
     // 1. Check env vars
