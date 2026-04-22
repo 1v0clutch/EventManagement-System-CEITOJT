@@ -275,17 +275,23 @@ class UserController extends Controller
             unset($validated['username']);
         }
 
-        // Handle profile picture upload
+        // Handle profile picture upload via Cloudinary
         if (request()->hasFile('profile_picture')) {
-            // Delete old profile picture if exists
-            if ($user->profile_picture && file_exists(public_path($user->profile_picture))) {
-                unlink(public_path($user->profile_picture));
+            // Delete old Cloudinary asset if it exists
+            if ($user->profile_picture_public_id) {
+                cloudinary()->uploadApi()->destroy($user->profile_picture_public_id);
             }
 
             $file = request()->file('profile_picture');
-            $filename = 'profile_' . $user->id . '_' . time() . '.' . $file->getClientOriginalExtension();
-            $file->move(public_path('uploads/profiles'), $filename);
-            $validated['profile_picture'] = 'uploads/profiles/' . $filename;
+            $uploaded = cloudinary()->uploadApi()->upload($file->getRealPath(), [
+                'folder' => 'profiles',
+                'public_id' => 'profile_' . $user->id,
+                'overwrite' => true,
+                'resource_type' => 'image',
+            ]);
+
+            $validated['profile_picture'] = $uploaded['secure_url'];
+            $validated['profile_picture_public_id'] = $uploaded['public_id'];
         }
 
         // One-time credential change for Admin (email + password)
@@ -325,7 +331,7 @@ class UserController extends Controller
                 'username' => $user->name,
                 'email' => $user->email,
                 'department' => $user->department,
-                'profile_picture' => $user->profile_picture ? url($user->profile_picture) : null,
+                'profile_picture' => $user->profile_picture ?? null,
                 'role' => $user->role,
                 'is_validated' => $user->is_validated,
                 'schedule_initialized' => $user->schedule_initialized ?? false,

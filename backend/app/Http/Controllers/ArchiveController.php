@@ -32,7 +32,7 @@ class ArchiveController extends Controller
             'location' => $event->location,
             'event_type' => $event->event_type ?? 'event',
             'images' => $event->images->map(fn($img) => [
-            'url' => asset('storage/' . $img->image_path),
+            'url' => $img->cloudinary_url ?? asset('storage/' . $img->image_path),
             'original_filename' => $img->original_filename,
             ]),
             'date' => $event->date,
