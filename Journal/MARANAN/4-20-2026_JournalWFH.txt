@@ -1,0 +1,11 @@
+7:00 - Time in
+
+Fixed merge conflicts with vercel
+Redeploye changes to vercel
+
+Determined UI Issues on the other interfaces
+Updated Progress REport
+Updated SRS
+Redeploying system due to expired trial
+DIT-OJT-2026
+adding supabase as the overseer for the pdf-png-jpeg handler of /add-event
