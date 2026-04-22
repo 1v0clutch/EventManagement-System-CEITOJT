@@ -52,7 +52,7 @@ class DashboardController extends Controller
         $events = Event::with([
             'host:id,name,email',
             'members:id,name,email',
-            'images:id,event_id,image_path,original_filename,order',
+            'images:id,event_id,image_path,original_filename,order,cloudinary_url',
         ])
             ->where('host_id', $user->id)
             ->where('date', '>=', now()->subMonths(3)->format('Y-m-d')) // Only last 3 months
@@ -65,7 +65,7 @@ class DashboardController extends Controller
         $memberEvents = Event::with([
             'host:id,name,email',
             'members:id,name,email',
-            'images:id,event_id,image_path,original_filename,order',
+            'images:id,event_id,image_path,original_filename,order,cloudinary_url',
         ])
             ->whereHas('members', fn($q) => $q->where('users.id', $user->id))
             ->where('is_personal', false)
@@ -94,7 +94,7 @@ class DashboardController extends Controller
             ->orderBy('date')
             ->limit(100)
             ->get();
-        
+
         // Also get legacy events from DefaultEvent table (for backward compatibility)
         $legacyDefaultEvents = DefaultEvent::whereNotNull('date')
             ->where(function ($q) use ($schoolYear, $nextSchoolYear) {
@@ -122,7 +122,7 @@ class DashboardController extends Controller
             'location' => $event->location,
             'event_type' => $event->event_type ?? 'event',
             'images' => $event->images->map(fn($img) => [
-            'url' => asset('storage/' . $img->image_path),
+            'url' => $img->cloudinary_url ?? asset('storage/' . $img->image_path),
             'original_filename' => $img->original_filename,
             ]),
             'date' => $date,
@@ -150,24 +150,24 @@ class DashboardController extends Controller
             $date = $eventDate->date;
             if ($date instanceof \DateTime) {
                 $date = $date->format('Y-m-d');
-            } elseif (is_string($date) && strlen($date) > 10) {
+            }
+            elseif (is_string($date) && strlen($date) > 10) {
                 $date = substr($date, 0, 10);
             }
             $endDate = $eventDate->end_date;
             if ($endDate instanceof \DateTime) {
                 $endDate = $endDate->format('Y-m-d');
-            } elseif (is_string($endDate) && strlen($endDate) > 10) {
+            }
+            elseif (is_string($endDate) && strlen($endDate) > 10) {
                 $endDate = substr($endDate, 0, 10);
             }
 
             return [
-                'id' => 'default-date-' . $eventDate->id,
-                'name' => $eventDate->defaultEvent->name ?? 'Academic Event',
-                'title' => $eventDate->defaultEvent->name ?? 'Academic Event',
-                'date' => $date,
-                'end_date' => $endDate,
-                'school_year' => $eventDate->school_year,
-                'is_default_event' => true,
+            'id' => 'default-date-' . $eventDate->id,
+            'name' => $eventDate->defaultEvent->name ?? 'Academic Event',
+            'date' => $date,
+            'end_date' => $endDate,
+            'school_year' => $eventDate->school_year,
             ];
         });
 
@@ -175,27 +175,27 @@ class DashboardController extends Controller
             $date = $event->date;
             if ($date instanceof \DateTime) {
                 $date = $date->format('Y-m-d');
-            } elseif (is_string($date) && strlen($date) > 10) {
+            }
+            elseif (is_string($date) && strlen($date) > 10) {
                 $date = substr($date, 0, 10);
             }
             $endDate = $event->end_date;
             if ($endDate instanceof \DateTime) {
                 $endDate = $endDate->format('Y-m-d');
-            } elseif (is_string($endDate) && strlen($endDate) > 10) {
+            }
+            elseif (is_string($endDate) && strlen($endDate) > 10) {
                 $endDate = substr($endDate, 0, 10);
             }
 
             return [
-                'id' => 'default-' . $event->id,
-                'name' => $event->name,
-                'title' => $event->name,
-                'date' => $date,
-                'end_date' => $endDate,
-                'school_year' => $event->school_year,
-                'is_default_event' => true,
+            'id' => 'default-' . $event->id,
+            'name' => $event->name,
+            'date' => $date,
+            'end_date' => $endDate,
+            'school_year' => $event->school_year,
             ];
         });
-        
+
         // Merge both collections
         $transformedDefaultEvents = $transformedDefaultEventDates->merge($transformedLegacyEvents);
 
@@ -204,9 +204,9 @@ class DashboardController extends Controller
 
         $userSchedules = UserSchedule::where('user_id', $user->id)
             ->where(function ($q) use ($schoolYear, $nextSchoolYear) {
-                $q->whereIn('school_year', [$schoolYear, $nextSchoolYear])
-                  ->orWhereNull('school_year');
-            })
+            $q->whereIn('school_year', [$schoolYear, $nextSchoolYear])
+                ->orWhereNull('school_year');
+        })
             ->select('id', 'day', 'start_time', 'end_time', 'description', 'color', 'semester', 'school_year')
             ->orderBy('semester')
             ->orderBy('day')

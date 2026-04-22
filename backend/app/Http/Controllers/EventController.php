@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Event;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 class EventController extends Controller
 {
@@ -16,7 +17,7 @@ class EventController extends Controller
         $events = Event::with([
             'host:id,name,email',
             'members:id,name,email',
-            'images:id,event_id,image_path,original_filename,order'
+            'images:id,event_id,image_path,original_filename,order,cloudinary_url'
         ])
             ->where(function ($query) use ($user) {
             // User is the host
@@ -50,7 +51,7 @@ class EventController extends Controller
             'location' => $event->location,
             'event_type' => $event->event_type ?? 'event',
             'images' => $event->images->map(fn($img) => [
-            'url' => asset('storage/' . $img->image_path),
+            'url' => $img->cloudinary_url ?? asset('storage/' . $img->image_path),
             'original_filename' => $img->original_filename,
             ]),
             'date' => $event->date,
@@ -89,7 +90,7 @@ class EventController extends Controller
         $events = Event::with([
             'host:id,name,email',
             'members:id,name,email',
-            'images:id,event_id,image_path,original_filename,order'
+            'images:id,event_id,image_path,original_filename,order,cloudinary_url'
         ])
             ->where('is_archived', false)
             ->orderBy('date', 'desc')
@@ -105,7 +106,7 @@ class EventController extends Controller
             'location' => $event->location,
             'event_type' => $event->event_type ?? 'event',
             'images' => $event->images->map(fn($img) => [
-            'url' => asset('storage/' . $img->image_path),
+            'url' => $img->cloudinary_url ?? asset('storage/' . $img->image_path),
             'original_filename' => $img->original_filename,
             ]),
             'date' => $event->date,
@@ -231,12 +232,16 @@ class EventController extends Controller
                     ], 400);
                 }
 
-                $imagePath = $image->store('events', 'public');
-                $originalFilename = $image->getClientOriginalName();
+                // Upload to Cloudinary for persistent storage on live deploy
+                $uploaded = cloudinary()->uploadApi()->upload($image->getRealPath(), [
+                    'folder' => 'events',
+                    'resource_type' => 'auto',
+                ]);
 
                 $event->images()->create([
-                    'image_path' => $imagePath,
-                    'original_filename' => $originalFilename,
+                    'image_path' => $uploaded['public_id'],
+                    'cloudinary_url' => $uploaded['secure_url'],
+                    'original_filename' => $image->getClientOriginalName(),
                     'order' => $index,
                 ]);
             }
@@ -325,20 +330,30 @@ class EventController extends Controller
                 }
             }
 
-            // Delete old images
+            // Delete old images from Cloudinary (or local fallback)
             foreach ($event->images as $oldImage) {
-                \Storage::disk('public')->delete($oldImage->image_path);
+                if ($oldImage->cloudinary_url) {
+                    // Stored in Cloudinary — destroy by public_id
+                    cloudinary()->uploadApi()->destroy($oldImage->image_path);
+                }
+                else {
+                    // Legacy local storage fallback
+                    Storage::disk('public')->delete($oldImage->image_path);
+                }
                 $oldImage->delete();
             }
 
-            // Add new images
+            // Add new images via Cloudinary
             foreach ($request->file('images') as $index => $image) {
-                $imagePath = $image->store('events', 'public');
-                $originalFilename = $image->getClientOriginalName();
+                $uploaded = cloudinary()->uploadApi()->upload($image->getRealPath(), [
+                    'folder' => 'events',
+                    'resource_type' => 'auto',
+                ]);
 
                 $event->images()->create([
-                    'image_path' => $imagePath,
-                    'original_filename' => $originalFilename,
+                    'image_path' => $uploaded['public_id'],
+                    'cloudinary_url' => $uploaded['secure_url'],
+                    'original_filename' => $image->getClientOriginalName(),
                     'order' => $index,
                 ]);
             }
