@@ -14,3 +14,5 @@ Fixed profile picture not being able to add on hosted environment
 fixed issues on pdf, png, jpeg on implementing in the hosted environment
 testing implementation on added new database for fetching pdf
 fixed some event management issues when creating an event conflicting timezones
+improved /account feature to be dynamic
+Fixed OTP getting bypassed when registering then refreshing then trying to login without the otp verification

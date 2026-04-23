@@ -212,6 +212,28 @@ class AuthController extends Controller
         Cache::forget($lockoutKey);
         Cache::forget($lockoutCountKey);
 
+        // Block login if email is not verified — redirect to OTP verification
+        if (!$user->email_verified_at) {
+            // Resend a fresh OTP so they can complete verification
+            $otp = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+            \Illuminate\Support\Facades\DB::table('email_verification_otps')->where('email', $email)->delete();
+            \Illuminate\Support\Facades\DB::table('email_verification_otps')->insert([
+                'email' => $email,
+                'otp' => $otp,
+                'expires_at' => now()->addMinutes(10),
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+            $brevoService = new \App\Services\BrevoMailService();
+            $brevoService->sendRegistrationOtp($email, $otp, $user->name);
+
+            return response()->json([
+                'message' => 'Please verify your email before logging in. A new verification code has been sent.',
+                'requires_verification' => true,
+                'email' => $email,
+            ], 403);
+        }
+
         // Log successful login
         Log::info('Successful login', [
             'user_id' => $user->id,

@@ -161,7 +161,7 @@ const getRoleDescription = (role) =>
 
 export default function AccountDashboard() {
   const navigate = useNavigate();
-  const { user, logout, updateUser } = useAuth();
+  const { user, logout, updateUser, refreshUser } = useAuth();
   const [editMode, setEditMode] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
   const [events, setEvents] = useState([]);
@@ -222,6 +222,9 @@ export default function AccountDashboard() {
     'Department of Computer, Electronics, and Electrical Engineering',
     'Department of Industrial Engineering and Technology'
   ];
+
+  // Refresh user data on mount to pick up any admin role/dept changes
+  useEffect(() => { refreshUser(); }, []);
 
   useEffect(() => {
     if (user) {

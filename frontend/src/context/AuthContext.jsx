@@ -194,8 +194,34 @@ export const AuthProvider = ({ children }) => {
     setUser(updatedUser);
   };
 
+  // Re-fetch user from API and update stored data — call this to pick up admin role/dept changes
+  const refreshUser = useCallback(async () => {
+    const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+    if (!token) return;
+    try {
+      const response = await api.get('/user');
+      const fresh = response.data.user;
+      if (fresh) {
+        const storage = getStorage();
+        storage.setItem('user', JSON.stringify(fresh));
+        setUser(fresh);
+      }
+    } catch {
+      // silently fail — don't log out on a refresh error
+    }
+  }, []);
+
+  // Refresh user data whenever the tab becomes visible again
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') refreshUser();
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => document.removeEventListener('visibilitychange', handleVisibility);
+  }, [refreshUser]);
+
   return (
-    <AuthContext.Provider value={{ user, login, register, logout, updateUser, forgotPassword, resetPassword, loading }}>
+    <AuthContext.Provider value={{ user, login, register, logout, updateUser, refreshUser, forgotPassword, resetPassword, loading }}>
       {children}
     </AuthContext.Provider>
   );
