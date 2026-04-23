@@ -13,3 +13,4 @@ Setup pagpull sa other repo
 git fetch deployed
 git merge deployed/master --allow-unrelated-histories
 
+Test
