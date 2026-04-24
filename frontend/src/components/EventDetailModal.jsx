@@ -530,33 +530,36 @@ export default function EventDetailModal({ isOpen, onClose, event, currentUser, 
                 </button>
               </div>
               <div className="flex-1 overflow-y-auto p-3 space-y-1.5">
-                {pagedMembers.map((member) => (
-                  <div key={member.id} className="flex items-center justify-between bg-gray-50 rounded-xl px-3 py-2.5 border border-gray-100 hover:border-gray-200 transition-colors">
-                    <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                      <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center text-green-700 font-bold text-xs flex-shrink-0">
-                        {(member.username || member.name || '?').charAt(0).toUpperCase()}
+                {pagedMembers.map((member) => {
+                  const declineMsg = event.event_type === 'meeting' && member.status === 'declined'
+                    ? declineMessages.find(m => m.sender_id === member.id || m.sender?.id === member.id)
+                    : null;
+                  return (
+                    <div key={member.id}>
+                      <div className="flex items-center justify-between bg-gray-50 rounded-xl px-3 py-2.5 border border-gray-100 hover:border-gray-200 transition-colors">
+                        <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                          <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center text-green-700 font-bold text-xs flex-shrink-0">
+                            {(member.username || member.name || '?').charAt(0).toUpperCase()}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium text-gray-900 truncate">{member.username || member.name}</p>
+                            <p className="text-xs text-gray-500 truncate">{member.email}</p>
+                          </div>
+                        </div>
+                        <span className={`ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold flex-shrink-0 ${
+                          member.status === 'accepted' ? 'bg-green-100 text-green-800'
+                          : member.status === 'declined' ? 'bg-red-100 text-red-800'
+                          : 'bg-yellow-100 text-yellow-800'
+                        }`}>
+                          {member.status === 'accepted' ? '✔ Accepted' : member.status === 'declined' ? '✘ Declined' : '⏳ Pending'}
+                        </span>
                       </div>
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium text-gray-900 truncate">{member.username || member.name}</p>
-                        <p className="text-xs text-gray-500 truncate">{member.email}</p>
-                      </div>
+                      {declineMsg && (
+                        <p className="mt-1 ml-3 text-xs text-red-600 italic px-2">"{declineMsg.message}"</p>
+                      )}
                     </div>
-                    <span className={`ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold flex-shrink-0 ${
-                      member.status === 'accepted' ? 'bg-green-100 text-green-800'
-                      : member.status === 'declined' ? 'bg-red-100 text-red-800'
-                      : 'bg-yellow-100 text-yellow-800'
-                    }`}>
-                      {member.status === 'accepted' ? '✔ Accepted' : member.status === 'declined' ? '✘ Declined' : '⏳ Pending'}
-                    </span>
-                  </div>
-                  {/* Show decline reason for meetings */}
-                  {member.status === 'declined' && event.event_type === 'meeting' && (() => {
-                    const msg = declineMessages.find(m => m.sender_id === member.id || m.sender?.id === member.id);
-                    return msg ? (
-                      <p className="mt-1 ml-10 text-xs text-red-600 italic">"{msg.message}"</p>
-                    ) : null;
-                  })()}
-                ))}
+                  );
+                })}
               </div>
               {totalPages > 1 && (
                 <div className="flex items-center justify-between px-4 py-2.5 border-t border-gray-100 bg-gray-50 flex-shrink-0">
