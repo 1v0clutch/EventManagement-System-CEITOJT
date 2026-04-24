@@ -73,6 +73,10 @@ function TimePickerInput({ value, onChange }) {
     let h = parseInt(h12, 10);
     if (ap === 'PM' && h !== 12) h += 12;
     if (ap === 'AM' && h === 12) h = 0;
+    // Clamp to 07:00–19:00
+    if (h < 7) h = 7;
+    if (h > 19) h = 19;
+    if (h === 19 && parseInt(m) > 0) m = '00';
     onChange(`${String(h).padStart(2, '0')}:${m}`);
   };
 
@@ -137,11 +141,24 @@ function TimePickerInput({ value, onChange }) {
           </div>
           {/* Minutes ΓÇö scrollable, no scrollbar */}
           <div className="flex flex-col w-12 border-r border-green-200 py-1 no-sb" style={{ ...noScrollbar, maxHeight: '11rem' }}>
-            {minutes.map(m => colItem(minute === m, () => emit(hour12, m, ampm), m))}
+            {minutes.map(m => {
+              // At 7 PM (hour12=7, ampm=PM), only allow :00
+              const isDisabled = ampm === 'PM' && hour12 === 7 && m !== '00';
+              return isDisabled ? (
+                <button key={m} disabled className="w-full text-center px-2 py-1 text-sm text-gray-300 cursor-not-allowed">{m}</button>
+              ) : colItem(minute === m, () => emit(hour12, m, ampm), m);
+            })}
           </div>
           {/* AM/PM ΓÇö fixed, no scroll needed */}
           <div className="flex flex-col py-1 w-12">
-            {['AM', 'PM'].map(ap => colItem(ampm === ap, () => { emit(hour12, minute, ap); setOpen(false); }, ap))}
+            {['AM', 'PM'].map(ap => colItem(ampm === ap, () => {
+              // When switching AM/PM, clamp hour to valid range for that period
+              let clampedHour = hour12;
+              if (ap === 'AM' && (hour12 < 7 || hour12 > 11)) clampedHour = 7;
+              if (ap === 'PM' && !(hour12 === 12 || (hour12 >= 1 && hour12 <= 7))) clampedHour = 12;
+              emit(clampedHour, minute, ap);
+              setOpen(false);
+            }, ap))}
           </div>
         </div>
       )}
