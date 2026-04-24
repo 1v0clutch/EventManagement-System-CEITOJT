@@ -689,7 +689,11 @@ export default function Calendar({ events, defaultEvents = [], userSchedules = [
       {/* Individual Event Detail Modal */}
       {showEventDetailModal && selectedEvent && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 sm:p-4">
-          <div className="bg-white rounded-lg shadow-sm w-full max-w-5xl h-[90vh] 2xl:h-[75vh] overflow-hidden border border-gray-200 flex flex-col">
+        <div className={`bg-white rounded-lg shadow-sm w-full overflow-hidden border border-gray-200 flex flex-col ${
+          selectedEvent.isScheduleGroup
+            ? 'max-w-md max-h-[80vh]'
+            : 'max-w-5xl h-[90vh] 2xl:h-[75vh]'
+        }`}>
             {/* Modal Header */}
             <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between flex-shrink-0">
               <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -778,21 +782,19 @@ export default function Calendar({ events, defaultEvents = [], userSchedules = [
                       <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-3">Class Schedule</p>
                       <div className="space-y-2">
                         {selectedEvent.allSchedules.map((schedule, index) => {
-                          // Get the color from the schedule, default to orange if not set
-                          const scheduleColor = schedule.color || '#f97316'; // default orange-500
-
+                          const scheduleColor = schedule.color || '#f97316';
                           return (
-                            <div key={index} className="flex items-start gap-3">
+                            <div key={index} className="flex items-center gap-3 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3">
                               <div
-                                className="w-2.5 h-2.5 rounded-full flex-shrink-0 mt-1"
+                                className="w-3 h-3 rounded-full flex-shrink-0"
                                 style={{ backgroundColor: scheduleColor }}
                               ></div>
                               <div className="flex-1 min-w-0">
                                 <p className="text-sm font-semibold text-gray-900">
                                   {schedule.description || schedule.title || 'Class'}
                                 </p>
-                                <div className="flex items-center gap-2 text-xs text-gray-600 mt-0.5">
-                                  <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: scheduleColor }}>
+                                <div className="flex items-center gap-1.5 text-xs text-gray-600 mt-0.5">
+                                  <svg className="w-3.5 h-3.5 flex-shrink-0 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                                   </svg>
                                   <span className="font-medium">

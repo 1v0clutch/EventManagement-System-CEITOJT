@@ -34,6 +34,8 @@ function TimePickerInput({ value, onChange }) {
     if (ap === 'PM' && h !== 12) h += 12;
     if (ap === 'AM' && h === 12) h = 0;
     if (h < 0 || h > 23 || parseInt(m) < 0 || parseInt(m) > 59) return null;
+    // Enforce 7:00–19:00
+    if (h < 7 || h > 19 || (h === 19 && parseInt(m) > 0)) return null;
     return `${String(h).padStart(2, '0')}:${m}`;
   };
 
@@ -81,7 +83,11 @@ function TimePickerInput({ value, onChange }) {
     else setDisplay(to12(value));
   };
 
-  const hours = Array.from({ length: 12 }, (_, i) => i + 1);
+  // Restrict to 7:00 AM – 7:00 PM only
+  // AM: hours 7–11, PM: hours 12–7 (12, 1, 2, 3, 4, 5, 6, 7)
+  const hours = ampm === 'AM'
+    ? [7, 8, 9, 10, 11]
+    : [12, 1, 2, 3, 4, 5, 6, 7];
   const minutes = Array.from({ length: 60 }, (_, i) => String(i).padStart(2, '0'));
 
   const colItem = (active, onClick, label) => (
@@ -180,7 +186,8 @@ export default function AccountDashboard() {
     Tuesday: [],
     Wednesday: [],
     Thursday: [],
-    Friday: []
+    Friday: [],
+    Saturday: [],
   });
   const [selectedDay, setSelectedDay] = useState('Monday');
   const [scheduleLoading, setScheduleLoading] = useState(true);
@@ -189,7 +196,7 @@ export default function AccountDashboard() {
   const [isAccountDropdownOpen, setIsAccountDropdownOpen] = useState(false);
   const [newTimeSlot, setNewTimeSlot] = useState({ start_time: '', end_time: '' });
 
-  const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+  const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
   // Semester detection logic
   const getCurrentSemester = () => {
@@ -484,7 +491,31 @@ export default function AccountDashboard() {
 
   const addTimeSlot = (day) => {
     if (!newTimeSlot.start_time || !newTimeSlot.end_time) return;
-    
+
+    // Enforce 7:00 AM (07:00) to 7:00 PM (19:00) range
+    const toMinutes = (t) => {
+      const [h, m] = t.split(':').map(Number);
+      return h * 60 + m;
+    };
+    const startMin = toMinutes(newTimeSlot.start_time);
+    const endMin = toMinutes(newTimeSlot.end_time);
+    const minAllowed = 7 * 60;   // 07:00
+    const maxAllowed = 19 * 60;  // 19:00
+
+    if (startMin < minAllowed || startMin >= maxAllowed) {
+      setMessage({ type: 'error', text: 'Start time must be between 7:00 AM and 7:00 PM.' });
+      return;
+    }
+    if (endMin <= startMin) {
+      setMessage({ type: 'error', text: 'End time must be after start time.' });
+      return;
+    }
+    if (endMin > maxAllowed) {
+      setMessage({ type: 'error', text: 'End time cannot be later than 7:00 PM.' });
+      return;
+    }
+
+    setMessage({ type: '', text: '' });
     setSchedule(prev => ({
       ...prev,
       [day]: [...(prev[day] || []), {
@@ -493,7 +524,7 @@ export default function AccountDashboard() {
         end_time: newTimeSlot.end_time
       }]
     }));
-    
+
     // Reset the form
     setNewTimeSlot({ start_time: '', end_time: '' });
   };
@@ -818,7 +849,7 @@ export default function AccountDashboard() {
 
                 {scheduleLoading ? (
                   <div className="space-y-4 animate-pulse">
-                    {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map((day) => (
+                    {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].map((day) => (
                       <div key={day} className="border border-gray-200 rounded-lg p-4">
                         <div className="h-5 w-24 bg-gray-300 rounded mb-3"></div>
                         <div className="space-y-2">
