@@ -444,7 +444,7 @@ export default function EventForm({ members, onEventCreated, editingEvent, onCan
       )}
 
       <form onSubmit={handleSubmit} autoComplete="off">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:items-stretch">
           {/* Left Column - Event Details Box (1/3 width) */}
           <div className="lg:col-span-1 bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
             <div className="flex items-center space-x-2 mb-5">
@@ -676,9 +676,9 @@ export default function EventForm({ members, onEventCreated, editingEvent, onCan
           </div>
 
           {/* Right Column - Members Only (2/3 width) - Maximized */}
-          <div className="lg:col-span-2 flex flex-col">
+          <div className="lg:col-span-2">
             {/* Members List Box - Now Full Height */}
-            <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm flex flex-col flex-1 min-h-0">
+            <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm h-full flex flex-col">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center space-x-2">
                   <div className="bg-green-50 rounded-lg p-2">
