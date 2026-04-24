@@ -430,6 +430,9 @@ export default function Calendar({ events, defaultEvents = [], userSchedules = [
                 const isHosted = currentUser && event.host && event.host.id === currentUser.id;
                 const isPersonal = event.is_personal;
                 const isMeeting = event.event_type === 'meeting';
+                // Check if current user declined this event
+                const myMembership = !isHosted && currentUser && event.members?.find(m => m.id === currentUser.id);
+                const isDeclined = myMembership?.status === 'declined';
 
                 if (isAcademic) {
                   return (
@@ -452,13 +455,16 @@ export default function Calendar({ events, defaultEvents = [], userSchedules = [
                       key={`regular-${idx}`}
                       className={`text-xs px-1.5 py-1 text-white rounded font-normal shadow-sm transition-all flex items-center justify-between gap-0.5 ${isPastDate
                           ? 'bg-gray-400 opacity-75'
-                          : isPersonal
-                            ? 'bg-purple-500 hover:bg-purple-600 cursor-pointer'
-                            : isHosted
-                              ? 'bg-red-500 hover:bg-red-600 cursor-pointer'
-                              : 'bg-green-500 hover:bg-green-600 cursor-pointer'
+                          : isDeclined
+                            ? 'bg-gray-400 hover:bg-gray-500 cursor-pointer'
+                            : isPersonal
+                              ? 'bg-purple-500 hover:bg-purple-600 cursor-pointer'
+                              : isHosted
+                                ? 'bg-red-500 hover:bg-red-600 cursor-pointer'
+                                : 'bg-green-500 hover:bg-green-600 cursor-pointer'
                         }`}
                       title={`${event.title} ${isPastDate ? '(Past Event)' :
+                          isDeclined ? '(Declined)' :
                           isPersonal ? '(Personal)' :
                             isMeeting ? (isHosted ? '(Hosting Meeting)' : '(Invited to Meeting)') :
                               (isHosted ? '(Hosting Event)' : '(Invited to Event)')
@@ -575,6 +581,10 @@ export default function Calendar({ events, defaultEvents = [], userSchedules = [
               <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded bg-green-500"></div>
               <span className="text-gray-600 font-medium">Invited</span>
             </div>
+            <div className="flex items-center gap-1 sm:gap-1.5">
+              <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded bg-gray-400"></div>
+              <span className="text-gray-600 font-medium">Declined</span>
+            </div>
             <div className="flex items-center gap-0.5 sm:gap-1 flex-shrink-0">
               <div className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded bg-purple-500 flex-shrink-0"></div>
               <span className="text-gray-600 font-medium">Personal Event</span>
@@ -615,6 +625,8 @@ export default function Calendar({ events, defaultEvents = [], userSchedules = [
                   const isHosted = currentUser && event.host && event.host.id === currentUser.id;
                   const isPersonal = event.is_personal;
                   const isMeeting = event.event_type === 'meeting';
+                  const myMembership = !isHosted && currentUser && event.members?.find(m => m.id === currentUser.id);
+                  const isDeclined = myMembership?.status === 'declined';
 
                   return (
                     <div
@@ -651,6 +663,7 @@ export default function Calendar({ events, defaultEvents = [], userSchedules = [
                         <div className="flex items-start gap-3">
                           <div className={`w-2.5 h-2.5 rounded-full mt-1.5 flex-shrink-0 ${isPersonal
                               ? 'bg-purple-500'
+                              : isDeclined ? 'bg-gray-400'
                               : isHosted ? 'bg-red-500' : 'bg-green-500'
                             }`}></div>
                           <div className="flex-1 min-w-0">
@@ -671,8 +684,8 @@ export default function Calendar({ events, defaultEvents = [], userSchedules = [
                               <span className="text-xs text-gray-600">{formatTime(event.time)}</span>
                               <span className="text-xs text-gray-500">
                                 {isPersonal ? 'Personal' :
-                                  isMeeting ? (isHosted ? 'Hosting' : 'Invited') :
-                                    (isHosted ? 'Hosting' : 'Invited')}
+                                  isMeeting ? (isHosted ? 'Hosting' : isDeclined ? 'Declined' : 'Invited') :
+                                    (isHosted ? 'Hosting' : isDeclined ? 'Declined' : 'Invited')}
                               </span>
                             </div>
                           </div>
