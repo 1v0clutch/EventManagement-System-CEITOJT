@@ -45,7 +45,7 @@ export default function ForgotPassword() {
               Enter your email address and we'll send you a link to reset your password
             </p>
           </div>
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+          <form className="mt-8 space-y-6" onSubmit={handleSubmit} autoComplete="off">
           {error && (
             <div className="rounded-md bg-red-50 p-4">
               <p className="text-sm text-red-800">{error}</p>

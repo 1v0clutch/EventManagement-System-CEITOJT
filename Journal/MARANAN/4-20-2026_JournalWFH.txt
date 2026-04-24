@@ -16,3 +16,6 @@ testing implementation on added new database for fetching pdf
 fixed some event management issues when creating an event conflicting timezones
 improved /account feature to be dynamic
 Fixed OTP getting bypassed when registering then refreshing then trying to login without the otp verification
+Transcripted Meting with supervisor
+Conducted meeting with supervisor
+fixed migration new after removing the gad coordinator

@@ -126,7 +126,7 @@ export default function Login() {
             </p>
           </div>
 
-          <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+          <form className="mt-8 space-y-6" onSubmit={handleSubmit} autoComplete="off">
             {lockoutInfo && (
               <div className="rounded-md bg-red-50 border-2 border-red-400 p-4">
                 <div className="flex items-start">
@@ -200,6 +200,7 @@ export default function Login() {
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  autoComplete="new-password"
                   className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-green-500 focus:border-green-500 focus:z-10 sm:text-sm pr-10"
                   placeholder="Password"
                 />

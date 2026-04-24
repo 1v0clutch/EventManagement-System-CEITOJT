@@ -150,7 +150,6 @@ const ROLE_DESCRIPTIONS = {
   'Coordinator': 'Program Coordinator responsible for coordinating academic programs and activities.',
   'Research Coordinator': 'Coordinates and oversees research activities, projects, and publications.',
   'Extension Coordinator': 'Manages community extension programs and outreach activities.',
-  'GAD Coordinator': 'Gender and Development Coordinator promoting gender equality and related programs.',
   'CEIT Official': 'College of Engineering and Information Technology official with administrative responsibilities.',
   'Faculty Member': 'Teaching faculty member responsible for instruction and academic activities.',
   'Staff': 'Administrative or support staff member assisting in college operations.',
@@ -1017,7 +1016,7 @@ export default function AccountDashboard() {
 
                 <div className="px-8 py-8">
                   {editMode ? (
-                    <form onSubmit={handleSaveChanges}>
+                    <form onSubmit={handleSaveChanges} autoComplete="off">
                       <div className="space-y-6">
                         {/* Profile Picture Upload */}
                         <div className="flex flex-col items-center pb-6 border-b border-gray-200">

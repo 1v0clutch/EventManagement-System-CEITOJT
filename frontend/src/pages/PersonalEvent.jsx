@@ -167,7 +167,7 @@ export default function PersonalEvent() {
               </p>
             </div>
 
-            <form onSubmit={handleSubmit} className="p-8 space-y-6">
+            <form onSubmit={handleSubmit} className="p-8 space-y-6" autoComplete="off">
               <div>
                 <label htmlFor="title" className="block text-sm font-semibold text-gray-900 mb-2">
                   Event Title *

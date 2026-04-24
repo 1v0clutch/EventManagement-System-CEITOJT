@@ -154,7 +154,7 @@ export default function Register() {
             </p>
           </div>
 
-          <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+          <form className="mt-8 space-y-6" onSubmit={handleSubmit} autoComplete="off">
             {success && (
               <div className="rounded-md bg-green-50 p-4">
                 <div className="flex items-start">
@@ -276,6 +276,7 @@ export default function Register() {
                     name="password"
                     type={showPassword ? 'text' : 'password'}
                     required
+                    autoComplete="new-password"
                     value={formData.password}
                     onChange={handleChange}
                     onFocus={() => setPasswordFocused(true)}

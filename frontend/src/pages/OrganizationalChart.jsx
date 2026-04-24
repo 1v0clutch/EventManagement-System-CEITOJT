@@ -366,7 +366,7 @@ export default function OrganizationalChart() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto p-4 md:p-6">
             <h2 className="text-xl md:text-2xl font-bold text-gray-800 mb-4">Edit Member</h2>
-            <form onSubmit={handleSaveEdit} className="space-y-4">
+            <form onSubmit={handleSaveEdit} className="space-y-4" autoComplete="off">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">First Name</label>
                 <input
@@ -434,7 +434,6 @@ export default function OrganizationalChart() {
                   <option value="Program Coordinator">Program Coordinator</option>
                   <option value="Research Coordinator">Research Coordinator</option>
                   <option value="Extension Coordinator">Extension Coordinator</option>
-                  <option value="GAD Coordinator">GAD Coordinator</option>
                   <option value="Coordinator">Coordinator</option>
                   <option value="Faculty Member">Faculty Member</option>
                 </select>

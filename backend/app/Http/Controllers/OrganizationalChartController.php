@@ -40,7 +40,7 @@ class OrganizationalChartController extends Controller
             }
 
             $users = $query->select('id', 'name', 'first_name', 'last_name', 'email', 'department', 'role', 'profile_picture')
-                ->orderByRaw("FIELD(role, 'CEIT Official', 'Chairperson', 'Program Coordinator', 'Research Coordinator', 'Extension Coordinator', 'GAD Coordinator', 'Faculty Member')")
+                ->orderByRaw("FIELD(role, 'CEIT Official', 'Chairperson', 'Program Coordinator', 'Research Coordinator', 'Extension Coordinator', 'Faculty Member')")
                 ->orderBy('name', 'asc')
                 ->get();
 
@@ -136,7 +136,6 @@ class OrganizationalChartController extends Controller
                         break;
                     case 'Research Coordinator':
                     case 'Extension Coordinator':
-                    case 'GAD Coordinator':
                         $departmentGroups[$dept]['coordinators'][] = $userData;
                         break;
                     case 'Faculty Member':
@@ -173,7 +172,7 @@ class OrganizationalChartController extends Controller
             'last_name' => 'sometimes|string|max:255',
             'email' => 'sometimes|email|unique:users,email,' . $id,
             'department' => 'sometimes|string|max:255',
-            'role' => 'sometimes|in:Dean,CEIT Official,Chairperson,Program Coordinator,Research Coordinator,Extension Coordinator,GAD Coordinator,Coordinator,Faculty Member',
+            'role' => 'sometimes|in:Dean,CEIT Official,Chairperson,Program Coordinator,Research Coordinator,Extension Coordinator,Coordinator,Faculty Member',
         ]);
 
         $user = User::findOrFail($id);

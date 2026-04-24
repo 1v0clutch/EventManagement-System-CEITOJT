@@ -24,7 +24,7 @@ export default function CreateUserModal({ isOpen, onClose, onSuccess, deanExists
   ];
 
   const CEIT_ROLES = ['Dean', 'CEIT Official', 'Coordinator', 'Faculty Member'];
-  const DEPT_ROLES = ['Chairperson', 'Faculty Member', 'Research Coordinator', 'Extension Coordinator', 'GAD Coordinator'];
+  const DEPT_ROLES = ['Chairperson', 'Faculty Member', 'Research Coordinator', 'Extension Coordinator'];
 
   const getRolesForDepartment = (dept) => {
     if (!dept) return [...CEIT_ROLES, ...DEPT_ROLES]; // show all if none selected
@@ -177,7 +177,7 @@ export default function CreateUserModal({ isOpen, onClose, onSuccess, deanExists
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4" autoComplete="off">
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">

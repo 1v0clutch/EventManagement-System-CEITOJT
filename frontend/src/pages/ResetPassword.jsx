@@ -140,7 +140,7 @@ export default function ResetPassword() {
               Enter your new password below
             </p>
           </div>
-          <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+          <form className="mt-8 space-y-6" onSubmit={handleSubmit} autoComplete="off">
             {error && (
               <div className="rounded-md bg-red-50 border border-red-200 p-4">
                 <div className="flex items-start">
@@ -171,6 +171,7 @@ export default function ResetPassword() {
                     name="password"
                     type={showPassword ? 'text' : 'password'}
                     required
+                    autoComplete="new-password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     onFocus={() => setPasswordFocused(true)}

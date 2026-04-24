@@ -369,13 +369,13 @@ export default function Calendar({ events, defaultEvents = [], userSchedules = [
             }
           }}
           className={`h-full p-0.5 border -ml-[1px] -mt-[1px] transition-all duration-200 relative group flex flex-col
-            ${hasWeeklySchedule && isCurrentMonth ? 'border-green-400' : 'border-gray-200'}
+            border-gray-200
             ${isCurrentMonth ? (isPastDate ? 'cursor-default bg-gray-50' : 'cursor-default bg-white') : 'bg-gray-50/50'}
             ${selected && !isPastDate ? 'ring-2 ring-green-500 ring-inset z-10' : ''}
             ${highlighted && !isPastDate ? 'ring-2 ring-green-400 animate-pulse z-10' : ''}
             ${isPastDate ? 'opacity-60' : ''}
           `}
-          style={hasWeeklySchedule && isCurrentMonth ? { backgroundColor: isPastDate ? 'rgba(20,83,45,0.07)' : 'rgba(22,163,74,0.1)' } : undefined}
+          style={undefined}
         >
           {/* Date Number */}
           <div className="flex justify-between items-start mb-0.5 flex-shrink-0">
@@ -393,6 +393,26 @@ export default function Calendar({ events, defaultEvents = [], userSchedules = [
           {/* Events List - Only for current month */}
           {isCurrentMonth && (
             <div className="flex-1 space-y-0.5 overflow-hidden">
+              {/* Class schedule pill */}
+              {hasWeeklySchedule && (
+                <div
+                  className={`text-xs px-1.5 py-0.5 rounded-full font-medium truncate text-center ${
+                    isPastDate
+                      ? 'bg-amber-200 text-amber-700 opacity-75'
+                      : 'bg-amber-400 text-white cursor-pointer hover:bg-amber-500'
+                  }`}
+                  title="Class Schedule"
+                  onClick={(e) => {
+                    if (!isPastDate) {
+                      e.stopPropagation();
+                      const schedules = getScheduleEventsForDate(dateStr);
+                      handleEventClick({ is_schedule: true, type: 'schedule', allSchedules: schedules, isScheduleGroup: true, clickedDate: dateStr }, e);
+                    }
+                  }}
+                >
+                  Class
+                </div>
+              )}
               {/* Display first 1 event of any type */}
               {eventsToDisplay.map((event, idx) => {
                 const isAcademic = event.is_default_event === true;
@@ -529,8 +549,8 @@ export default function Calendar({ events, defaultEvents = [], userSchedules = [
         <div className="mt-1 sm:mt-2 pt-1.5 sm:pt-2 flex-shrink-0 overflow-x-auto">
           <div className="flex flex-wrap gap-2 sm:gap-3 text-[9px] sm:text-xs pb-1 max-w-full">
             <div className="flex items-center gap-0.5 sm:gap-1 flex-shrink-0">
-              <div className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded flex-shrink-0" style={{ backgroundColor: 'rgba(22,163,74,0.1)', border: '1px solid #4ade80' }}></div>
-              <span className="text-gray-600 font-medium">Class Day</span>
+              <div className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-amber-400 flex-shrink-0"></div>
+              <span className="text-gray-600 font-medium">Class Schedule</span>
             </div>
             <div className="flex items-center gap-0.5 sm:gap-1 flex-shrink-0">
               <div className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded bg-blue-500 flex-shrink-0"></div>

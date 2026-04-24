@@ -106,7 +106,7 @@ export default function EmailVerification() {
             </p>
           </div>
 
-          <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+          <form className="mt-8 space-y-6" onSubmit={handleSubmit} autoComplete="off">
             {success && (
               <div className="rounded-md bg-green-50 p-4">
                 <div className="flex items-start">

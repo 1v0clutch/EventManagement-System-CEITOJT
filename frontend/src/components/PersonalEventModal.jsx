@@ -180,7 +180,7 @@ export default function PersonalEventModal({ isOpen, onClose, onSuccess, editing
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-5" style={{ minHeight: '420px' }}>
+        <form onSubmit={handleSubmit} className="p-6 space-y-5" style={{ minHeight: '420px' }} autoComplete="off">
           <div>
             <label htmlFor="title" className="block text-sm font-semibold text-gray-900 mb-2">
               Event Title *

@@ -101,7 +101,6 @@ class User extends Authenticatable implements MustVerifyEmail
             'Coordinator',
             'Research Coordinator',
             'Extension Coordinator',
-            'GAD Coordinator',
         ]);
     }
 
@@ -114,7 +113,7 @@ class User extends Authenticatable implements MustVerifyEmail
     {
         return in_array($this->role, [
             'Admin', 'Dean', 'Chairperson', 'Coordinator',
-            'Research Coordinator', 'Extension Coordinator', 'GAD Coordinator',
+            'Research Coordinator', 'Extension Coordinator',
             'CEIT Official',
         ]);
     }
@@ -123,7 +122,7 @@ class User extends Authenticatable implements MustVerifyEmail
     {
         return in_array($this->role, [
             'Chairperson', 'Coordinator',
-            'Research Coordinator', 'Extension Coordinator', 'GAD Coordinator',
+            'Research Coordinator', 'Extension Coordinator',
         ]);
     }
 

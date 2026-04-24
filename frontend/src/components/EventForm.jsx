@@ -44,7 +44,6 @@ export default function EventForm({ members, onEventCreated, editingEvent, onCan
     if (date) {
       const calculatedSchoolYear = getSchoolYearFromDate(date);
       setSchoolYear(calculatedSchoolYear);
-      console.log('School year calculated:', calculatedSchoolYear, 'for date:', date);
     }
   }, [date]);
 
@@ -55,10 +54,8 @@ export default function EventForm({ members, onEventCreated, editingEvent, onCan
 
     if (!date) {
       setDate(defaultDate || today);
-      // Calculate school year for initial date
       const initialSchoolYear = getSchoolYearFromDate(defaultDate || today);
       setSchoolYear(initialSchoolYear);
-      console.log('Initial school year:', initialSchoolYear);
     }
     if (!time) setTime(currentTime);
   }, [defaultDate]);
@@ -93,6 +90,7 @@ export default function EventForm({ members, onEventCreated, editingEvent, onCan
       setImagePreviews(editingEvent.images || []);
       setDate(editingEvent.date);
       setTime(editingEvent.time);
+      setSchoolYear(editingEvent.school_year || getSchoolYearFromDate(editingEvent.date));
       setSelectedMembers(editingEvent.members.map(m => m.id));
     }
   }, [editingEvent]);
@@ -364,7 +362,7 @@ export default function EventForm({ members, onEventCreated, editingEvent, onCan
         </div>
       )}
 
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={handleSubmit} autoComplete="off">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left Column - Event Details Box (1/3 width) */}
           <div className="lg:col-span-1 bg-white border border-gray-200 rounded-xl p-6 shadow-sm">

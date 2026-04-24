@@ -25,7 +25,6 @@ return new class extends Migration
             'Program Coordinator',
             'Research Coordinator',
             'Extension Coordinator',
-            'GAD Coordinator',
             'Faculty Member'
         ) NOT NULL DEFAULT 'Faculty Member'");
     }
@@ -45,7 +44,6 @@ return new class extends Migration
             'Program Coordinator',
             'Research Coordinator',
             'Extension Coordinator',
-            'GAD Coordinator',
             'Faculty Member'
         ) NOT NULL DEFAULT 'Faculty Member'");
 
