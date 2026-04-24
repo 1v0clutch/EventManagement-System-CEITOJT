@@ -34,8 +34,6 @@ function TimePickerInput({ value, onChange }) {
     if (ap === 'PM' && h !== 12) h += 12;
     if (ap === 'AM' && h === 12) h = 0;
     if (h < 0 || h > 23 || parseInt(m) < 0 || parseInt(m) > 59) return null;
-    // Enforce 7:00–19:00
-    if (h < 7 || h > 19 || (h === 19 && parseInt(m) > 0)) return null;
     return `${String(h).padStart(2, '0')}:${m}`;
   };
 
@@ -73,10 +71,6 @@ function TimePickerInput({ value, onChange }) {
     let h = parseInt(h12, 10);
     if (ap === 'PM' && h !== 12) h += 12;
     if (ap === 'AM' && h === 12) h = 0;
-    // Clamp to 07:00–19:00
-    if (h < 7) h = 7;
-    if (h > 19) h = 19;
-    if (h === 19 && parseInt(m) > 0) m = '00';
     onChange(`${String(h).padStart(2, '0')}:${m}`);
   };
 
@@ -87,11 +81,7 @@ function TimePickerInput({ value, onChange }) {
     else setDisplay(to12(value));
   };
 
-  // Restrict to 7:00 AM – 7:00 PM only
-  // AM: hours 7–11, PM: hours 12–7 (12, 1, 2, 3, 4, 5, 6, 7)
-  const hours = ampm === 'AM'
-    ? [7, 8, 9, 10, 11]
-    : [12, 1, 2, 3, 4, 5, 6, 7];
+  const hours = Array.from({ length: 12 }, (_, i) => i + 1);
   const minutes = Array.from({ length: 60 }, (_, i) => String(i).padStart(2, '0'));
 
   const colItem = (active, onClick, label) => (
@@ -141,24 +131,11 @@ function TimePickerInput({ value, onChange }) {
           </div>
           {/* Minutes ΓÇö scrollable, no scrollbar */}
           <div className="flex flex-col w-12 border-r border-green-200 py-1 no-sb" style={{ ...noScrollbar, maxHeight: '11rem' }}>
-            {minutes.map(m => {
-              // At 7 PM (hour12=7, ampm=PM), only allow :00
-              const isDisabled = ampm === 'PM' && hour12 === 7 && m !== '00';
-              return isDisabled ? (
-                <button key={m} disabled className="w-full text-center px-2 py-1 text-sm text-gray-300 cursor-not-allowed">{m}</button>
-              ) : colItem(minute === m, () => emit(hour12, m, ampm), m);
-            })}
+            {minutes.map(m => colItem(minute === m, () => emit(hour12, m, ampm), m))}
           </div>
           {/* AM/PM ΓÇö fixed, no scroll needed */}
           <div className="flex flex-col py-1 w-12">
-            {['AM', 'PM'].map(ap => colItem(ampm === ap, () => {
-              // When switching AM/PM, clamp hour to valid range for that period
-              let clampedHour = hour12;
-              if (ap === 'AM' && (hour12 < 7 || hour12 > 11)) clampedHour = 7;
-              if (ap === 'PM' && !(hour12 === 12 || (hour12 >= 1 && hour12 <= 7))) clampedHour = 12;
-              emit(clampedHour, minute, ap);
-              setOpen(false);
-            }, ap))}
+            {['AM', 'PM'].map(ap => colItem(ampm === ap, () => { emit(hour12, minute, ap); setOpen(false); }, ap))}
           </div>
         </div>
       )}
@@ -460,48 +437,6 @@ export default function AccountDashboard() {
     }));
   };
 
-  const handleScheduleSave = async () => {
-    setScheduleSaving(true);
-    try {
-      console.log('Saving schedule:', schedule);
-      const response = await api.post('/schedules', { schedule });
-      
-      console.log('Save successful:', response.data);
-
-      setMessage({ type: 'success', text: 'Schedule saved! You can now access all event management features.' });
-      
-      // Exit edit mode after successful save
-      setScheduleEditMode(false);
-      
-      // Refresh schedule to get IDs from database and updated initialized status
-      invalidateCache(`schedule:${user?.id}`);
-      await fetchSchedule();
-      
-      // Update user context to reflect schedule_initialized = true
-      if (updateUser) {
-        const updatedUserData = { ...user, schedule_initialized: true };
-        updateUser(updatedUserData);
-        console.log('Updated user with schedule_initialized:', updatedUserData);
-      }
-      
-      // Trigger a storage event to notify other tabs/windows
-      window.dispatchEvent(new Event('scheduleUpdated'));
-      
-      // Trigger custom event for Dashboard to refresh
-      window.dispatchEvent(new CustomEvent('scheduleChanged', { detail: { hasSchedule: true } }));
-    } catch (error) {
-      console.error('Error saving schedule:', error);
-      const errorMessage = error.response?.data?.error || error.response?.data?.message || error.message || 'Failed to save schedule. Please try again.';
-      setMessage({ type: 'error', text: errorMessage });
-    } finally {
-      setScheduleSaving(false);
-    }
-    
-    setTimeout(() => {
-      setMessage({ type: '', text: '' });
-    }, 3000);
-  };
-
   const getTotalScheduledClasses = () => {
     return Object.values(schedule).reduce((total, daySchedule) => total + daySchedule.length, 0);
   };
@@ -554,12 +489,44 @@ export default function AccountDashboard() {
   };
 
   const handleSaveSchedule = async () => {
+    // Validate all time slots are within 7:00 AM – 7:00 PM
+    const toMin = (t) => {
+      if (!t) return null;
+      const [h, m] = t.split(':').map(Number);
+      return h * 60 + m;
+    };
+    const MIN_TIME = 7 * 60;   // 07:00
+    const MAX_TIME = 19 * 60;  // 19:00
+
+    const errors = [];
+    days.forEach(day => {
+      (schedule[day] || []).forEach((slot, idx) => {
+        const start = toMin(slot.start_time || slot.startTime);
+        const end = toMin(slot.end_time || slot.endTime);
+        if (start === null || end === null) return;
+        if (start < MIN_TIME) {
+          errors.push(`${day} slot ${idx + 1}: Start time cannot be earlier than 7:00 AM.`);
+        }
+        if (start >= MAX_TIME) {
+          errors.push(`${day} slot ${idx + 1}: Start time cannot be 7:00 PM or later.`);
+        }
+        if (end > MAX_TIME) {
+          errors.push(`${day} slot ${idx + 1}: End time cannot be later than 7:00 PM.`);
+        }
+        if (end <= start) {
+          errors.push(`${day} slot ${idx + 1}: End time must be after start time.`);
+        }
+      });
+    });
+
+    if (errors.length > 0) {
+      setMessage({ type: 'error', text: errors.join(' | ') });
+      return;
+    }
+
     setScheduleSaving(true);
     try {
-      console.log('Saving schedule:', schedule);
       const response = await api.post('/schedules', { schedule });
-      
-      console.log('Save successful:', response.data);
 
       setMessage({ type: 'success', text: 'Schedule saved! You can now access all event management features.' });
       
@@ -574,7 +541,6 @@ export default function AccountDashboard() {
       if (updateUser) {
         const updatedUserData = { ...user, schedule_initialized: true };
         updateUser(updatedUserData);
-        console.log('Updated user with schedule_initialized:', updatedUserData);
       }
       
       // Trigger a storage event to notify other tabs/windows
@@ -583,7 +549,6 @@ export default function AccountDashboard() {
       // Trigger custom event for Dashboard to refresh
       window.dispatchEvent(new CustomEvent('scheduleChanged', { detail: { hasSchedule: true } }));
     } catch (error) {
-      console.error('Error saving schedule:', error);
       const errorMessage = error.response?.data?.error || error.response?.data?.message || error.message || 'Failed to save schedule. Please try again.';
       setMessage({ type: 'error', text: errorMessage });
     } finally {
