@@ -778,7 +778,7 @@ export default function EventForm({ members, onEventCreated, editingEvent, onCan
                   )}
                 </button>
               </div>
-              <div className="border border-gray-200 rounded-lg bg-gray-50/50 flex-1 min-h-0 overflow-y-auto">
+              <div className="border border-gray-200 rounded-lg bg-gray-50/50 flex-1 overflow-y-auto">
                 {searchFilteredMembers.length === 0 ? (
                   <div className="h-full flex items-center justify-center">
                     <p className="text-sm text-gray-400">
