@@ -19,3 +19,4 @@ Fixed OTP getting bypassed when registering then refreshing then trying to login
 Transcripted Meting with supervisor
 Conducted meeting with supervisor
 fixed migration new after removing the gad coordinator
+fixed calendar date issue showing on dashboard undefined

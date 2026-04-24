@@ -185,8 +185,16 @@ export default function Calendar({ events, defaultEvents = [], userSchedules = [
     if (event.is_schedule || event.type === 'schedule') {
       const dateStr = event.clickedDate || moreModalDate || selectedDate;
       const allSchedulesForDay = getScheduleEventsForDate(dateStr);
+      // Derive day name from the date if not already set
+      let dayName = event.day;
+      if (!dayName && dateStr) {
+        const [y, m, d] = dateStr.split('-').map(Number);
+        const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+        dayName = dayNames[new Date(y, m - 1, d).getDay()];
+      }
       const combinedScheduleEvent = {
         ...event,
+        day: dayName,
         allSchedules: allSchedulesForDay,
         isScheduleGroup: true,
         date: dateStr
@@ -406,7 +414,10 @@ export default function Calendar({ events, defaultEvents = [], userSchedules = [
                     if (!isPastDate) {
                       e.stopPropagation();
                       const schedules = getScheduleEventsForDate(dateStr);
-                      handleEventClick({ is_schedule: true, type: 'schedule', allSchedules: schedules, isScheduleGroup: true, clickedDate: dateStr }, e);
+                      const [y, m, d] = dateStr.split('-').map(Number);
+                      const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+                      const dayName = dayNames[new Date(y, m - 1, d).getDay()];
+                      handleEventClick({ is_schedule: true, type: 'schedule', day: dayName, allSchedules: schedules, isScheduleGroup: true, clickedDate: dateStr }, e);
                     }
                   }}
                 >
