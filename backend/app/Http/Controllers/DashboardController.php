@@ -169,6 +169,7 @@ class DashboardController extends Controller
             'date' => $date,
             'end_date' => $endDate,
             'school_year' => $eventDate->school_year,
+            'is_default_event' => true,
             ];
         });
 
@@ -194,11 +195,46 @@ class DashboardController extends Controller
             'date' => $date,
             'end_date' => $endDate,
             'school_year' => $event->school_year,
+            'is_default_event' => true,
             ];
         });
 
-        // Merge both collections
-        $transformedDefaultEvents = $transformedDefaultEventDates->merge($transformedLegacyEvents);
+        // ── Created Academic Events (user-created, per school year) ───────
+        $createdAcademicEvents = \App\Models\CreatedAcademicEvent::whereIn('school_year', [$schoolYear, $nextSchoolYear])
+            ->whereNotNull('date')
+            ->orderBy('date')
+            ->limit(100)
+            ->get();
+
+        $transformedCreatedAcademicEvents = $createdAcademicEvents->map(function ($event) {
+            $date = $event->date;
+            if ($date instanceof \DateTime) {
+                $date = $date->format('Y-m-d');
+            } elseif (is_string($date) && strlen($date) > 10) {
+                $date = substr($date, 0, 10);
+            }
+            $endDate = $event->end_date;
+            if ($endDate instanceof \DateTime) {
+                $endDate = $endDate->format('Y-m-d');
+            } elseif (is_string($endDate) && strlen($endDate) > 10) {
+                $endDate = substr($endDate, 0, 10);
+            }
+
+            return [
+                'id' => 'created-academic-' . $event->id,
+                'name' => $event->name,
+                'date' => $date,
+                'end_date' => $endDate,
+                'school_year' => $event->school_year,
+                'is_default_event' => true,
+            ];
+        });
+
+        // Merge all default/academic event collections
+        $transformedDefaultEvents = $transformedDefaultEventDates
+            ->merge($transformedLegacyEvents)
+            ->merge($transformedCreatedAcademicEvents)
+            ->unique('id');
 
         // ── User schedules (current + next school year) ────────────────────
         $currentSemester = $this->getCurrentSemester($now);

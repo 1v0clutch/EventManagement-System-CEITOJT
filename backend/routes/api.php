@@ -80,6 +80,7 @@ Route::middleware('auth:sanctum')->group(function () {
         // Default Events (Academic Calendar) - Admin Only for modifications
         Route::middleware('admin')->group(function () {
             Route::put('/default-events/{id}/date', [DefaultEventController::class , 'updateDate']);
+            Route::delete('/default-events/{id}/date', [DefaultEventController::class , 'removeDate']);
             Route::post('/default-events/create-empty', [DefaultEventController::class , 'createEmptyEvent']);
             Route::post('/default-events/create-with-details', [DefaultEventController::class , 'createEventWithDetails']);
 

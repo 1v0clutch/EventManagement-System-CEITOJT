@@ -201,6 +201,30 @@ class DefaultEventController extends Controller
     }
 
     /**
+     * Remove the date assignment for a default event (reset to "no date set").
+     *
+     * @param Request $request
+     * @param int $id
+     * @return JsonResponse
+     */
+    public function removeDate(Request $request, $id): JsonResponse
+    {
+        $schoolYear = $request->query('school_year');
+
+        if (!$schoolYear) {
+            return response()->json(['error' => 'school_year parameter is required'], 422);
+        }
+
+        $deleted = \App\Models\DefaultEventDate::where('default_event_id', $id)
+            ->where('school_year', $schoolYear)
+            ->delete();
+
+        return response()->json([
+            'message' => $deleted ? 'Date removed successfully' : 'No date assignment found',
+        ]);
+    }
+
+    /**
      * Create an empty default event for a specific month.
      *
      * @param Request $request

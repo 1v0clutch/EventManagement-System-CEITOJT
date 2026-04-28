@@ -12,6 +12,7 @@ export default function EventForm({ members, onEventCreated, editingEvent, onCan
   const [images, setImages] = useState([]);
   const [imagePreviews, setImagePreviews] = useState([]);
   const [date, setDate] = useState('');
+  const [additionalDates, setAdditionalDates] = useState([]); // array of extra date strings
   const [time, setTime] = useState('');
   const [schoolYear, setSchoolYear] = useState('');
   const [selectedMembers, setSelectedMembers] = useState([]);
@@ -111,53 +112,61 @@ export default function EventForm({ members, onEventCreated, editingEvent, onCan
 
     setLoading(true);
 
-    const formData = new FormData();
-    formData.append('title', title);
-    formData.append('description', description);
-    formData.append('location', location);
-    formData.append('event_type', eventType);
-    formData.append('date', date);
-    formData.append('time', time);
-    formData.append('school_year', schoolYear);
+    // All dates to create events for (primary + additional)
+    const allDates = [date, ...additionalDates].filter(Boolean);
 
-    images.forEach((image) => formData.append('images[]', image));
-    selectedMembers.forEach(id => formData.append('member_ids[]', id));
+    const buildFormData = (eventDate) => {
+      const formData = new FormData();
+      formData.append('title', title);
+      formData.append('description', description);
+      formData.append('location', location);
+      formData.append('event_type', eventType);
+      formData.append('date', eventDate);
+      formData.append('time', time);
+      formData.append('school_year', getSchoolYearFromDate(eventDate));
+      images.forEach((image) => formData.append('images[]', image));
+      selectedMembers.forEach(id => formData.append('member_ids[]', id));
+      return formData;
+    };
 
     try {
       if (editingEvent) {
+        // Editing: only update the single event (no multi-date for edits)
+        const formData = buildFormData(date);
         await api.post(`/events/${editingEvent.id}`, formData, {
           headers: { 'Content-Type': 'multipart/form-data' },
           params: { _method: 'PUT' }
         });
         setSuccess('Event updated successfully');
       } else {
-        await api.post('/events', formData, {
-          headers: { 'Content-Type': 'multipart/form-data' }
-        });
-        setSuccess('Event created successfully');
+        // Creating: create one event per date
+        for (const eventDate of allDates) {
+          const formData = buildFormData(eventDate);
+          try {
+            await api.post('/events', formData, {
+              headers: { 'Content-Type': 'multipart/form-data' }
+            });
+          } catch (err) {
+            // Schedule conflict — auto-retry with ignore flag
+            if (err.response?.status === 409 && err.response?.data?.warning === 'schedule_conflict') {
+              formData.append('ignore_conflicts', 'true');
+              await api.post('/events', formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+              });
+            } else {
+              throw err;
+            }
+          }
+        }
+        const count = allDates.length;
+        setSuccess(count > 1 ? `${count} events created successfully` : 'Event created successfully');
         resetForm();
       }
 
       onEventCreated();
     } catch (err) {
       console.error('Error saving event:', err.response?.data);
-
-      // Schedule conflict ΓÇö auto-retry with ignore flag
-      if (err.response?.status === 409 && err.response?.data?.warning === 'schedule_conflict') {
-        formData.append('ignore_conflicts', 'true');
-        try {
-          await api.post('/events', formData, {
-            headers: { 'Content-Type': 'multipart/form-data' }
-          });
-          setSuccess('Event created successfully');
-          resetForm();
-          onEventCreated();
-        } catch (retryErr) {
-          setError(retryErr.response?.data?.error || retryErr.response?.data?.message || 'Operation failed');
-        }
-      } else {
-        setError(err.response?.data?.error || err.response?.data?.message || 'Operation failed');
-      }
+      setError(err.response?.data?.error || err.response?.data?.message || 'Operation failed');
     } finally {
       setLoading(false);
     }
@@ -174,6 +183,7 @@ export default function EventForm({ members, onEventCreated, editingEvent, onCan
     setDate(now.toISOString().split('T')[0]);
     setTime(now.toTimeString().slice(0, 5));
     setSelectedMembers([]);
+    setAdditionalDates([]);
   };
 
   const handleCancel = () => {
@@ -549,6 +559,86 @@ export default function EventForm({ members, onEventCreated, editingEvent, onCan
                     />
                   </div>
                 </div>
+
+                {/* Additional Dates (multi-date) — only when creating */}
+                {!editingEvent && (
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="text-xs font-medium text-gray-700">Additional Dates</label>
+                      <button
+                        type="button"
+                        onClick={() => setAdditionalDates(prev => [...prev, ''])}
+                        className="text-xs text-green-700 hover:text-green-900 font-semibold flex items-center gap-0.5"
+                      >
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
+                        </svg>
+                        Add date
+                      </button>
+                    </div>
+
+                    {/* Pillboxes for selected additional dates */}
+                    {additionalDates.filter(Boolean).length > 0 && (
+                      <div className="flex flex-wrap gap-1.5 mb-2">
+                        {additionalDates.map((d, idx) =>
+                          d ? (
+                            <span
+                              key={idx}
+                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-800 border border-green-300"
+                            >
+                              {new Date(d + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                              <button
+                                type="button"
+                                onClick={() => setAdditionalDates(prev => prev.filter((_, i) => i !== idx))}
+                                className="text-green-600 hover:text-red-500 transition-colors"
+                              >
+                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                              </button>
+                            </span>
+                          ) : null
+                        )}
+                      </div>
+                    )}
+
+                    {/* Date pickers for empty slots */}
+                    {additionalDates.map((d, idx) =>
+                      !d ? (
+                        <div key={idx} className="flex items-center gap-2 mb-1.5">
+                          <div className="flex-1">
+                            <DatePicker
+                              selectedDate={d}
+                              onDateSelect={(newDate) => {
+                                setAdditionalDates(prev => {
+                                  const updated = [...prev];
+                                  updated[idx] = newDate;
+                                  return updated;
+                                });
+                              }}
+                              minDate={new Date().toISOString().split('T')[0]}
+                            />
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setAdditionalDates(prev => prev.filter((_, i) => i !== idx))}
+                            className="text-gray-400 hover:text-red-500 transition-colors"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          </button>
+                        </div>
+                      ) : null
+                    )}
+
+                    {additionalDates.filter(Boolean).length > 0 && (
+                      <p className="text-xs text-gray-500 mt-1">
+                        {1 + additionalDates.filter(Boolean).length} events will be created (one per date)
+                      </p>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Event Files Section - Moved here */}

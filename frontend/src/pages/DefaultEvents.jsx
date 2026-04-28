@@ -199,8 +199,7 @@ const DefaultEvents = () => {
     if (event.date) {
       setSelectedDate(typeof event.date === 'string' ? event.date.substring(0, 10) : event.date);
     } else {
-      const yearForMonth = getYearForMonth(event.month);
-      setSelectedDate(`${yearForMonth}-${String(event.month).padStart(2, '0')}-01`);
+      setSelectedDate('');
     }
     if (event.end_date) {
       setSelectedEndDate(typeof event.end_date === 'string' ? event.end_date.substring(0, 10) : event.end_date);
@@ -251,17 +250,27 @@ const DefaultEvents = () => {
 
     try {
       setSaving(true);
-      await api.put(`/default-events/${event.id}/date`, {
-        date: selectedDate,
-        end_date: selectedEndDate || null,
-        school_year: currentSchoolYear
-      });
+
+      const isCreated = event.is_created === true;
+
+      if (isCreated) {
+        // Use the created-academic-events endpoint
+        await api.put(`/created-academic-events/${event.actual_id}/date`, {
+          date: selectedDate,
+          end_date: selectedEndDate || null,
+        });
+      } else {
+        await api.put(`/default-events/${event.id}/date`, {
+          date: selectedDate,
+          end_date: selectedEndDate || null,
+          school_year: currentSchoolYear
+        });
+      }
       
       // Refresh the events list to show the event in the correct month
       await fetchDefaultEvents();
       
       // Invalidate all dashboard caches so the new academic event shows up for everyone
-      // We clear the pattern by removing all cache keys that start with 'cache:dashboard:'
       Object.keys(localStorage).forEach(key => {
         if (key.startsWith('cache:dashboard:')) localStorage.removeItem(key);
       });
@@ -274,6 +283,42 @@ const DefaultEvents = () => {
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to update date');
       console.error('Error updating date:', err);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleResetDate = async (event) => {
+    if (!window.confirm(`Remove the date for "${event.name}"? It will show as "No date set".`)) return;
+
+    try {
+      setSaving(true);
+
+      const isCreated = event.is_created === true;
+
+      if (isCreated) {
+        await api.put(`/created-academic-events/${event.actual_id}/date`, {
+          date: null,
+          end_date: null,
+        });
+      } else {
+        await api.delete(`/default-events/${event.id}/date?school_year=${encodeURIComponent(currentSchoolYear)}`);
+      }
+
+      await fetchDefaultEvents();
+
+      Object.keys(localStorage).forEach(key => {
+        if (key.startsWith('cache:dashboard:')) localStorage.removeItem(key);
+      });
+
+      setEditingEventId(null);
+      setEditingEvent(null);
+      setSelectedDate('');
+      setSelectedEndDate('');
+      setError('');
+    } catch (err) {
+      setError(err.response?.data?.error || 'Failed to reset date');
+      console.error('Error resetting date:', err);
     } finally {
       setSaving(false);
     }
@@ -902,6 +947,18 @@ const DefaultEvents = () => {
               >
                 Cancel
               </button>
+              {editingEvent?.date && (
+                <button
+                  onClick={() => handleResetDate(editingEvent)}
+                  disabled={saving}
+                  className="px-4 py-2.5 text-sm font-semibold text-red-600 bg-red-50 hover:bg-red-100 rounded-xl transition-colors disabled:opacity-50 flex items-center gap-1.5"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                  Clear
+                </button>
+              )}
               <button
                 onClick={() => handleSaveDate(editingEvent)}
                 disabled={saving || !selectedDate}
