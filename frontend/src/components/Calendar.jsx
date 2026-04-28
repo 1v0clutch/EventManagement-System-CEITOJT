@@ -203,8 +203,14 @@ export default function Calendar({ events, defaultEvents = [], userSchedules = [
       setShowEventDetailModal(true);
       setShowMoreModal(false);
       setCurrentFileIndex(0);
+    } else if (event.is_default_event === true) {
+      // Academic/default events always use the internal modal — they have `name` not `title`
+      setSelectedEvent(event);
+      setShowEventDetailModal(true);
+      setShowMoreModal(false);
+      setCurrentFileIndex(0);
     } else if (onEventClick) {
-      // Regular/personal/default events — delegate to parent (EventDetailModal)
+      // Regular/personal events — delegate to parent (EventDetailModal)
       setShowMoreModal(false);
       onEventClick(event);
     } else {

@@ -89,9 +89,15 @@ export default function Dashboard() {
     const { events: fetchedEvents, defaultEvents: fetchedDefaultEvents, members: fetchedMembers, userSchedules: fetchedSchedules } = data;
     const regularEventsOnly = fetchedEvents.filter(event => !event.is_default_event);
 
+    // Ensure all default events have is_default_event: true (guards against stale cache)
+    const normalizedDefaultEvents = (fetchedDefaultEvents || []).map(e => ({
+      ...e,
+      is_default_event: true,
+    }));
+
     setEvents(regularEventsOnly);
     setMembers(fetchedMembers);
-    setDefaultEvents(fetchedDefaultEvents);
+    setDefaultEvents(normalizedDefaultEvents);
     if (fetchedSchedules) setUserSchedules(fetchedSchedules);
 
     // Only auto-select today on initial load (not background refresh)

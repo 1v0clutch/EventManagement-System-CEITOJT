@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Semester Bug Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-case {
+            padding: 15px;
+            margin: 10px 0;
+            border-left: 4px solid #ddd;
+            background: #f9f9f9;
+        }
+        .test-case.pass {
+            border-left-color: #4CAF50;
+            background: #f1f8f4;
+        }
+        .test-case.fail {
+            border-left-color: #f44336;
+            background: #fef1f0;
+        }
+        .result {
+            font-weight: bold;
+            margin-top: 10px;
+        }
+        .pass .result { color: #4CAF50; }
+        .fail .result { color: #f44336; }
+        h1 { color: #333; }
+        h2 { color: #666; margin-top: 30px; }
+        code {
+            background: #eee;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+        }
+        .summary {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>🐛 Dashboard Semester Bug Test</h1>
+    
+    <div class="summary">
+        <h3>Bug Description</h3>
+        <p><strong>Issue:</strong> Schedule events (class schedules) were not showing on the calendar when viewing dates in a different semester than today.</p>
+        <p><strong>Root Cause:</strong> The code was determining the semester based on TODAY's date, then checking if the SELECTED date fell within that semester. This prevented schedules from showing when browsing future/past semesters.</p>
+        <p><strong>Fix:</strong> Changed logic to determine the semester based on the SELECTED date itself, then filter schedules that match that semester.</p>
+    </div>
+
+    <div id="test-results"></div>
+
+    <script>
+        // Simulate the OLD buggy logic
+        function oldLogic(selectedDate, userSchedules) {
+            const checkDate = new Date(selectedDate);
+            const dayOfWeek = checkDate.getDay();
+            const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+            const dayName = dayNames[dayOfWeek];
+
+            // Get current semester (based on TODAY's date) - THIS IS THE BUG
+            const currentDate = new Date();
+            const currentMonth = currentDate.getMonth() + 1;
+            let currentSemester;
+            
+            if (currentMonth >= 9 || currentMonth <= 1) {
+                currentSemester = 'first';
+            } else if (currentMonth >= 2 && currentMonth <= 6) {
+                currentSemester = 'second';
+            } else if (currentMonth >= 7 && currentMonth <= 8) {
+                currentSemester = 'midyear';
+            }
+
+            // Check if the specific date falls within the current semester
+            const dateMonth = checkDate.getMonth() + 1;
+            let dateInCurrentSemester = false;
+            
+            if (currentSemester === 'first' && (dateMonth >= 9 || dateMonth <= 1)) {
+                dateInCurrentSemester = true;
+            } else if (currentSemester === 'second' && (dateMonth >= 2 && dateMonth <= 6)) {
+                dateInCurrentSemester = true;
+            } else if (currentSemester === 'midyear' && (dateMonth >= 7 && dateMonth <= 8)) {
+                dateInCurrentSemester = true;
+            }
+
+            return userSchedules.filter(schedule => {
+                if (schedule.day !== dayName) return false;
+                return dateInCurrentSemester;
+            });
+        }
+
+        // Simulate the NEW fixed logic
+        function newLogic(selectedDate, userSchedules) {
+            const checkDate = new Date(selectedDate);
+            const dayOfWeek = checkDate.getDay();
+            const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+            const dayName = dayNames[dayOfWeek];
+
+            // Determine the semester for the SELECTED date (not today's date)
+            const dateMonth = checkDate.getMonth() + 1;
+            let selectedDateSemester;
+            
+            if (dateMonth >= 9 || dateMonth <= 1) {
+                selectedDateSemester = 'first';
+            } else if (dateMonth >= 2 && dateMonth <= 6) {
+                selectedDateSemester = 'second';
+            } else if (dateMonth >= 7 && dateMonth <= 8) {
+                selectedDateSemester = 'midyear';
+            }
+
+            return userSchedules.filter(schedule => {
+                if (schedule.day !== dayName) return false;
+                return schedule.semester === selectedDateSemester;
+            });
+        }
+
+        // Test data
+        const userSchedules = [
+            { day: 'Monday', semester: 'first', description: 'Math 101' },
+            { day: 'Tuesday', semester: 'first', description: 'Physics 201' },
+            { day: 'Wednesday', semester: 'first', description: 'Chemistry 301' },
+            { day: 'Monday', semester: 'second', description: 'English 102' },
+            { day: 'Tuesday', semester: 'second', description: 'History 202' },
+            { day: 'Monday', semester: 'midyear', description: 'Summer Course' },
+        ];
+
+        // Test cases
+        const testCases = [
+            {
+                name: 'Viewing Tuesday in September (First Semester) while in March (Second Semester)',
+                selectedDate: '2026-09-15', // Tuesday in September (first semester)
+                expectedSchedules: ['Physics 201'], // Should show first semester Tuesday class
+                description: 'This is the main bug scenario - viewing future semester dates'
+            },
+            {
+                name: 'Viewing Monday in September (First Semester) while in March (Second Semester)',
+                selectedDate: '2026-09-14', // Monday in September (first semester)
+                expectedSchedules: ['Math 101'],
+                description: 'Another future semester scenario'
+            },
+            {
+                name: 'Viewing Tuesday in March (Second Semester) while in March',
+                selectedDate: '2026-03-24', // Tuesday in March (second semester)
+                expectedSchedules: ['History 202'],
+                description: 'Current semester - should work in both old and new logic'
+            },
+            {
+                name: 'Viewing Monday in February (Second Semester) while in March',
+                selectedDate: '2026-02-16', // Monday in February (second semester)
+                expectedSchedules: ['English 102'],
+                description: 'Same semester, different month'
+            },
+            {
+                name: 'Viewing Monday in July (Midyear) while in March',
+                selectedDate: '2026-07-13', // Monday in July (midyear)
+                expectedSchedules: ['Summer Course'],
+                description: 'Midyear semester viewing'
+            },
+            {
+                name: 'Viewing Wednesday in September (First Semester)',
+                selectedDate: '2026-09-16', // Wednesday in September
+                expectedSchedules: ['Chemistry 301'],
+                description: 'Different day of week in future semester'
+            },
+            {
+                name: 'Viewing Thursday in September (no classes)',
+                selectedDate: '2026-09-17', // Thursday in September
+                expectedSchedules: [],
+                description: 'Day with no scheduled classes'
+            }
+        ];
+
+        // Run tests
+        const resultsDiv = document.getElementById('test-results');
+        let passCount = 0;
+        let failCount = 0;
+
+        testCases.forEach((testCase, index) => {
+            const oldResult = oldLogic(testCase.selectedDate, userSchedules);
+            const newResult = newLogic(testCase.selectedDate, userSchedules);
+            
+            const oldScheduleNames = oldResult.map(s => s.description);
+            const newScheduleNames = newResult.map(s => s.description);
+            
+            const oldMatches = JSON.stringify(oldScheduleNames.sort()) === JSON.stringify(testCase.expectedSchedules.sort());
+            const newMatches = JSON.stringify(newScheduleNames.sort()) === JSON.stringify(testCase.expectedSchedules.sort());
+            
+            const testDiv = document.createElement('div');
+            testDiv.className = `test-case ${newMatches ? 'pass' : 'fail'}`;
+            
+            if (newMatches) passCount++;
+            else failCount++;
+            
+            testDiv.innerHTML = `
+                <h3>Test ${index + 1}: ${testCase.name}</h3>
+                <p><strong>Description:</strong> ${testCase.description}</p>
+                <p><strong>Selected Date:</strong> <code>${testCase.selectedDate}</code></p>
+                <p><strong>Expected Schedules:</strong> <code>${testCase.expectedSchedules.join(', ') || 'None'}</code></p>
+                <p><strong>Old Logic Result:</strong> <code>${oldScheduleNames.join(', ') || 'None'}</code> ${oldMatches ? '✓' : '✗'}</p>
+                <p><strong>New Logic Result:</strong> <code>${newScheduleNames.join(', ') || 'None'}</code> ${newMatches ? '✓' : '✗'}</p>
+                <div class="result">${newMatches ? '✓ PASS' : '✗ FAIL'}</div>
+            `;
+            
+            resultsDiv.appendChild(testDiv);
+        });
+
+        // Add summary
+        const summaryDiv = document.createElement('div');
+        summaryDiv.className = 'test-section';
+        summaryDiv.innerHTML = `
+            <h2>Test Summary</h2>
+            <p><strong>Total Tests:</strong> ${testCases.length}</p>
+            <p style="color: #4CAF50;"><strong>Passed:</strong> ${passCount}</p>
+            <p style="color: #f44336;"><strong>Failed:</strong> ${failCount}</p>
+            <p><strong>Success Rate:</strong> ${((passCount / testCases.length) * 100).toFixed(1)}%</p>
+        `;
+        resultsDiv.insertBefore(summaryDiv, resultsDiv.firstChild);
+    </script>
+</body>
+</html>
