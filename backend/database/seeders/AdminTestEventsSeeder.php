@@ -20,10 +20,8 @@ class AdminTestEventsSeeder extends Seeder
             'Dean',
             'CEIT Official',
             'Chairperson',
-            'Coordinator',
             'Research Coordinator',
             'Extension Coordinator',
-            'GAD Coordinator',
             'Faculty Member',
         ];
 

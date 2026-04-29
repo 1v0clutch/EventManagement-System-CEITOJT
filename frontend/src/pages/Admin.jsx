@@ -41,12 +41,14 @@ export default function Admin() {
     'Chairperson',
     'Research Coordinator',
     'Extension Coordinator',
+    'Department Research Coordinator',
+    'Department Extension Coordinator',
     'Faculty Member',
     'CEIT Official'
   ];
 
   const CEIT_ROLES = ['Dean', 'CEIT Official', 'Faculty Member'];
-  const DEPT_ROLES = ['Chairperson', 'Faculty Member', 'Research Coordinator', 'Extension Coordinator'];
+  const DEPT_ROLES = ['Chairperson', 'Faculty Member', 'Research Coordinator', 'Extension Coordinator', 'Department Research Coordinator', 'Department Extension Coordinator'];
 
   const deanExists = users.some(u => u.role === 'Dean');
 
@@ -202,6 +204,8 @@ export default function Admin() {
       'Chairperson': 'bg-indigo-100 text-indigo-800',
       'Research Coordinator': 'bg-sky-100 text-sky-800',
       'Extension Coordinator': 'bg-teal-100 text-teal-800',
+      'Department Research Coordinator': 'bg-cyan-100 text-cyan-800',
+      'Department Extension Coordinator': 'bg-emerald-100 text-emerald-800',
       'Faculty Member': 'bg-green-100 text-green-800',
       'CEIT Official': 'bg-orange-100 text-orange-800'
     };

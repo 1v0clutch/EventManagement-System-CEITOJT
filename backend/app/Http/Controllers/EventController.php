@@ -190,6 +190,7 @@ class EventController extends Controller
         if (!in_array($user->role, [
         'Admin', 'Dean', 'Chairperson',
         'Research Coordinator', 'Extension Coordinator',
+        'Department Research Coordinator', 'Department Extension Coordinator',
         'CEIT Official', 'Faculty Member',
         ])) {
             return response()->json([

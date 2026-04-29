@@ -24,7 +24,7 @@ export default function CreateUserModal({ isOpen, onClose, onSuccess, deanExists
   ];
 
   const CEIT_ROLES = ['Dean', 'CEIT Official', 'Faculty Member'];
-  const DEPT_ROLES = ['Chairperson', 'Faculty Member', 'Research Coordinator', 'Extension Coordinator'];
+  const DEPT_ROLES = ['Chairperson', 'Faculty Member', 'Research Coordinator', 'Extension Coordinator', 'Department Research Coordinator', 'Department Extension Coordinator'];
 
   const getRolesForDepartment = (dept) => {
     if (!dept) return [...CEIT_ROLES, ...DEPT_ROLES]; // show all if none selected

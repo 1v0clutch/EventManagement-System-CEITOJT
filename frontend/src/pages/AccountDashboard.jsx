@@ -149,6 +149,8 @@ const ROLE_DESCRIPTIONS = {
   'Chairperson': 'Department Chairperson who manages department-level academic programs and faculty.',
   'Research Coordinator': 'Coordinates and oversees research activities, projects, and publications.',
   'Extension Coordinator': 'Manages community extension programs and outreach activities.',
+  'Department Research Coordinator': 'Coordinates research activities and projects at the department level.',
+  'Department Extension Coordinator': 'Manages community extension programs and outreach activities at the department level.',
   'CEIT Official': 'College of Engineering and Information Technology official with administrative responsibilities.',
   'Faculty Member': 'Teaching faculty member responsible for instruction and academic activities.',
   'Staff': 'Administrative or support staff member assisting in college operations.',

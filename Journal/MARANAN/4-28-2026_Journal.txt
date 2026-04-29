@@ -1,19 +1,27 @@
 CEIT Officers isasama na ang Coordinator
 nagcreate si user ng account pede edit ung designation
 Fixing crashes and redeploying SQL on railway
-
-on /register, can you add new forms that i could choose a department between the 5 departments and what position i am based on the admin dashboard user roles (Dean, Chairperson, Faculty, CEIT Officer, Research Coordinator, Extension Coordinator, etc) + The Coordinator will be removed as well as role on all implementations + also when i register the account with department and role, it will dynamically show on the /account interface and all implementations as well + the admin side will automatically update as well only when the user has created the account itself, make no mistakes
-The department drop down must be only Department of Information Technology (DIT), Department of Industrial Engineering and Technology (DIET), Department of Computer, Electronics, and Electrical Engineering (DCEEE), Department of Civil Engineering (DCEA), Department of Agriculture and Food Engineering (DAFE) and kindly correct other department implementations if these are implemented 
-on /add-event, dates should be settable on multiple dates on event checkbox and the pillboxes will be shown on those dates as well + the /default-events when setting a date it must show the pillboxes correctly and currently it doesnt fetch data correctly on academic year + i wanted the set date could be reset to no date set yet on /default events
-when setting an event on /default-event or the academic year, it shws this improper pillbox with the incomplete modal as well with no title, what seems to be the issue here
-the event files is misplaced on ui, correct its position + i dont see the date picker on event details when choosing an event settable to multiple dates, and also the last prompt seems to be cut off can you continue it first and verify if it is properly implemented now
+Choosable departments on register
+The Coordinator will be removed as well as role on all implementations 
+dynamically show on the /account interface the set registered department role on all implementations
+Corrected Department names on all implementation
+Added new feature where dates can be setted on multiple dates 
+Fixed fetching date inconsistently on academic year set on admin side
+Improved usability on setting dates on Academic year
+Fixed inconistency on the academic year pillbox UI display on dashboard
+Fixing UI on the Date picker on add event
 untracked/hide md files from every commit / fixing deployments
 Fix the Event details separated in the /add-event
 Fixing dead codes
-
-remove the multiple date feature and just make the invite members and event details parallel and same size as always
+Fixed UI again on /Add-event and fixing inconsistencies
 improving ui of the multiple dates in add event
 fixing add event multiple date bug
 adding a time end on add event
 updating restrictions on the time end when setting on add event
-**papafix ung deploy cross sa github
+Events inform only, while meeting will have the feature of accept/decline only
+testing implementations on all features 
+testing implementations on all features
+Tested decline features on meetings, added an urgent button as well for untoggleable event
+updated the notification bell to the urgent features and the event pending issue
+**need to update pending events on event vs meeting
+
