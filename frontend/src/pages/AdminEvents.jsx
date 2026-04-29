@@ -31,7 +31,7 @@ export default function AdminEvents() {
         'Department of Information Technology',
         'Department of Industrial Engineering and Technology',
         'Department of Computer, Electronics, and Electrical Engineering',
-        'Department of Civil Engineering',
+        'Department of Civil Engineering and Architecture',
         'Department of Agriculture and Food Engineering',
         'Other'
     ];
@@ -116,7 +116,7 @@ export default function AdminEvents() {
             'Department of Information Technology': 'DIT',
             'Department of Industrial Engineering and Technology': 'DIET',
             'Department of Computer, Electronics, and Electrical Engineering': 'DCEEE',
-            'Department of Civil Engineering': 'DCEA',
+            'Department of Civil Engineering and Architecture': 'DCEA',
             'Department of Agriculture and Food Engineering': 'DAFE',
         };
         return map[name] || name.split(' ').map(w => w[0]).join('').toUpperCase();

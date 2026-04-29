@@ -220,7 +220,7 @@ export default function AccountDashboard() {
     'Department of Information Technology',
     'Department of Industrial Engineering and Technology',
     'Department of Computer, Electronics, and Electrical Engineering',
-    'Department of Civil Engineering',
+    'Department of Civil Engineering and Architecture',
     'Department of Agriculture and Food Engineering',
   ];
 
