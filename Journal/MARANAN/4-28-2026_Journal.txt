@@ -11,4 +11,9 @@ untracked/hide md files from every commit / fixing deployments
 Fix the Event details separated in the /add-event
 Fixing dead codes
 
+remove the multiple date feature and just make the invite members and event details parallel and same size as always
+improving ui of the multiple dates in add event
+fixing add event multiple date bug
+adding a time end on add event
+updating restrictions on the time end when setting on add event
 **papafix ung deploy cross sa github

@@ -57,6 +57,7 @@ class EventController extends Controller
             ]),
             'date' => $event->date,
             'time' => $event->time,
+            'end_time' => $event->end_time,
             'school_year' => $event->school_year,
             'host' => [
             'id' => $event->host->id,
@@ -114,6 +115,7 @@ class EventController extends Controller
             ]),
             'date' => $event->date,
             'time' => $event->time,
+            'end_time' => $event->end_time,
             'school_year' => $event->school_year,
             'host' => [
             'id' => $event->host->id ?? null,
@@ -150,6 +152,7 @@ class EventController extends Controller
             'images' => 'nullable|array|max:5',
             'date' => 'required|date',
             'time' => 'required',
+            'end_time' => 'nullable|date_format:H:i',
             'member_ids' => 'nullable|array',
             'is_urgent' => 'nullable|boolean',
         ], [
@@ -210,6 +213,7 @@ class EventController extends Controller
             'event_type' => $request->event_type,
             'date' => $request->date,
             'time' => $request->time,
+            'end_time' => $request->end_time ?: null,
             'school_year' => $request->school_year,
             'host_id' => $user->id,
             'is_urgent' => $request->boolean('is_urgent', false),
@@ -288,6 +292,7 @@ class EventController extends Controller
             'images' => 'nullable|array|max:5',
             'date' => 'sometimes|required|date',
             'time' => 'sometimes|required',
+            'end_time' => 'nullable|date_format:H:i',
             'member_ids' => 'nullable|array',
             'is_urgent' => 'nullable|boolean',
         ], [
@@ -316,7 +321,7 @@ class EventController extends Controller
             }
         }
 
-        $event->update($request->only(['title', 'description', 'location', 'event_type', 'date', 'time', 'is_urgent']));
+        $event->update($request->only(['title', 'description', 'location', 'event_type', 'date', 'time', 'end_time', 'is_urgent']));
 
         // Handle new images/files
         if ($request->hasFile('images')) {

@@ -128,6 +128,7 @@ class DashboardController extends Controller
             ]),
             'date' => $date,
             'time' => $event->time,
+            'end_time' => $event->end_time,
             'school_year' => $event->school_year,
             'host' => [
             'id' => $event->host->id,

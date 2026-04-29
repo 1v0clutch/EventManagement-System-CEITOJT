@@ -12,6 +12,7 @@ class Event extends Model
         'location',
         'date',
         'time',
+        'end_time',
         'school_year',
         'host_id',
         'is_personal',

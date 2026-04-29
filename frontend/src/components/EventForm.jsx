@@ -11,7 +11,7 @@ export default function EventForm({ members, onEventCreated, editingEvent, onCan
   const [eventType, setEventType] = useState('event');
   const [images, setImages] = useState([]);
   const [imagePreviews, setImagePreviews] = useState([]);
-  const [date, setDate] = useState('');
+  const [dateEntries, setDateEntries] = useState([{ date: '', startTime: '', endTime: '' }]);
   const [isUrgent, setIsUrgent] = useState(false);
   const [time, setTime] = useState('');
   const [schoolYear, setSchoolYear] = useState('');
@@ -49,55 +49,80 @@ export default function EventForm({ members, onEventCreated, editingEvent, onCan
 
   // Auto-update school year when date changes
   useEffect(() => {
-    if (date) {
-      const calculatedSchoolYear = getSchoolYearFromDate(date);
+    if (dateEntries[0]?.date) {
+      const calculatedSchoolYear = getSchoolYearFromDate(dateEntries[0].date);
       setSchoolYear(calculatedSchoolYear);
     }
-  }, [date]);
+  }, [dateEntries]);
 
   useEffect(() => {
     const now = new Date();
     const today = now.toISOString().split('T')[0];
     const currentTime = now.toTimeString().slice(0, 5);
 
-    if (!date) {
-      setDate(defaultDate || today);
-      const initialSchoolYear = getSchoolYearFromDate(defaultDate || today);
-      setSchoolYear(initialSchoolYear);
-    }
-    if (!time) setTime(currentTime);
+    setDateEntries([{ date: defaultDate || today, startTime: currentTime, endTime: '' }]);
+    const initialSchoolYear = getSchoolYearFromDate(defaultDate || today);
+    setSchoolYear(initialSchoolYear);
   }, [defaultDate]);
 
   const validateDateTime = () => {
     const now = new Date();
-    const selectedDateTime = new Date(`${date}T${time}`);
-    
+    const first = dateEntries[0];
+    if (!first?.date || !first?.startTime) {
+      setError('Please set a date and start time');
+      return false;
+    }
+    const selectedDateTime = new Date(`${first.date}T${first.startTime}`);
     if (selectedDateTime < now) {
       setError('Cannot set event date/time in the past');
       return false;
     }
-    
+
+    // Validate all entries: start and end times must be within 7:00 AM – 7:00 PM
+    const toMinutes = (t) => {
+      const [h, m] = t.split(':').map(Number);
+      return h * 60 + m;
+    };
+    const MIN_TIME = 7 * 60;   // 07:00
+    const MAX_TIME = 19 * 60;  // 19:00
+
+    for (let i = 0; i < dateEntries.length; i++) {
+      const entry = dateEntries[i];
+      if (!entry.startTime) continue;
+
+      const startMin = toMinutes(entry.startTime);
+      if (startMin < MIN_TIME || startMin > MAX_TIME) {
+        setError(`Entry ${i + 1}: Start time must be between 7:00 AM and 7:00 PM`);
+        return false;
+      }
+
+      if (entry.endTime) {
+        const endMin = toMinutes(entry.endTime);
+        if (endMin < MIN_TIME || endMin > MAX_TIME) {
+          setError(`Entry ${i + 1}: End time must be between 7:00 AM and 7:00 PM`);
+          return false;
+        }
+        if (endMin <= startMin) {
+          setError(`Entry ${i + 1}: End time must be after start time`);
+          return false;
+        }
+      }
+    }
+
     setError('');
     return true;
-  };
-
-  const handleDateChange = (newDate) => {
-    setDate(newDate);
-  };
-
-  const handleTimeChange = (newTime) => {
-    setTime(newTime);
-  };
-
-  useEffect(() => {
+  };  useEffect(() => {
     if (editingEvent) {
       setTitle(editingEvent.title);
       setDescription(editingEvent.description || '');
       setLocation(editingEvent.location || '');
       setEventType(editingEvent.event_type || 'event');
       setImagePreviews(editingEvent.images || []);
-      setDate(editingEvent.date);
-      setTime(editingEvent.time);
+      setDateEntries([{
+        date: editingEvent.date,
+        startTime: editingEvent.time,
+        endTime: editingEvent.end_time || '',
+      }]);
       setSchoolYear(editingEvent.school_year || getSchoolYearFromDate(editingEvent.date));
       setSelectedMembers(editingEvent.members.map(m => m.id));
       setIsUrgent(editingEvent.is_urgent ?? false);
@@ -113,41 +138,51 @@ export default function EventForm({ members, onEventCreated, editingEvent, onCan
 
     setLoading(true);
 
-    const formData = new FormData();
-    formData.append('title', title);
-    formData.append('description', description);
-    formData.append('location', location);
-    formData.append('event_type', eventType);
-    formData.append('date', date);
-    formData.append('time', time);
-    formData.append('school_year', getSchoolYearFromDate(date));
-    formData.append('is_urgent', isUrgent ? '1' : '0');
-    images.forEach((image) => formData.append('images[]', image));
-    selectedMembers.forEach(id => formData.append('member_ids[]', id));
+    const buildFormData = (entry) => {
+      const formData = new FormData();
+      formData.append('title', title);
+      formData.append('description', description);
+      formData.append('location', location);
+      formData.append('event_type', eventType);
+      formData.append('date', entry.date);
+      formData.append('time', entry.startTime);
+      if (entry.endTime) formData.append('end_time', entry.endTime);
+      formData.append('school_year', getSchoolYearFromDate(entry.date));
+      formData.append('is_urgent', isUrgent ? '1' : '0');
+      images.forEach((image) => formData.append('images[]', image));
+      selectedMembers.forEach(id => formData.append('member_ids[]', id));
+      return formData;
+    };
 
     try {
       if (editingEvent) {
+        const formData = buildFormData(dateEntries[0]);
         await api.post(`/events/${editingEvent.id}`, formData, {
           headers: { 'Content-Type': 'multipart/form-data' },
           params: { _method: 'PUT' }
         });
         setSuccess('Event updated successfully');
       } else {
-        try {
-          await api.post('/events', formData, {
-            headers: { 'Content-Type': 'multipart/form-data' }
-          });
-        } catch (err) {
-          if (err.response?.status === 409 && err.response?.data?.warning === 'schedule_conflict') {
-            formData.append('ignore_conflicts', 'true');
+        const validEntries = dateEntries.filter(e => e.date && e.startTime);
+        for (const entry of validEntries) {
+          const formData = buildFormData(entry);
+          try {
             await api.post('/events', formData, {
               headers: { 'Content-Type': 'multipart/form-data' }
             });
-          } else {
-            throw err;
+          } catch (err) {
+            if (err.response?.status === 409 && err.response?.data?.warning === 'schedule_conflict') {
+              formData.append('ignore_conflicts', 'true');
+              await api.post('/events', formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+              });
+            } else {
+              throw err;
+            }
           }
         }
-        setSuccess('Event created successfully');
+        const count = validEntries.length;
+        setSuccess(count > 1 ? `${count} events created successfully` : 'Event created successfully');
         resetForm();
       }
       onEventCreated();
@@ -167,8 +202,7 @@ export default function EventForm({ members, onEventCreated, editingEvent, onCan
     setImages([]);
     setImagePreviews([]);
     const now = new Date();
-    setDate(now.toISOString().split('T')[0]);
-    setTime(now.toTimeString().slice(0, 5));
+    setDateEntries([{ date: now.toISOString().split('T')[0], startTime: now.toTimeString().slice(0, 5), endTime: '' }]);
     setSelectedMembers([]);
     setIsUrgent(false);
   };
@@ -441,10 +475,10 @@ export default function EventForm({ members, onEventCreated, editingEvent, onCan
       )}
 
       <form onSubmit={handleSubmit} autoComplete="off">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
-          {/* Left Column - Event Details (1/2 width) */}
-          <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm flex flex-col">
-            <div className="flex items-center space-x-2 mb-5">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch">
+          {/* Left Column - Event Details (1/3 width) — fixed max height, no outer scroll */}
+          <div className="lg:col-span-1 bg-white border border-gray-200 rounded-xl shadow-sm flex flex-col overflow-hidden" style={{ height: 'calc(100vh - 180px)', minHeight: '520px' }}>
+            <div className="flex items-center space-x-2 px-6 pt-6 pb-4 border-b border-gray-100 flex-shrink-0">
               <div className="bg-green-100 rounded-lg p-2">
                 <svg className="w-5 h-5 text-green-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -452,7 +486,7 @@ export default function EventForm({ members, onEventCreated, editingEvent, onCan
               </div>
               <h3 className="text-base font-bold text-gray-900">Event Details</h3>
             </div>
-            <div className="space-y-4">
+            <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
                 <input
@@ -527,27 +561,97 @@ export default function EventForm({ members, onEventCreated, editingEvent, onCan
 
               {/* ── Date & Time ── */}
               <div className="pt-3 border-t border-gray-100">
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Schedule</p>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">Date <span className="text-red-500">*</span></label>
-                    <DatePicker
-                      selectedDate={date}
-                      onDateSelect={handleDateChange}
-                      minDate={new Date().toISOString().split('T')[0]}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">Time <span className="text-red-500">*</span></label>
-                    <input
-                      type="time"
-                      required
-                      value={time}
-                      onChange={(e) => handleTimeChange(e.target.value)}
-                      className="block w-full px-2 py-2 border border-gray-300 rounded-lg shadow-sm text-xs focus:outline-none focus:ring-2 focus:ring-green-600/20 focus:border-green-600 transition-colors"
-                    />
-                  </div>
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Schedule</p>
+                  {!editingEvent && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const last = dateEntries[dateEntries.length - 1];
+                        const usedDates = new Set(dateEntries.map(e => e.date).filter(Boolean));
+                        // Start from last date (or today if empty), find next available non-Sunday
+                        const base = last.date || new Date().toISOString().split('T')[0];
+                        let cursor = new Date(base + 'T00:00:00');
+                        do {
+                          cursor.setDate(cursor.getDate() + 1);
+                          if (cursor.getDay() === 0) cursor.setDate(cursor.getDate() + 1); // skip Sunday
+                        } while (usedDates.has(cursor.toISOString().split('T')[0]));
+                        const next = cursor.toISOString().split('T')[0];
+                        setDateEntries(prev => [...prev, { date: next, startTime: last.startTime, endTime: last.endTime }]);
+                      }}
+                      className="inline-flex items-center gap-1 text-xs font-semibold text-green-700 hover:text-green-900 transition-colors"
+                    >
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
+                      </svg>
+                      Add date
+                    </button>
+                  )}
                 </div>
+
+                {/* Column headers */}
+                <div className="grid gap-2 mb-1" style={{ gridTemplateColumns: '1fr 1fr 1fr auto' }}>
+                  <p className="text-xs font-medium text-gray-600">Date <span className="text-red-500">*</span></p>
+                  <p className="text-xs font-medium text-gray-600">Start <span className="text-red-500">*</span></p>
+                  <p className="text-xs font-medium text-gray-600 flex items-center gap-1">
+                    End
+                    <span className="text-gray-400 font-normal">(opt.)</span>
+                  </p>
+                  <span />
+                </div>
+
+                <div className="max-h-44 overflow-y-auto space-y-2 pr-0.5">
+                  {dateEntries.map((entry, idx) => (
+                    <div key={idx} className="grid gap-2 items-center" style={{ gridTemplateColumns: '1fr 1fr 1fr auto' }}>
+                      {/* Date */}
+                      <DatePicker
+                        selectedDate={entry.date}
+                        onDateSelect={(d) => {
+                          const isDuplicate = dateEntries.some((e, i) => i !== idx && e.date === d);
+                          if (isDuplicate) return;
+                          setDateEntries(prev => prev.map((e, i) => i === idx ? { ...e, date: d } : e));
+                        }}
+                        minDate={new Date().toISOString().split('T')[0]}
+                      />
+
+                      {/* Start time */}
+                      <input
+                        type="time"
+                        required={idx === 0}
+                        value={entry.startTime}
+                        onChange={(e) => setDateEntries(prev => prev.map((en, i) => i === idx ? { ...en, startTime: e.target.value } : en))}
+                        className="block w-full px-2 py-2 border border-gray-300 rounded-lg shadow-sm text-xs focus:outline-none focus:ring-2 focus:ring-green-600/20 focus:border-green-600 transition-colors"
+                      />
+
+                      {/* End time (optional) */}
+                      <input
+                        type="time"
+                        value={entry.endTime}
+                        onChange={(e) => setDateEntries(prev => prev.map((en, i) => i === idx ? { ...en, endTime: e.target.value } : en))}
+                        className="block w-full px-2 py-2 border border-gray-300 rounded-lg shadow-sm text-xs focus:outline-none focus:ring-2 focus:ring-green-600/20 focus:border-green-600 transition-colors text-gray-500"
+                      />
+
+                      {/* Remove row (first row gets empty spacer) */}
+                      {idx > 0 ? (
+                        <button
+                          type="button"
+                          onClick={() => setDateEntries(prev => prev.filter((_, i) => i !== idx))}
+                          className="flex-shrink-0 p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      ) : <span />}
+                    </div>
+                  ))}
+                </div>
+
+                {dateEntries.length > 1 && (
+                  <p className="text-xs text-green-700 font-medium mt-1.5">
+                    {dateEntries.length} events will be created — one per date
+                  </p>
+                )}
               </div>
 
               {/* ── Urgent toggle — meetings only ── */}
@@ -668,9 +772,10 @@ export default function EventForm({ members, onEventCreated, editingEvent, onCan
             </div>
           </div>
 
-          {/* Right Column - Members (1/2 width) */}
-          <div className="flex flex-col">
-            <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm flex flex-col flex-1">
+          {/* Right Column - Members (2/3 width) */}
+          <div className="lg:col-span-2 bg-white border border-gray-200 rounded-xl shadow-sm flex flex-col overflow-hidden" style={{ height: 'calc(100vh - 180px)', minHeight: '520px' }}>
+            {/* Fixed header: title + search + filters */}
+            <div className="px-6 pt-6 pb-3 flex-shrink-0 border-b border-gray-100">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center space-x-2">
                   <div className="bg-green-50 rounded-lg p-2">
@@ -687,8 +792,6 @@ export default function EventForm({ members, onEventCreated, editingEvent, onCan
                 )}
               </div>
 
-
-
               {/* Search Bar */}
               <div className="mb-3">
                 <div className="relative">
@@ -699,20 +802,11 @@ export default function EventForm({ members, onEventCreated, editingEvent, onCan
                     onChange={(e) => setSearchMember(e.target.value)}
                     className="block w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-lg shadow-sm text-sm focus:outline-none focus:ring-2 focus:ring-green-600/20 focus:border-green-600 transition-colors"
                   />
-                  <svg
-                    className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
+                  <svg className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                   </svg>
                   {searchMember && (
-                    <button
-                      type="button"
-                      onClick={() => setSearchMember('')}
-                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                    >
+                    <button type="button" onClick={() => setSearchMember('')} className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600">
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
                       </svg>
@@ -720,92 +814,44 @@ export default function EventForm({ members, onEventCreated, editingEvent, onCan
                   )}
                 </div>
               </div>
-              
-              {/* Department and Role Filters with Select All */}
-              <div className="mb-3 flex gap-2">
-                <select
-                  value={filterDepartment}
-                  onChange={(e) => setFilterDepartment(e.target.value)}
-                  className="flex-1 px-3 py-2.5 border border-gray-300 rounded-lg shadow-sm text-sm focus:outline-none focus:ring-2 focus:ring-green-600/20 focus:border-green-600 transition-colors"
-                >
+
+              {/* Filters + Select All */}
+              <div className="flex gap-2">
+                <select value={filterDepartment} onChange={(e) => setFilterDepartment(e.target.value)} className="flex-1 px-3 py-2.5 border border-gray-300 rounded-lg shadow-sm text-sm focus:outline-none focus:ring-2 focus:ring-green-600/20 focus:border-green-600 transition-colors">
                   <option value="all">All Departments</option>
-                  {availableDepartments.map(dept => (
-                    <option key={dept} value={dept}>{dept}</option>
-                  ))}
+                  {availableDepartments.map(dept => <option key={dept} value={dept}>{dept}</option>)}
                 </select>
-                
-                <select
-                  value={filterRole}
-                  onChange={(e) => setFilterRole(e.target.value)}
-                  className="flex-1 px-3 py-2.5 border border-gray-300 rounded-lg shadow-sm text-sm focus:outline-none focus:ring-2 focus:ring-green-600/20 focus:border-green-600 transition-colors"
-                >
+                <select value={filterRole} onChange={(e) => setFilterRole(e.target.value)} className="flex-1 px-3 py-2.5 border border-gray-300 rounded-lg shadow-sm text-sm focus:outline-none focus:ring-2 focus:ring-green-600/20 focus:border-green-600 transition-colors">
                   <option value="all">All Roles</option>
-                  {availableRoles
-                    .filter(role => !(currentUser?.role === 'Dean' && role === 'Dean'))
-                    .map(role => (
-                      <option key={role} value={role}>{role}</option>
-                    ))}
+                  {availableRoles.filter(role => !(currentUser?.role === 'Dean' && role === 'Dean')).map(role => <option key={role} value={role}>{role}</option>)}
                 </select>
-                
-                <button
-                  type="button"
-                  onClick={handleSelectAll}
-                  disabled={searchFilteredMembers.length === 0}
-                  className="px-4 py-2.5 border border-green-600 text-sm font-medium rounded-lg text-green-700 bg-white hover:bg-green-50 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-green-600/20 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
-                >
+                <button type="button" onClick={handleSelectAll} disabled={searchFilteredMembers.length === 0} className="px-4 py-2.5 border border-green-600 text-sm font-medium rounded-lg text-green-700 bg-white hover:bg-green-50 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-green-600/20 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap">
                   {searchFilteredMembers.length > 0 && searchFilteredMembers.every(m => selectedMembers.includes(m.id)) ? (
-                    <span className="flex items-center">
-                      <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                      Deselect All
-                    </span>
+                    <span className="flex items-center"><svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>Deselect All</span>
                   ) : (
-                    <span className="flex items-center">
-                      <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                      Select All
-                    </span>
+                    <span className="flex items-center"><svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>Select All</span>
                   )}
                 </button>
               </div>
-              <div className="border border-gray-200 rounded-lg bg-gray-50/50 flex-1 overflow-y-auto">
+            </div>
+
+            {/* Scrollable member list — inner container with its own scroll */}
+            <div className="flex-1 min-h-0 px-6 pb-6 pt-2">
+              <div className="h-full border border-gray-200 rounded-lg bg-gray-50/50 overflow-y-auto">
                 {searchFilteredMembers.length === 0 ? (
                   <div className="h-full flex items-center justify-center">
-                    <p className="text-sm text-gray-400">
-                      {searchMember ? 'No members found' : 'No members available'}
-                    </p>
+                    <p className="text-sm text-gray-400">{searchMember ? 'No members found' : 'No members available'}</p>
                   </div>
                 ) : (
-                  <div className="p-2 space-y-1">
+                  <div className="p-2 pb-3 space-y-1">
                     {searchFilteredMembers.map(member => (
-                      <label
-                        key={member.id}
-                        className={`flex items-center p-2.5 rounded-lg cursor-pointer transition-colors ${selectedMembers.includes(member.id)
-                          ? 'bg-green-100 border border-green-300'
-                          : 'hover:bg-white border border-transparent'
-                          }`}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={selectedMembers.includes(member.id)}
-                          onChange={() => toggleMember(member.id)}
-                          className="h-4 w-4 text-green-700 focus:ring-green-600 border-gray-300 rounded"
-                        />
+                      <label key={member.id} className={`flex items-center p-2.5 rounded-lg cursor-pointer transition-colors ${selectedMembers.includes(member.id) ? 'bg-green-100 border border-green-300' : 'hover:bg-white border border-transparent'}`}>
+                        <input type="checkbox" checked={selectedMembers.includes(member.id)} onChange={() => toggleMember(member.id)} className="h-4 w-4 text-green-700 focus:ring-green-600 border-gray-300 rounded" />
                         <span className="ml-2.5 text-sm text-gray-700 font-medium">
                           {member.username}
                           <div className="flex items-center gap-2 mt-0.5">
-                            {member.role && (
-                              <span className="text-xs font-semibold text-green-700 bg-green-100 px-2 py-0.5 rounded-full">
-                                {member.role}
-                              </span>
-                            )}
-                            {member.department && (
-                              <span className="text-xs text-gray-500 font-normal">
-                                {member.department}
-                              </span>
-                            )}
+                            {member.role && <span className="text-xs font-semibold text-green-700 bg-green-100 px-2 py-0.5 rounded-full">{member.role}</span>}
+                            {member.department && <span className="text-xs text-gray-500 font-normal">{member.department}</span>}
                           </div>
                         </span>
                       </label>
