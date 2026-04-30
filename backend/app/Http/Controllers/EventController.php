@@ -89,9 +89,14 @@ class EventController extends Controller
      * OR get approval requests for Dean/Chairperson to review
      */
 
-    public function getAllEvents()
+    public function getAllEvents(Request $request)
     {
-        // Admin-only comprehensive query — exclude archived events
+        $user = $request->user();
+        if (!$user->isAdmin() && !$user->isDean()) {
+            return response()->json(['error' => 'Unauthorized. Admin or Dean access required.'], 403);
+        }
+
+        // Admin/Dean comprehensive query — exclude archived events
         $events = Event::with([
             'host:id,name,email',
             'members:id,name,email',
@@ -188,11 +193,17 @@ class EventController extends Controller
             ->toArray() : [];
 
         // Only authorized roles can create events
-        if (!in_array($user->role, [
-        'Admin', 'Dean', 'Chairperson',
-        'Department Research Coordinator', 'Department Extension Coordinator',
-        'CEIT Official', 'Faculty Member',
-        ])) {
+        if (
+            !in_array($user->role, [
+                'Admin',
+                'Dean',
+                'Chairperson',
+                'Department Research Coordinator',
+                'Department Extension Coordinator',
+                'CEIT Official',
+                'Faculty Member',
+            ])
+        ) {
             return response()->json([
                 'error' => 'Unauthorized to create events.'
             ], 403);

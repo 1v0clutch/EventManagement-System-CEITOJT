@@ -185,7 +185,7 @@ function App() {
             </ProtectedRoute>
           } />
           <Route path="/admin/events" element={
-            <RoleProtectedRoute allowedRoles={['Admin']}>
+            <RoleProtectedRoute allowedRoles={['Admin', 'Dean']}>
               <AdminEvents />
             </RoleProtectedRoute>
           } />
