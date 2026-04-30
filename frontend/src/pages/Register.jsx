@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import AuthBackground from '../components/AuthBackground';
@@ -15,21 +15,19 @@ export default function Register() {
     role: '',
   });
 
-  const DEPARTMENTS = [
-    'Department of Information Technology',
-    'Department of Industrial Engineering and Technology',
-    'Department of Computer, Electronics, and Electrical Engineering',
-    'Department of Civil Engineering and Architecture',
-    'Department of Agriculture and Food Engineering',
-  ];
+  const [DEPARTMENTS, setDEPARTMENTS] = useState([]);
+  const [ALL_ROLES, setALL_ROLES] = useState([]);
 
-  const CEIT_ROLES = ['Dean', 'CEIT Official'];
-  const DEPT_ROLES = ['Chairperson', 'Department Research Coordinator', 'Department Extension Coordinator', 'Faculty Member'];
+  useEffect(() => {
+    api.get('/settings').then(res => {
+      setDEPARTMENTS(res.data.departments || []);
+      const ceit = res.data.ceit_roles || [];
+      const dept = res.data.department_roles || [];
+      setALL_ROLES([...new Set([...ceit, ...dept])]);
+    }).catch(console.error);
+  }, []);
 
-  const getRolesForDepartment = (dept) => {
-    if (dept === 'CEIT') return CEIT_ROLES;
-    return DEPT_ROLES;
-  };
+  const getRolesForDepartment = () => ALL_ROLES;
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState('');
@@ -320,7 +318,7 @@ export default function Register() {
                   className="mt-1 block w-full px-3 py-2 border border-gray-300 bg-white text-gray-900 rounded-md focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed"
                 >
                   <option value="">{formData.department ? 'Select your position' : 'Select a department first'}</option>
-                  {formData.department && getRolesForDepartment(formData.department).map(r => (
+                  {formData.department && getRolesForDepartment().map(r => (
                     <option key={r} value={r}>{r}</option>
                   ))}
                 </select>

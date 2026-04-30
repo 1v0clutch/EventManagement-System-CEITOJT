@@ -60,6 +60,7 @@ class User extends Authenticatable implements MustVerifyEmail
             'is_validated' => 'boolean',
             'is_bootstrap' => 'boolean',
             'designations' => 'array',
+            'ceit_officer_type' => 'array',
         ];
     }
 
@@ -115,8 +116,13 @@ class User extends Authenticatable implements MustVerifyEmail
 
     public function isCoordinator()
     {
-        $coords = ['Coordinator', 'Program Coordinator', 'Research Coordinator', 'Extension Coordinator', 'Department Research Coordinator', 'Department Extension Coordinator'];
-        return !empty(array_intersect($this->getDesignationsArray(), $coords));
+        $designations = $this->getDesignationsArray();
+        foreach ($designations as $desig) {
+            if (str_contains(strtolower($desig), 'coordinator')) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public function isFaculty()
@@ -131,14 +137,19 @@ class User extends Authenticatable implements MustVerifyEmail
 
     public function canCreateEvents()
     {
-        $allowed = ['Admin', 'Dean', 'Chairperson', 'Coordinator', 'Research Coordinator', 'Extension Coordinator', 'GAD Coordinator', 'CEIT Official', 'Faculty Member', 'Staff'];
-        return !empty(array_intersect($this->getDesignationsArray(), $allowed));
+        // By default, everyone with a designation can create events unless they are just empty
+        // For security, maybe explicitly block specific low-level roles if any, but in this system
+        // basically all designations (Dean, Chairperson, Coordinator, Faculty, Staff) can create events.
+        $designations = $this->getDesignationsArray();
+        return !empty($designations);
     }
 
     public function needsApprovalForEvents()
     {
-        $needsApproval = ['Chairperson', 'Coordinator', 'Research Coordinator', 'Extension Coordinator', 'GAD Coordinator'];
-        return !empty(array_intersect($this->getDesignationsArray(), $needsApproval));
+        // Anyone except Admin, Dean, and CEIT Official needs approval
+        $designations = $this->getDesignationsArray();
+        $exempt = ['Admin', 'Dean', 'CEIT Official'];
+        return empty(array_intersect($designations, $exempt));
     }
     public function events()
     {

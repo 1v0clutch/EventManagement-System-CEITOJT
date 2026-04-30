@@ -9,13 +9,22 @@ return new class extends Migration
 {
     public function up(): void
     {
-        // Migrate any users with old roles to the closest valid new role
-        DB::statement("UPDATE users SET role = 'Department Research Coordinator' WHERE role IN ('Research Coordinator', 'Program Coordinator', 'Coordinator')");
-        DB::statement("UPDATE users SET role = 'Department Extension Coordinator' WHERE role IN ('Extension Coordinator', 'GAD Coordinator')");
-        DB::statement("UPDATE users SET role = 'Faculty Member' WHERE role = 'Staff'");
+        // Railway DB uses 'designation' column — handle both column names gracefully
+        $columns = DB::select("SHOW COLUMNS FROM users");
+        $colNames = array_map(fn($c) => $c->Field, $columns);
 
-        // Update the ENUM to only allow the new valid roles
-        DB::statement("ALTER TABLE users MODIFY COLUMN role ENUM(
+        $col = in_array('designation', $colNames) ? 'designation' : 'role';
+
+        // Migrate old values to new ones
+        DB::statement("UPDATE users SET `{$col}` = 'Department Research Coordinator' WHERE `{$col}` IN ('Research Coordinator', 'Program Coordinator', 'Coordinator')");
+        DB::statement("UPDATE users SET `{$col}` = 'Department Extension Coordinator' WHERE `{$col}` IN ('Extension Coordinator', 'GAD Coordinator')");
+        DB::statement("UPDATE users SET `{$col}` = 'Faculty Member' WHERE `{$col}` = 'Staff'");
+
+        // Widen the column to TEXT first so we can safely change the ENUM
+        DB::statement("ALTER TABLE users MODIFY COLUMN `{$col}` TEXT NOT NULL");
+
+        // Re-apply as a clean ENUM with only valid values
+        DB::statement("ALTER TABLE users MODIFY COLUMN `{$col}` ENUM(
             'Admin',
             'Dean',
             'CEIT Official',
@@ -28,7 +37,11 @@ return new class extends Migration
 
     public function down(): void
     {
-        DB::statement("ALTER TABLE users MODIFY COLUMN role ENUM(
+        $columns = DB::select("SHOW COLUMNS FROM users");
+        $colNames = array_map(fn($c) => $c->Field, $columns);
+        $col = in_array('designation', $colNames) ? 'designation' : 'role';
+
+        DB::statement("ALTER TABLE users MODIFY COLUMN `{$col}` ENUM(
             'Admin',
             'Dean',
             'CEIT Official',

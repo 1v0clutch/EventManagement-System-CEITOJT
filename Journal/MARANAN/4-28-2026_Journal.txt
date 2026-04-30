@@ -34,7 +34,10 @@ personal events add a time end also that is optional
 fixing urgent button not showing up on deploy for roles
 Fixing deignation x role variables on admin side
 Implementing CEIT Officers Additional tags for admin side
-
+Added CEIT Officers tags for admin side + fixing implementations
+Refactoring Admin side on selection of CEIT Officers Multiple
+Refixing issues on seeders after refactoring
+Adding could add new roles and departments on admin side feature
 
 **UI of Members List
 **need to update pending events on event vs meeting

@@ -11,12 +11,27 @@ export default function OrganizationalChart() {
   const [loading, setLoading] = useState(true);
   const [editingUser, setEditingUser] = useState(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [settings, setSettings] = useState({ departments: [], designations: [] });
 
   const canEdit = (user?.designation === 'Admin' || user?.role === 'Admin') || (user?.designation === 'Dean' || user?.role === 'Dean');
 
   useEffect(() => {
     fetchDepartments();
+    fetchSettings();
   }, []);
+
+  const fetchSettings = async () => {
+    try {
+      const response = await api.get('/settings');
+      const allDesig = new Set(['Admin', ...(response.data.ceit_roles || []), ...(response.data.department_roles || [])]);
+      setSettings({
+        departments: response.data.departments || [],
+        designations: Array.from(allDesig)
+      });
+    } catch (error) {
+      console.error('Error fetching settings:', error);
+    }
+  };
 
   useEffect(() => {
     if (selectedDepartment) {
@@ -414,7 +429,7 @@ export default function OrganizationalChart() {
                     required
                   >
                     <option value="">Select Department</option>
-                    {departments.filter(d => d !== 'CEIT').map((dept) => (
+                    {settings.departments.filter(d => d !== 'College of Engineering and Information Technology' && d !== 'CEIT').map((dept) => (
                       <option key={dept} value={dept}>{dept}</option>
                     ))}
                   </select>
@@ -428,12 +443,10 @@ export default function OrganizationalChart() {
                   className="w-full px-3 md:px-4 py-2 text-sm md:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                   required
                 >
-                  <option value="Dean">Dean</option>
-                  <option value="CEIT Official">CEIT Official</option>
-                  <option value="Chairperson">Chairperson</option>
-                  <option value="Research Coordinator">Research Coordinator</option>
-                  <option value="Extension Coordinator">Extension Coordinator</option>
-                  <option value="Faculty Member">Faculty Member</option>
+                  <option value="">Select Designation</option>
+                  {settings.designations.map(desig => (
+                    <option key={desig} value={desig}>{desig}</option>
+                  ))}
                 </select>
               </div>
               <div className="flex flex-col sm:flex-row gap-3 pt-4">

@@ -8,6 +8,7 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\ScheduleController;
 use App\Http\Controllers\ArchiveController;
 use App\Http\Controllers\OrganizationalChartController;
+use App\Http\Controllers\SystemSettingController;
 use Illuminate\Support\Facades\Route;
 
 // Public routes with login attempt throttling
@@ -132,4 +133,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/organizational-chart', [OrganizationalChartController::class, 'index']);
     Route::put('/organizational-chart/{id}', [OrganizationalChartController::class, 'update']);
     Route::delete('/organizational-chart/{id}', [OrganizationalChartController::class, 'destroy']);
+
+    // System Settings
+    Route::get('/settings', [SystemSettingController::class, 'index']);
+    Route::put('/settings/{key}', [SystemSettingController::class, 'update']);
 });

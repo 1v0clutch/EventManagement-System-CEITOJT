@@ -20,18 +20,15 @@ class UsersSeeder extends Seeder
 
         // College-level roles (one each, assigned to DIT as representative dept)
         $collegeLevelUsers = [
-            ['name' => 'Dean Rodriguez',      'email' => 'dean@cvsu.edu.ph',          'department' => 'Department of Information Technology', 'designation' => 'Dean'],
-            ['name' => 'CEIT Official Santos', 'email' => 'ceit.official@cvsu.edu.ph', 'department' => 'Department of Information Technology', 'designation' => 'CEIT Official'],
-            ['name' => 'Coordinator Aquino',   'email' => 'coordinator@cvsu.edu.ph',   'department' => 'Department of Information Technology', 'designation' => 'Coordinator'],
+            ['name' => 'Dean Rodriguez',       'email' => 'dean@cvsu.edu.ph',          'department' => 'Department of Information Technology', 'designation' => 'Dean'],
+            ['name' => 'CEIT Official Santos',  'email' => 'ceit.official@cvsu.edu.ph', 'department' => 'Department of Information Technology', 'designation' => 'CEIT Official'],
+            ['name' => 'Coordinator Aquino',    'email' => 'coordinator@cvsu.edu.ph',   'department' => 'Department of Information Technology', 'designation' => 'Department Research Coordinator'],
         ];
 
         // Department-level roles — one per role per department
         $deptRoles = [
-            'Chairperson'                    => 'chair',
-            'Faculty Member'                 => 'faculty',
-            'Research Coordinator'           => 'research',
-            'Extension Coordinator'          => 'extension',
-            'GAD Coordinator'                => 'gad',
+            'Chairperson'                      => 'chair',
+            'Faculty Member'                   => 'faculty',
             'Department Research Coordinator'  => 'dept.research',
             'Department Extension Coordinator' => 'dept.extension',
         ];
@@ -70,6 +67,6 @@ class UsersSeeder extends Seeder
 
         $this->command->info("UsersSeeder: {$created} users created.");
         $this->command->info("Password for all: 11111111");
-        $this->command->info("1 Dean, 1 CEIT Official, 1 Coordinator + 7 roles x 5 departments = 38 users total");
+        $this->command->info("1 Dean, 1 CEIT Official, 1 Dept Research Coord + 4 roles x 5 departments = 23 users total");
     }
 }

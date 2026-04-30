@@ -1,47 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import api from '../services/api';
-
-const CEIT_OFFICER_TYPES = [
-  'College Secretary',
-  'College Inspector',
-  'College Budget Officer',
-  'College Registrar',
-  'Assistant College Registrar',
-  'Records Custodian',
-  'College MIS',
-  'ILCLO',
-  'Coordinator, Research Services',
-  'Coordinator, Graduate Programs',
-  'Coordinator, Research Monitoring and Evaluation Unit',
-  'Coordinator, Extension Services',
-  'Coordinator, Extension Monitoring and Evaluation Unit',
-  'College OJT Coordinator',
-  'Coordinator, College Quality Assurance and Accreditation',
-  'Asst. Coordinator, College Quality Assurance and Accreditation',
-  'Coordinator, Knowledge Management Unit',
-  'Coordinator, Gender and Development Program',
-  'Coordinator, Gender and Development Program (alternate)',
-  'Coordinator, Sports Development',
-  'Coordinator, Socio-cultural Development',
-  'Coordinator, Continuous Quality Improvement (CQI)',
-  'College Public Information Officer',
-  'Coordinator, Pollution Control',
-  'College Review Coordinator for BSABE and BSCE',
-  'College Review Coordinator for BSECE and BSEE',
-  'College Guidance Facilitator for BSABE, BSIT, BSCS, and Architecture Programs',
-  'College Guidance Facilitator for BSCE, BSECE, BSEE, BSCpE, BSIE and BIT programs',
-  'College Job Placement Officer',
-  'College Property Custodian',
-  'College Canvasser',
-  'In-charge, College Reading Room',
-  'In-charge, Material Testing Laboratory',
-  'College Civil Security Officer',
-  'College Safety Officer',
-  'In-charge, Simulation and Math Laboratory',
-  'Head, CCL and Technical Support Services Unit',
-  'University Web Master',
-  'In-charge, e-Learning Team',
-];
+import CeitOfficerTypePicker from './CeitOfficerTypePicker';
 
 export default function CreateUserModal({ isOpen, onClose, onSuccess, deanExists = false }) {
   const [formData, setFormData] = useState({
@@ -50,38 +9,38 @@ export default function CreateUserModal({ isOpen, onClose, onSuccess, deanExists
     middle_name: '',
     email: '',
     password: '',
-    department: 'College of Engineering and Information Technology',
-    designation: 'Faculty Member',
-    ceit_officer_type: '',
+    department: '',
+    designation: '',
+    ceit_officer_type: [],
   });
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
-  const [officerSearch, setOfficerSearch] = useState('');
 
-  const departments = [
-    'CEIT',
-    'Department of Information Technology',
-    'Department of Industrial Engineering and Technology',
-    'Department of Computer, Electronics, and Electrical Engineering',
-    'Department of Civil Engineering and Architecture',
-    'Department of Agriculture and Food Engineering',
-  ];
+  // Dynamic lists from settings
+  const [departments, setDepartments] = useState([]);
+  const [allRoles, setAllRoles] = useState([]);
 
-  const CEIT_ROLES = ['Dean', 'CEIT Official', 'Faculty Member'];
-  const DEPT_ROLES = ['Chairperson', 'Department Research Coordinator', 'Department Extension Coordinator', 'Faculty Member'];
+  useEffect(() => {
+    if (isOpen) {
+      api.get('/settings').then(res => {
+        const depts = res.data.departments || [];
+        const ceitRoles = res.data.ceit_roles || [];
+        const deptRoles = res.data.department_roles || [];
+        // Merge all roles, deduplicate, keep Admin out of self-service
+        const merged = [...new Set([...ceitRoles, ...deptRoles])];
+        setDepartments(depts);
+        setAllRoles(merged);
+        // Set defaults once loaded
+        setFormData(prev => ({
+          ...prev,
+          department: prev.department || depts[0] || '',
+          designation: prev.designation || merged[0] || '',
+        }));
+      }).catch(console.error);
+    }
+  }, [isOpen]);
 
-  const getDesignationsForDepartment = (dept) => {
-    if (!dept) return [...CEIT_ROLES, ...DEPT_ROLES];
-    if (dept === 'CEIT') return CEIT_ROLES;
-    return DEPT_ROLES;
-  };
-
-  const availableDesignations = getDesignationsForDepartment(formData.department)
-    .filter(r => !(r === 'Dean' && deanExists));
-
-  const filteredOfficerTypes = CEIT_OFFICER_TYPES.filter(t =>
-    t.toLowerCase().includes(officerSearch.toLowerCase())
-  );
+  const availableRoles = deanExists ? allRoles.filter(r => r !== 'Dean') : allRoles;
 
   const generateFullName = () => {
     const cap = (text) => text.split(' ').map(w => w.trim()).filter(Boolean)
@@ -96,12 +55,7 @@ export default function CreateUserModal({ isOpen, onClose, onSuccess, deanExists
     const { name, value } = e.target;
     setFormData(prev => {
       const updated = { ...prev, [name]: value };
-      if (name === 'department') {
-        const valid = getDesignationsForDepartment(value);
-        if (!valid.includes(updated.designation)) updated.designation = valid[0] || '';
-        updated.ceit_officer_type = '';
-      }
-      if (name === 'designation') updated.ceit_officer_type = '';
+      if (name === 'designation') updated.ceit_officer_type = [];
       return updated;
     });
     if (errors[name]) setErrors(prev => ({ ...prev, [name]: '' }));
@@ -131,8 +85,8 @@ export default function CreateUserModal({ isOpen, onClose, onSuccess, deanExists
       setLoading(false);
       return;
     }
-    if (formData.designation === 'CEIT Official' && !formData.ceit_officer_type) {
-      setErrors({ ceit_officer_type: ['Please select an officer type'] });
+    if (formData.designation === 'CEIT Official' && formData.ceit_officer_type.length === 0) {
+      setErrors({ ceit_officer_type: ['Please select at least one officer type'] });
       setLoading(false);
       return;
     }
@@ -142,9 +96,14 @@ export default function CreateUserModal({ isOpen, onClose, onSuccess, deanExists
         ...formData,
         name: generateFullName(),
         email: formData.email.trim(),
+        ceit_officer_type: formData.designation === 'CEIT Official' ? formData.ceit_officer_type : [],
       });
-      setFormData({ first_name: '', last_name: '', middle_name: '', email: '', password: '', department: 'College of Engineering and Information Technology', designation: 'Faculty Member', ceit_officer_type: '' });
-      setOfficerSearch('');
+      setFormData({
+        first_name: '', last_name: '', middle_name: '', email: '', password: '',
+        department: departments[0] || '',
+        designation: availableRoles[0] || '',
+        ceit_officer_type: [],
+      });
       onSuccess();
       onClose();
     } catch (err) {
@@ -215,18 +174,9 @@ export default function CreateUserModal({ isOpen, onClose, onSuccess, deanExists
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Department {formData.designation !== 'Faculty Member' && <span className="text-red-500">*</span>}
-              {formData.designation === 'Faculty Member' && <span className="text-xs text-gray-400 font-normal ml-1">(optional for Faculty Member)</span>}
-            </label>
-            <select
-              name="department"
-              value={formData.department}
-              onChange={handleChange}
-              required={formData.designation !== 'Faculty Member'}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-            >
-              <option value="">Select Department</option>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Department <span className="text-red-500">*</span></label>
+            <select name="department" value={formData.department} onChange={handleChange} required className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500">
+              <option value="">Select department...</option>
               {departments.map(dept => <option key={dept} value={dept}>{dept}</option>)}
             </select>
             {errors.department && <p className="mt-1 text-sm text-red-600">{errors.department[0]}</p>}
@@ -235,51 +185,19 @@ export default function CreateUserModal({ isOpen, onClose, onSuccess, deanExists
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Designation <span className="text-red-500">*</span></label>
             <select name="designation" value={formData.designation} onChange={handleChange} required className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500">
-              {availableDesignations.map(d => <option key={d} value={d}>{d}</option>)}
+              <option value="">Select designation...</option>
+              {availableRoles.map(d => <option key={d} value={d}>{d}</option>)}
             </select>
             {errors.designation && <p className="mt-1 text-sm text-red-600">{errors.designation[0]}</p>}
           </div>
 
-          {/* CEIT Officer Type — only shown when designation is CEIT Official */}
+          {/* CEIT Officer Type multi-select — only when CEIT Official */}
           {formData.designation === 'CEIT Official' && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Officer Type <span className="text-red-500">*</span>
-                <span className="ml-1 text-xs text-gray-400 font-normal">(specific CEIT role)</span>
-              </label>
-              <input
-                type="text"
-                placeholder="Search officer type..."
-                value={officerSearch}
-                onChange={(e) => setOfficerSearch(e.target.value)}
-                className="w-full px-3 py-2 mb-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 text-sm"
-              />
-              <div className="border border-gray-200 rounded-lg max-h-48 overflow-y-auto bg-gray-50">
-                {filteredOfficerTypes.map(type => (
-                  <button
-                    key={type}
-                    type="button"
-                    onClick={() => { setFormData(prev => ({ ...prev, ceit_officer_type: type })); setOfficerSearch(''); }}
-                    className={`w-full text-left px-3 py-2 text-sm transition-colors hover:bg-green-50 ${formData.ceit_officer_type === type ? 'bg-green-100 text-green-800 font-semibold' : 'text-gray-700'}`}
-                  >
-                    {type}
-                  </button>
-                ))}
-                {filteredOfficerTypes.length === 0 && (
-                  <p className="px-3 py-2 text-sm text-gray-400">No matches found</p>
-                )}
-              </div>
-              {formData.ceit_officer_type && (
-                <div className="mt-2 flex items-center gap-2">
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-orange-100 text-orange-800 border border-orange-200">
-                    <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg>
-                    {formData.ceit_officer_type}
-                  </span>
-                  <button type="button" onClick={() => setFormData(prev => ({ ...prev, ceit_officer_type: '' }))} className="text-xs text-gray-400 hover:text-red-500">Clear</button>
-                </div>
-              )}
-              {errors.ceit_officer_type && <p className="mt-1 text-sm text-red-600">{errors.ceit_officer_type[0]}</p>}
-            </div>
+            <CeitOfficerTypePicker
+              selected={formData.ceit_officer_type}
+              onChange={(types) => setFormData(prev => ({ ...prev, ceit_officer_type: types }))}
+              error={errors.ceit_officer_type?.[0] || errors.ceit_officer_type}
+            />
           )}
 
           <div className="flex space-x-3 mt-6 pt-4 border-t border-gray-200">

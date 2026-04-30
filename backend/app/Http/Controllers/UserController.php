@@ -101,7 +101,7 @@ class UserController extends Controller
             'password' => bcrypt($validated['password']),
             'department' => $validated['department'],
             'designation' => $validated['designation'],
-            'ceit_officer_type' => $validated['designation'] === 'CEIT Official' ? ($request->ceit_officer_type ?: null) : null,
+            'ceit_officer_type' => $validated['designation'] === 'CEIT Official' ? (is_array($request->ceit_officer_type) ? $request->ceit_officer_type : ($request->ceit_officer_type ? [$request->ceit_officer_type] : null)) : null,
             'is_validated' => true,
             'email_verified_at' => now(),
         ]);
@@ -260,8 +260,8 @@ class UserController extends Controller
             $updateData['department'] = $validated['department']; // can be null
         }
         // Only store ceit_officer_type when designation is CEIT Official
-        $updateData['ceit_officer_type'] = in_array('CEIT Official', $designations)
-            ? ($request->ceit_officer_type ?: null)
+        $updateData['ceit_officer_type'] = $validated['designation'] === 'CEIT Official'
+            ? (is_array($request->ceit_officer_type) ? $request->ceit_officer_type : ($request->ceit_officer_type ? [$request->ceit_officer_type] : null))
             : null;
 
         $user->update($updateData);
