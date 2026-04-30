@@ -16,7 +16,6 @@ export default function Register() {
   });
 
   const DEPARTMENTS = [
-    'College of Engineering and Information Technology',
     'Department of Information Technology',
     'Department of Industrial Engineering and Technology',
     'Department of Computer, Electronics, and Electrical Engineering',

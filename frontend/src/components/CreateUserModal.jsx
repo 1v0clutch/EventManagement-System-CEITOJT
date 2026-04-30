@@ -15,8 +15,6 @@ export default function CreateUserModal({ isOpen, onClose, onSuccess, deanExists
   const [loading, setLoading] = useState(false);
 
   const departments = [
-    'College of Engineering and Information Technology',
-    'College of Engineering and Information Technology',
     'Department of Information Technology',
     'Department of Industrial Engineering and Technology',
     'Department of Computer, Electronics, and Electrical Engineering',
