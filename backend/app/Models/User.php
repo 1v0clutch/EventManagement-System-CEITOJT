@@ -35,6 +35,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'is_bootstrap',
         'has_changed_credentials',
         'has_changed_email',
+        'designations',
     ];
 
     /**
@@ -58,6 +59,7 @@ class User extends Authenticatable implements MustVerifyEmail
             'email_verified_at' => 'datetime',
             'is_validated' => 'boolean',
             'is_bootstrap' => 'boolean',
+            'designations' => 'array',
         ];
     }
 
@@ -81,73 +83,62 @@ class User extends Authenticatable implements MustVerifyEmail
         });
     }
 
+    // Get all designations as array (falls back to single designation for backward compat)
+    public function getDesignationsArray(): array
+    {
+        if (!empty($this->designations)) {
+            return $this->designations;
+        }
+        return $this->designation ? [$this->designation] : [];
+    }
+
+    public function hasDesignation(string $designation): bool
+    {
+        return in_array($designation, $this->getDesignationsArray());
+    }
+
     // Helper methods for designation checking
     public function isAdmin()
     {
-        return $this->designation === 'Admin';
+        return $this->hasDesignation('Admin');
     }
 
     public function isDean()
     {
-        return $this->designation === 'Dean';
+        return $this->hasDesignation('Dean');
     }
 
     public function isChairperson()
     {
-        return $this->designation === 'Chairperson';
+        return $this->hasDesignation('Chairperson');
     }
 
     public function isCoordinator()
     {
-        return in_array($this->role, [
-            'Department Research Coordinator',
-            'Department Extension Coordinator',
-        ]);
+        $coords = ['Coordinator', 'Program Coordinator', 'Research Coordinator', 'Extension Coordinator', 'Department Research Coordinator', 'Department Extension Coordinator'];
+        return !empty(array_intersect($this->getDesignationsArray(), $coords));
     }
 
     public function isFaculty()
     {
-        return $this->designation === 'Faculty Member';
+        return $this->hasDesignation('Faculty Member');
     }
 
     public function isCEITOfficial()
     {
-        return in_array($this->designation, [
-            'Dean',
-            'CEIT Official'
-        ]);
-    }
-
-    public function isDeptLevel()
-    {
-        return in_array($this->designation, [
-            'Chairperson',
-            'Coordinator',
-            'Program Coordinator',
-            'Research Coordinator',
-            'Extension Coordinator',
-            'GAD Coordinator'
-        ]);
+        return !empty(array_intersect($this->getDesignationsArray(), ['Dean', 'CEIT Official']));
     }
 
     public function canCreateEvents()
     {
-        return in_array($this->role, [
-            'Admin', 'Dean', 'Chairperson',
-            'Department Research Coordinator', 'Department Extension Coordinator',
-            'CEIT Official', 'Faculty Member',
-        ]);
+        $allowed = ['Admin', 'Dean', 'Chairperson', 'Coordinator', 'Research Coordinator', 'Extension Coordinator', 'GAD Coordinator', 'CEIT Official', 'Faculty Member', 'Staff'];
+        return !empty(array_intersect($this->getDesignationsArray(), $allowed));
     }
 
     public function needsApprovalForEvents()
     {
-        return in_array($this->designation, [
-            'Chairperson',
-            'Coordinator',
-            'Research Coordinator',
-            'Extension Coordinator',
-            'GAD Coordinator',
-        ]);
+        $needsApproval = ['Chairperson', 'Coordinator', 'Research Coordinator', 'Extension Coordinator', 'GAD Coordinator'];
+        return !empty(array_intersect($this->getDesignationsArray(), $needsApproval));
     }
     public function events()
     {

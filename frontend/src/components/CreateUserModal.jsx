@@ -59,7 +59,7 @@ export default function CreateUserModal({ isOpen, onClose, onSuccess, deanExists
   const [officerSearch, setOfficerSearch] = useState('');
 
   const departments = [
-    'College of Engineering and Information Technology',
+    'CEIT',
     'Department of Information Technology',
     'Department of Industrial Engineering and Technology',
     'Department of Computer, Electronics, and Electrical Engineering',
@@ -72,7 +72,7 @@ export default function CreateUserModal({ isOpen, onClose, onSuccess, deanExists
 
   const getDesignationsForDepartment = (dept) => {
     if (!dept) return [...CEIT_ROLES, ...DEPT_ROLES];
-    if (dept === 'College of Engineering and Information Technology') return CEIT_ROLES;
+    if (dept === 'CEIT') return CEIT_ROLES;
     return DEPT_ROLES;
   };
 
@@ -215,8 +215,18 @@ export default function CreateUserModal({ isOpen, onClose, onSuccess, deanExists
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Department <span className="text-red-500">*</span></label>
-            <select name="department" value={formData.department} onChange={handleChange} required className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Department {formData.designation !== 'Faculty Member' && <span className="text-red-500">*</span>}
+              {formData.designation === 'Faculty Member' && <span className="text-xs text-gray-400 font-normal ml-1">(optional for Faculty Member)</span>}
+            </label>
+            <select
+              name="department"
+              value={formData.department}
+              onChange={handleChange}
+              required={formData.designation !== 'Faculty Member'}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+            >
+              <option value="">Select Department</option>
               {departments.map(dept => <option key={dept} value={dept}>{dept}</option>)}
             </select>
             {errors.department && <p className="mt-1 text-sm text-red-600">{errors.department[0]}</p>}

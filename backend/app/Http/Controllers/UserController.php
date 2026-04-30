@@ -29,6 +29,7 @@ class UserController extends Controller
                 'department' => $user->department,
                 'designation' => $user->designation,
                 'ceit_officer_type' => $user->ceit_officer_type,
+                'designations' => $user->getDesignationsArray(),
                 'is_validated' => $user->is_validated,
             ]),
         ]);
@@ -50,6 +51,7 @@ class UserController extends Controller
                 'department' => $user->department,
                 'designation' => $user->designation,
                 'ceit_officer_type' => $user->ceit_officer_type,
+                'designations' => $user->getDesignationsArray(),
                 'is_validated' => $user->is_validated,
             ]),
         ]);
@@ -70,13 +72,29 @@ class UserController extends Controller
             'middle_name' => 'nullable|string|max:255',
             'email' => 'required|email|unique:users,email',
             'password' => 'required|string|min:8',
-            'department' => 'required|string|max:255',
+            'department' => 'nullable|string|max:255',
             'designation' => 'required|in:Admin,Dean,CEIT Official,Chairperson,Department Research Coordinator,Department Extension Coordinator,Faculty Member',
             'ceit_officer_type' => 'nullable|string|max:255',
             'name' => 'required|string|max:255',
         ]);
 
+        // Require department for non-Faculty-Member designations
+        if ($validated['designation'] !== 'Faculty Member' && empty($validated['department'])) {
+            return response()->json(['errors' => ['department' => ['Department is required for this designation.']]], 422);
+        }
         // Create the user
+        // Enforce one Chairperson per department
+        if ($validated['designation'] === 'Chairperson') {
+            $existing = User::where('designation', 'Chairperson')
+                ->where('department', $validated['department'])
+                ->exists();
+            if ($existing) {
+                return response()->json([
+                    'error' => 'A Chairperson already exists for this department. Only one Chairperson is allowed per department.'
+                ], 422);
+            }
+        }
+
         $user = User::create([
             'name' => $validated['name'],
             'email' => $validated['email'],
@@ -185,26 +203,64 @@ class UserController extends Controller
     public function updateDesignation(Request $request, $id)
     {
         $validated = $request->validate([
-            'designation' => 'required|in:Admin,Dean,CEIT Official,Chairperson,Department Research Coordinator,Department Extension Coordinator,Faculty Member',
-            'department' => 'sometimes|string|max:255',
+            'designations' => 'required|array|min:1|max:5',
+            'designations.*' => 'string|max:255',
+            'department' => 'nullable|string|max:255',
             'ceit_officer_type' => 'nullable|string|max:255',
         ]);
 
+        // Treat empty string as null
+        if (isset($validated['department']) && $validated['department'] === '') {
+            $validated['department'] = null;
+        }
+
+        $designations = $validated['designations'];
+        $allFacultyMember = count(array_filter($designations, fn($d) => $d !== 'Faculty Member')) === 0;
+
+        // Department required unless all designations are Faculty Member
+        if (!$allFacultyMember && empty($validated['department'])) {
+            return response()->json([
+                'errors' => ['department' => ['Department is required for this designation.']]
+            ], 422);
+        }
+
         $user = User::findOrFail($id);
 
-        // Prevent changing own role
         if ($user->id === $request->user()->id) {
-            return response()->json([
-                'error' => 'You cannot change your own designation.'
-            ], 403);
+            return response()->json(['error' => 'You cannot change your own designation.'], 403);
         }
 
-        $updateData = ['designation' => $validated['designation']];
-        if (isset($validated['department'])) {
-            $updateData['department'] = $validated['department'];
+        $department = $validated['department'] ?? $user->department;
+        $designations = $validated['designations'];
+
+        // Enforce one Chairperson per department
+        if (in_array('Chairperson', $designations)) {
+            $existing = User::where('id', '!=', $id)
+                ->where('department', $department)
+                ->whereJsonContains('designations', 'Chairperson')
+                ->exists();
+            if (!$existing) {
+                // Also check legacy single designation column
+                $existing = User::where('id', '!=', $id)
+                    ->where('department', $department)
+                    ->where('designation', 'Chairperson')
+                    ->whereNull('designations')
+                    ->exists();
+            }
+            if ($existing) {
+                return response()->json(['error' => 'A Chairperson already exists for this department.'], 422);
+            }
+        }
+
+        $updateData = [
+            'designations' => $designations,
+            'designation' => $designations[0], // keep primary for backward compat
+        ];
+        if (array_key_exists('department', $validated)) {
+            $updateData['department'] = $validated['department']; // can be null
         }
         // Only store ceit_officer_type when designation is CEIT Official
-        $updateData['ceit_officer_type'] = $validated['designation'] === 'CEIT Official'
+        $updateData['ceit_officer_type'] = in_array('CEIT Official', $designations)
             ? ($request->ceit_officer_type ?: null)
             : null;
 
@@ -212,15 +268,7 @@ class UserController extends Controller
 
         return response()->json([
             'message' => 'User updated successfully',
-            'user' => [
-                'id' => $user->id,
-                'username' => $user->name,
-                'email' => $user->email,
-                'department' => $user->department,
-                'designation' => $user->designation,
-                'ceit_officer_type' => $user->ceit_officer_type,
-                'is_validated' => $user->is_validated,
-            ],
+            'user' => $this->formatUser($user->fresh()),
         ]);
     }
 
@@ -248,7 +296,7 @@ class UserController extends Controller
             'name' => $validated['name'],
             'email' => $validated['email'],
             'password' => bcrypt($validated['password']),
-            'department' => 'College of Engineering and Information Technology',
+            'department' => 'CEIT',
             'designation' => 'Dean',
             'is_validated' => true,
             'email_verified_at' => now(),
@@ -392,12 +440,27 @@ class UserController extends Controller
 
     private function capitalizeWords($text)
     {
-        // Split by spaces and capitalize each word
         $words = explode(' ', $text);
         $capitalizedWords = array_map(function ($word) {
             return ucfirst(strtolower(trim($word)));
         }, $words);
-
         return implode(' ', array_filter($capitalizedWords));
+    }
+
+    private function formatUser(User $user): array
+    {
+        return [
+            'id' => $user->id,
+            'username' => $user->name,
+            'email' => $user->email,
+            'department' => $user->department,
+            'designation' => $user->designation,
+            'designations' => $user->getDesignationsArray(),
+            'is_validated' => $user->is_validated,
+            'profile_picture' => $user->profile_picture ?? null,
+            'schedule_initialized' => $user->schedule_initialized ?? false,
+            'has_changed_credentials' => $user->has_changed_credentials ?? false,
+            'has_changed_email' => $user->has_changed_email ?? false,
+        ];
     }
 }

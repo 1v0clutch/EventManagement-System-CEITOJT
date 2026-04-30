@@ -22,7 +22,7 @@ class OrganizationalChartController extends Controller
                 ->first();
 
             // Check if viewing college level
-            $isCollegeLevel = ($department === 'College of Engineering and Information Technology');
+            $isCollegeLevel = ($department === 'CEIT');
 
             // Get other users filtered by department
             $query = User::where('is_validated', true)
@@ -34,7 +34,7 @@ class OrganizationalChartController extends Controller
                 $query->where('department', $department);
             } elseif ($isCollegeLevel) {
                 // For college level, get CEIT Official, Coordinator, and Faculty Members from college
-                $query->where('department', 'College of Engineering and Information Technology')
+                $query->where('department', 'CEIT')
                     ->whereIn('designation', ['CEIT Official', 'Coordinator', 'Faculty Member']);
             }
 
@@ -66,7 +66,7 @@ class OrganizationalChartController extends Controller
         ];
 
         // Check if we're viewing the college level
-        $isCollegeLevel = ($department === 'College of Engineering and Information Technology');
+        $isCollegeLevel = ($department === 'CEIT');
 
         // Group users by department
         $departmentGroups = [];
@@ -175,10 +175,7 @@ class OrganizationalChartController extends Controller
             $validated['name'] = trim($validated['first_name'] . ' ' . $validated['last_name']);
         }
 
-        // If the user is a Dean or being changed to Dean, force the department
-        if ($user->designation === 'Dean' || (isset($validated['designation']) && $validated['designation'] === 'Dean')) {
-            $validated['department'] = 'College of Engineering and Information Technology';
-        }
+        // If the user is a Dean or being changed to Dean, don't force department
 
         $user->update($validated);
 
@@ -223,14 +220,14 @@ class OrganizationalChartController extends Controller
                 ->sort()
                 ->values();
 
-            // Ensure "College of Engineering and Information Technology" is at the top
+            // Ensure "CEIT" is at the top
             $depts = $depts->filter(
                 function ($dept) {
-                    return $dept !== 'College of Engineering and Information Technology';
+                    return $dept !== 'CEIT';
                 }
             )->values();
 
-            $depts->prepend('College of Engineering and Information Technology');
+            $depts->prepend('CEIT');
 
             return $depts;
         });

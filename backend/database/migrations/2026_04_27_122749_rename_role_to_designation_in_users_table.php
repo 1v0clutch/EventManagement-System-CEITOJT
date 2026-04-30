@@ -1,28 +1,33 @@
 <?php
 
 use Illuminate\Database\Migrations\Migration;
-use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\DB;
 
-return new class extends Migration 
+return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
-        Schema::table('users', function (Blueprint $table) {
-            $table->renameColumn('role', 'designation');
-        });
+        if (DB::getDriverName() !== 'mysql') {
+            // For non-MySQL (e.g. SQLite in tests), use schema builder
+            \Illuminate\Support\Facades\Schema::table('users', function ($table) {
+                $table->renameColumn('role', 'designation');
+            });
+            return;
+        }
+
+        // Get current column definition and rename via raw SQL to avoid Doctrine DBAL double-quote bug
+        DB::statement("ALTER TABLE users CHANGE `role` `designation` VARCHAR(255) NOT NULL DEFAULT 'Faculty Member'");
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
-        Schema::table('users', function (Blueprint $table) {
-            $table->renameColumn('designation', 'role');
-        });
+        if (DB::getDriverName() !== 'mysql') {
+            \Illuminate\Support\Facades\Schema::table('users', function ($table) {
+                $table->renameColumn('designation', 'role');
+            });
+            return;
+        }
+
+        DB::statement("ALTER TABLE users CHANGE `designation` `role` VARCHAR(255) NOT NULL DEFAULT 'Faculty Member'");
     }
 };

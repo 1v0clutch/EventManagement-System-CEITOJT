@@ -9,7 +9,7 @@ export default function CreateDeanModal({ isOpen, onClose, onSuccess }) {
     middle_name: '',
     email: '',
     password: '',
-    department: 'College of Engineering and Information Technology',
+    department: 'CEIT',
     role: 'Dean'
   });
   const [errors, setErrors] = useState({});
@@ -93,7 +93,7 @@ export default function CreateDeanModal({ isOpen, onClose, onSuccess }) {
         middle_name: '',
         email: '',
         password: '',
-        department: 'College of Engineering and Information Technology',
+        department: 'CEIT',
         role: 'Dean'
       });
 

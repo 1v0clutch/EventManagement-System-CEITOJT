@@ -27,7 +27,7 @@ export default function Register() {
   const DEPT_ROLES = ['Chairperson', 'Department Research Coordinator', 'Department Extension Coordinator', 'Faculty Member'];
 
   const getRolesForDepartment = (dept) => {
-    if (dept === 'College of Engineering and Information Technology') return CEIT_ROLES;
+    if (dept === 'CEIT') return CEIT_ROLES;
     return DEPT_ROLES;
   };
   const [errors, setErrors] = useState({});

@@ -111,7 +111,7 @@ export default function AdminEvents() {
     const abbreviateDept = (name) => {
         if (!name) return 'N/A';
         const map = {
-            'College of Engineering and Information Technology': 'CEIT',
+            'CEIT': 'CEIT',
             'Department of Information Technology': 'DIT',
             'Department of Industrial Engineering and Technology': 'DIET',
             'Department of Computer, Electronics, and Electrical Engineering': 'DCEEE',

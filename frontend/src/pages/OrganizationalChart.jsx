@@ -402,7 +402,7 @@ export default function OrganizationalChart() {
                 {editingUser.designation === 'Dean' ? (
                   <input
                     type="text"
-                    value="College of Engineering and Information Technology"
+                    value="CEIT"
                     disabled
                     className="w-full px-3 md:px-4 py-2 text-sm md:text-base border border-gray-300 rounded-lg bg-gray-100 text-gray-600"
                   />
@@ -414,7 +414,7 @@ export default function OrganizationalChart() {
                     required
                   >
                     <option value="">Select Department</option>
-                    {departments.filter(d => d !== 'College of Engineering and Information Technology').map((dept) => (
+                    {departments.filter(d => d !== 'CEIT').map((dept) => (
                       <option key={dept} value={dept}>{dept}</option>
                     ))}
                   </select>

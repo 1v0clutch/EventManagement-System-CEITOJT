@@ -410,7 +410,13 @@ export default function EventForm({ members, onEventCreated, editingEvent, onCan
       return a.username.localeCompare(b.username);
     });
 
-  const availableDepartments = [...new Set(members.map(m => m.department).filter(Boolean))].filter(d => d !== 'College of Engineering and Information Technology');
+  const availableDepartments = [
+    'Department of Information Technology',
+    'Department of Industrial Engineering and Technology',
+    'Department of Computer, Electronics, and Electrical Engineering',
+    'Department of Civil Engineering and Architecture',
+    'Department of Agriculture and Food Engineering',
+  ];
   const availableDesignations = [...new Set(members.map(m => m.designation).filter(Boolean))];
 
   return (
@@ -901,7 +907,7 @@ export default function EventForm({ members, onEventCreated, editingEvent, onCan
                                 {member.designation}
                               </span>
                             )}
-                            {member.department && member.department !== 'College of Engineering and Information Technology' && (
+                            {member.department && member.department !== 'CEIT' && (
                               <span className="text-xs text-gray-500 font-normal">
                                 {member.department}
                               </span>
