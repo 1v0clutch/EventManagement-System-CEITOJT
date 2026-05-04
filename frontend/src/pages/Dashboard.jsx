@@ -53,7 +53,7 @@ export default function Dashboard() {
     fetchData();
     
     // Only fetch analytics for admin users
-    if (user?.designation === 'Admin') {
+    if (user?.role === 'Admin') {
       fetchAnalytics();
     }
     
@@ -69,7 +69,7 @@ export default function Dashboard() {
       fetchData();
       
       // Only fetch analytics for admin users
-      if (user?.designation === 'Admin') {
+      if (user?.role === 'Admin') {
         fetchAnalytics();
       }
       
@@ -84,7 +84,7 @@ export default function Dashboard() {
       fetchData();
       
       // Only fetch analytics for admin users
-      if (user?.designation === 'Admin') {
+      if (user?.role === 'Admin') {
         fetchAnalytics();
       }
     };
@@ -180,7 +180,7 @@ export default function Dashboard() {
 
   const fetchAnalytics = async () => {
     // Only fetch analytics for admin users
-    if (user?.designation !== 'Admin') {
+    if (user?.role !== 'Admin') {
       setAnalyticsLoading(false);
       return;
     }
@@ -322,9 +322,9 @@ export default function Dashboard() {
       />
 
       {/* Main Content */}
-      <main className={`flex-1 w-full py-2 sm:py-4 px-2 sm:px-4 lg:px-8 flex flex-col gap-4 ${user?.designation === 'Admin' ? 'overflow-y-auto' : 'overflow-hidden'}`}>
+      <main className={`flex-1 w-full py-2 sm:py-4 px-2 sm:px-4 lg:px-8 flex flex-col gap-4 ${user?.role === 'Admin' ? 'overflow-y-auto' : 'overflow-hidden'}`}>
         {/* Analytics Dashboard Section - Admin Only */}
-        {user?.designation === 'Admin' ? (
+        {user?.role === 'Admin' ? (
           <>
             {analyticsLoading ? (
               // Analytics Loading Skeleton
@@ -455,7 +455,7 @@ export default function Dashboard() {
               </div>
               <div className="flex gap-1.5 sm:gap-2 flex-wrap w-full sm:w-auto">
                 {/* Academic Calendar - Admin Only */}
-                {user?.designation === 'Admin' && (
+                {user?.role === 'Admin' && (
                   <button
                     onClick={() => navigate('/default-events')}
                     className="inline-flex items-center px-2.5 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold rounded-lg shadow hover:shadow-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 group bg-white text-green-700 border-2 border-green-700 hover:bg-green-50 focus:ring-green-600"
