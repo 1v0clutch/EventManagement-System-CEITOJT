@@ -7,6 +7,7 @@ import Calendar from '../components/Calendar';
 import Navbar from '../components/Navbar';
 import PersonalEventModal from '../components/PersonalEventModal';
 import EventDetailModal from '../components/EventDetailModal';
+import ConfirmDeleteModal from '../components/ConfirmDeleteModal';
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -28,6 +29,10 @@ export default function Dashboard() {
   const [isPersonalEventModalOpen, setIsPersonalEventModalOpen] = useState(false);
   const [editingPersonalEvent, setEditingPersonalEvent] = useState(null);
   const [personalEventSelectedDate, setPersonalEventSelectedDate] = useState('');
+
+  // Delete confirmation state
+  const [pendingDeleteEvent, setPendingDeleteEvent] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Helper � works whether server returns 'role' or 'designation'
   const isAdmin = user?.role === 'Admin' || user?.designation === 'Admin';
@@ -152,17 +157,31 @@ export default function Dashboard() {
     }
   };
 
-  const handleDelete = async (event) => {
+  const handleDelete = (event) => {
+    // Show confirmation modal — actual deletion happens in performDelete
+    setPendingDeleteEvent(event);
+  };
+
+  const performDelete = async () => {
+    if (!pendingDeleteEvent) return;
+    setIsDeleting(true);
     try {
-      await api.delete(`/events/${event.id}`);
-      await fetchData();
-      if (selectedDate === event.date) {
-        const updatedEvents = selectedDateEvents.filter(e => e.id !== event.id);
-        setSelectedDateEvents(updatedEvents);
+      await api.delete(`/events/${pendingDeleteEvent.id}`);
+      // Close event detail modal if it's open for this event
+      if (selectedEvent?.id === pendingDeleteEvent.id) {
+        setIsEventDetailOpen(false);
+        setSelectedEvent(null);
       }
+      await fetchData();
+      if (selectedDate === pendingDeleteEvent.date) {
+        setSelectedDateEvents(prev => prev.filter(e => e.id !== pendingDeleteEvent.id));
+      }
+      setPendingDeleteEvent(null);
     } catch (error) {
       console.error('Error deleting event:', error);
       alert('Failed to delete event: ' + (error.response?.data?.error || error.message));
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -406,6 +425,16 @@ export default function Dashboard() {
         selectedDate={personalEventSelectedDate}
         userSchedules={userSchedules}
         allEvents={events}
+      />
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmDeleteModal
+        isOpen={!!pendingDeleteEvent}
+        onClose={() => { if (!isDeleting) setPendingDeleteEvent(null); }}
+        onConfirm={performDelete}
+        eventTitle={pendingDeleteEvent?.title}
+        eventType={pendingDeleteEvent?.event_type === 'meeting' ? 'Meeting' : 'Event'}
+        isDeleting={isDeleting}
       />
 
     </div>

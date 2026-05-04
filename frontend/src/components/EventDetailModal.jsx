@@ -240,6 +240,77 @@ export default function EventDetailModal({ isOpen, onClose, event, currentUser, 
   return (
     <Modal isOpen={isOpen} onClose={handleClose} title="Event Details" maxWidth="max-w-7xl">
       <div ref={mainModalRef}>
+        {/* Fixed parallel members panel — large screens only */}
+        {isMembersDropdownOpen && event.members && event.members.length > 0 && !membersPanelStyle.inline && (() => {
+          const panelContent = (
+            <>
+              <style>{`@keyframes membersSlideIn{from{opacity:0;transform:translateY(-50%) translateX(12px)}to{opacity:1;transform:translateY(-50%) translateX(0)}}`}</style>
+              <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 bg-green-50 flex-shrink-0">
+                <div>
+                  <p className="text-sm font-semibold text-gray-900">Invited Members</p>
+                  <p className="text-xs text-gray-500">{event.members.length} member{event.members.length !== 1 ? 's' : ''}</p>
+                </div>
+                <button onClick={() => setIsMembersDropdownOpen(false)}
+                  className="p-1 text-gray-400 hover:text-gray-600 hover:bg-white rounded-lg transition-colors">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              <div className="flex-1 overflow-y-auto p-3 space-y-1.5">
+                {pagedMembers.map((member) => {
+                  const declineMsg = event.event_type === 'meeting' && member.status === 'declined'
+                    ? declineMessages.find(m => m.sender_id === member.id || m.sender?.id === member.id)
+                    : null;
+                  return (
+                    <div key={member.id}>
+                      <div className="flex items-center justify-between bg-gray-50 rounded-xl px-3 py-2.5 border border-gray-100 hover:border-gray-200 transition-colors">
+                        <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                          <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center text-green-700 font-bold text-xs flex-shrink-0">
+                            {(member.username || member.name || '?').charAt(0).toUpperCase()}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium text-gray-900 truncate">{member.username || member.name}</p>
+                            <p className="text-xs text-gray-500 truncate">{member.email}</p>
+                          </div>
+                        </div>
+                        <span className={`ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold flex-shrink-0 ${
+                          member.status === 'accepted' ? 'bg-green-100 text-green-800'
+                          : member.status === 'declined' ? 'bg-red-100 text-red-800'
+                          : 'bg-yellow-100 text-yellow-800'
+                        }`}>
+                          {member.status === 'accepted' ? '✔ Accepted' : member.status === 'declined' ? '✘ Declined' : '⏳ Pending'}
+                        </span>
+                      </div>
+                      {declineMsg && (
+                        <p className="mt-1 ml-3 text-xs text-red-600 italic px-2">"{declineMsg.message}"</p>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+              {totalPages > 1 && (
+                <div className="flex items-center justify-between px-4 py-2.5 border-t border-gray-100 bg-gray-50 flex-shrink-0">
+                  <button onClick={() => setMembersPage(p => Math.max(1, p - 1))} disabled={membersPage === 1}
+                    className="px-3 py-1 text-xs font-medium text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
+                    ← Prev
+                  </button>
+                  <span className="text-xs text-gray-500">{membersPage} / {totalPages}</span>
+                  <button onClick={() => setMembersPage(p => Math.min(totalPages, p + 1))} disabled={membersPage === totalPages}
+                    className="px-3 py-1 text-xs font-medium text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
+                    Next →
+                  </button>
+                </div>
+              )}
+            </>
+          );
+          return (
+            <div className="bg-white rounded-2xl border border-gray-200 shadow-2xl flex flex-col overflow-hidden" style={membersPanelStyle}>
+              {panelContent}
+            </div>
+          );
+        })()}
+
         <div className={hasImages
           ? 'flex flex-col lg:flex-row lg:gap-8'
           : 'max-w-2xl mx-auto space-y-5'
@@ -261,7 +332,7 @@ export default function EventDetailModal({ isOpen, onClose, event, currentUser, 
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                     </svg>
                   </button>
-                  <button onClick={() => { handleClose(); onDelete?.(event); }}
+                  <button onClick={() => onDelete?.(event)}
                     className="p-1.5 sm:p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Delete">
                     <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -421,7 +492,7 @@ export default function EventDetailModal({ isOpen, onClose, event, currentUser, 
             </div>
           )}
 
-          {/* Members dropdown */}
+        {/* Members dropdown button */}
           {event.members && event.members.length > 0 && (
             <div>
               <button onClick={() => { setIsMembersDropdownOpen(!isMembersDropdownOpen); setMembersPage(1); }}
@@ -532,84 +603,6 @@ export default function EventDetailModal({ isOpen, onClose, event, currentUser, 
             </div>
           )}
         </div>
-
-        {/* ── Members panel — parallel on large screens, inline on small ── */}
-        {isMembersDropdownOpen && event.members && event.members.length > 0 && (() => {
-          const panelContent = (
-            <>
-              <style>{`@keyframes membersSlideIn{from{opacity:0;transform:translateY(-50%) translateX(12px)}to{opacity:1;transform:translateY(-50%) translateX(0)}}`}</style>
-              <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 bg-green-50 flex-shrink-0">
-                <div>
-                  <p className="text-sm font-semibold text-gray-900">Invited Members</p>
-                  <p className="text-xs text-gray-500">{event.members.length} member{event.members.length !== 1 ? 's' : ''}</p>
-                </div>
-                <button onClick={() => setIsMembersDropdownOpen(false)}
-                  className="p-1 text-gray-400 hover:text-gray-600 hover:bg-white rounded-lg transition-colors">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
-              <div className="flex-1 overflow-y-auto p-3 space-y-1.5">
-                {pagedMembers.map((member) => {
-                  const declineMsg = event.event_type === 'meeting' && member.status === 'declined'
-                    ? declineMessages.find(m => m.sender_id === member.id || m.sender?.id === member.id)
-                    : null;
-                  return (
-                    <div key={member.id}>
-                      <div className="flex items-center justify-between bg-gray-50 rounded-xl px-3 py-2.5 border border-gray-100 hover:border-gray-200 transition-colors">
-                        <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                          <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center text-green-700 font-bold text-xs flex-shrink-0">
-                            {(member.username || member.name || '?').charAt(0).toUpperCase()}
-                          </div>
-                          <div className="min-w-0">
-                            <p className="text-sm font-medium text-gray-900 truncate">{member.username || member.name}</p>
-                            <p className="text-xs text-gray-500 truncate">{member.email}</p>
-                          </div>
-                        </div>
-                        <span className={`ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold flex-shrink-0 ${
-                          member.status === 'accepted' ? 'bg-green-100 text-green-800'
-                          : member.status === 'declined' ? 'bg-red-100 text-red-800'
-                          : 'bg-yellow-100 text-yellow-800'
-                        }`}>
-                          {member.status === 'accepted' ? '✔ Accepted' : member.status === 'declined' ? '✘ Declined' : '⏳ Pending'}
-                        </span>
-                      </div>
-                      {declineMsg && (
-                        <p className="mt-1 ml-3 text-xs text-red-600 italic px-2">"{declineMsg.message}"</p>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-              {totalPages > 1 && (
-                <div className="flex items-center justify-between px-4 py-2.5 border-t border-gray-100 bg-gray-50 flex-shrink-0">
-                  <button onClick={() => setMembersPage(p => Math.max(1, p - 1))} disabled={membersPage === 1}
-                    className="px-3 py-1 text-xs font-medium text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
-                    ← Prev
-                  </button>
-                  <span className="text-xs text-gray-500">{membersPage} / {totalPages}</span>
-                  <button onClick={() => setMembersPage(p => Math.min(totalPages, p + 1))} disabled={membersPage === totalPages}
-                    className="px-3 py-1 text-xs font-medium text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
-                    Next →
-                  </button>
-                </div>
-              )}
-            </>
-          );
-
-          return membersPanelStyle.inline ? (
-            // Small screen — inline inside the modal
-            <div className="mt-3 bg-white rounded-2xl border border-gray-200 shadow-sm flex flex-col overflow-hidden max-h-80">
-              {panelContent}
-            </div>
-          ) : (
-            // Large screen — fixed parallel panel to the left
-            <div className="bg-white rounded-2xl border border-gray-200 shadow-2xl flex flex-col overflow-hidden" style={membersPanelStyle}>
-              {panelContent}
-            </div>
-          );
-        })()}
 
         {/* ── Files column (only when images exist) ── */}
         {hasImages && (
@@ -733,6 +726,69 @@ export default function EventDetailModal({ isOpen, onClose, event, currentUser, 
           </div>
         )}
       </div>
+
+        {/* ── Inline members panel — small/medium screens only, below the main content ── */}
+        {isMembersDropdownOpen && membersPanelStyle.inline && event.members && event.members.length > 0 && (
+          <div className="mt-3 bg-white rounded-2xl border border-gray-200 shadow-sm flex flex-col overflow-hidden max-h-80">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 bg-green-50 flex-shrink-0">
+              <div>
+                <p className="text-sm font-semibold text-gray-900">Invited Members</p>
+                <p className="text-xs text-gray-500">{event.members.length} member{event.members.length !== 1 ? 's' : ''}</p>
+              </div>
+              <button onClick={() => setIsMembersDropdownOpen(false)}
+                className="p-1 text-gray-400 hover:text-gray-600 hover:bg-white rounded-lg transition-colors">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-3 space-y-1.5">
+              {pagedMembers.map((member) => {
+                const declineMsg = event.event_type === 'meeting' && member.status === 'declined'
+                  ? declineMessages.find(m => m.sender_id === member.id || m.sender?.id === member.id)
+                  : null;
+                return (
+                  <div key={member.id}>
+                    <div className="flex items-center justify-between bg-gray-50 rounded-xl px-3 py-2.5 border border-gray-100 hover:border-gray-200 transition-colors">
+                      <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                        <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center text-green-700 font-bold text-xs flex-shrink-0">
+                          {(member.username || member.name || '?').charAt(0).toUpperCase()}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium text-gray-900 truncate">{member.username || member.name}</p>
+                          <p className="text-xs text-gray-500 truncate">{member.email}</p>
+                        </div>
+                      </div>
+                      <span className={`ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold flex-shrink-0 ${
+                        member.status === 'accepted' ? 'bg-green-100 text-green-800'
+                        : member.status === 'declined' ? 'bg-red-100 text-red-800'
+                        : 'bg-yellow-100 text-yellow-800'
+                      }`}>
+                        {member.status === 'accepted' ? '✔ Accepted' : member.status === 'declined' ? '✘ Declined' : '⏳ Pending'}
+                      </span>
+                    </div>
+                    {declineMsg && (
+                      <p className="mt-1 ml-3 text-xs text-red-600 italic px-2">"{declineMsg.message}"</p>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between px-4 py-2.5 border-t border-gray-100 bg-gray-50 flex-shrink-0">
+                <button onClick={() => setMembersPage(p => Math.max(1, p - 1))} disabled={membersPage === 1}
+                  className="px-3 py-1 text-xs font-medium text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
+                  ← Prev
+                </button>
+                <span className="text-xs text-gray-500">{membersPage} / {totalPages}</span>
+                <button onClick={() => setMembersPage(p => Math.min(totalPages, p + 1))} disabled={membersPage === totalPages}
+                  className="px-3 py-1 text-xs font-medium text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
+                  Next →
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </Modal>
   );
