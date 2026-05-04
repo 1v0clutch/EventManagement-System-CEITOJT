@@ -17,6 +17,7 @@ import DefaultEvents from './pages/DefaultEvents';
 import History from './pages/History';
 import Archive from './pages/Archive';
 import OrganizationalChart from './pages/OrganizationalChart';
+import Analytics from './pages/Analytics';
 
 const ProtectedRoute = ({ children }) => {
   const { user, loading } = useAuth();
@@ -209,6 +210,11 @@ function App() {
             <ProtectedRoute>
               <OrganizationalChart />
             </ProtectedRoute>
+          } />
+          <Route path="/analytics" element={
+            <RoleProtectedRoute allowedRoles={['Admin']}>
+              <Analytics />
+            </RoleProtectedRoute>
           } />
           <Route path="/" element={<Navigate to="/account" />} />
         </Routes>
